@@ -10,7 +10,7 @@
 - [x] Capture UI screenshot artifact for visual change
 - [x] Update docs freshness (`README.md`, `AGENTS.md` check)
 - [x] Run mistake replay check against `logs/mistakes.md`
-- [~] Create git checkpoint commit(s) and record evidence
+- [x] Create git checkpoint commit(s) and record evidence
 
 ## 2026-02-28T04:45:27Z
 - Status: in progress
@@ -74,3 +74,10 @@
 - Update: Reviewed existing entries (including new adaptive-duplicate entry) and confirmed final implementation avoids both prior external-style dependency and adaptive duplicate-cell mistakes.
 - Evidence: `logs/mistakes.md` entries `2026-02-28T00:46:44Z` and `2026-02-28T04:52:14Z`; passing tests and preview API verification.
 - Next: Create git checkpoint commit(s) and record hash evidence.
+
+## 2026-02-28T04:52:49Z
+- Status: complete
+- Checklist item: Create git checkpoint commit(s) and record evidence
+- Update: Created checkpoint commit covering adaptive layer plugin, API/UI threshold controls, tests, docs, screenshot, and mistake/progress logs.
+- Evidence: `git commit` -> `0524af3` (`Add adaptive facility H3 layer with tunable UI threshold`).
+- Next: Handoff summary with verification evidence and residual risks.
