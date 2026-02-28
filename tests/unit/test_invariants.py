@@ -9,9 +9,10 @@ from inframap.validation.invariants import run_invariants
 def _adaptive_v3_params() -> dict[str, int]:
     return {
         "base_resolution": 4,
+        "min_output_resolution": 5,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
-        "facility_max_resolution": 13,
+        "facility_max_resolution": 9,
         "target_facilities_per_leaf": 1,
         "empty_interior_max_resolution": 7,
         "empty_refine_boundary_band_k": 1,
@@ -76,9 +77,9 @@ def test_invariants_fail_on_duplicate_facility_id() -> None:
 
 
 def test_invariants_pass_for_adaptive_mixed_resolution_partition_without_overlap() -> None:
-    base = h3.latlng_to_cell(41.0, -87.0, 9)
-    child = sorted(h3.cell_to_children(base, 10))[0]
-    sibling = sorted(h3.cell_to_children(base, 10))[1]
+    base = h3.latlng_to_cell(41.0, -87.0, 8)
+    child = sorted(h3.cell_to_children(base, 9))[0]
+    sibling = sorted(h3.cell_to_children(base, 9))[1]
 
     facilities = pd.DataFrame(
         [
@@ -98,13 +99,13 @@ def test_invariants_pass_for_adaptive_mixed_resolution_partition_without_overlap
                 [
                     {
                         "h3": child,
-                        "resolution": 10,
+                        "resolution": 9,
                         "layer_value": 1,
                         "layer_id": "facility_density_adaptive:v3",
                     },
                     {
                         "h3": sibling,
-                        "resolution": 10,
+                        "resolution": 9,
                         "layer_value": 1,
                         "layer_id": "facility_density_adaptive:v3",
                     },
@@ -191,11 +192,11 @@ def test_invariants_pass_when_adaptive_neighbor_smoothing_delta_within_limit() -
 
 
 def test_invariants_fail_when_adaptive_neighbor_smoothing_delta_exceeds_limit() -> None:
-    coarse = str(h3.latlng_to_cell(41.0, -87.0, 8))
+    coarse = str(h3.latlng_to_cell(41.0, -87.0, 7))
     adjacent_coarse = sorted(str(cell) for cell in h3.grid_disk(coarse, 1) if str(cell) != coarse)[0]
     fine = None
-    for child in sorted(str(cell) for cell in h3.cell_to_children(adjacent_coarse, 10)):
-        if any(h3.cell_to_parent(str(neighbor), 8) == coarse for neighbor in h3.grid_disk(child, 1)):
+    for child in sorted(str(cell) for cell in h3.cell_to_children(adjacent_coarse, 9)):
+        if any(h3.cell_to_parent(str(neighbor), 7) == coarse for neighbor in h3.grid_disk(child, 1)):
             fine = child
             break
     assert fine is not None
@@ -216,8 +217,8 @@ def test_invariants_fail_when_adaptive_neighbor_smoothing_delta_exceeds_limit() 
             },
             "cells": pd.DataFrame(
                 [
-                    {"h3": coarse, "resolution": 8, "layer_value": 0, "layer_id": "facility_density_adaptive:v3"},
-                    {"h3": fine, "resolution": 10, "layer_value": 1, "layer_id": "facility_density_adaptive:v3"},
+                    {"h3": coarse, "resolution": 7, "layer_value": 0, "layer_id": "facility_density_adaptive:v3"},
+                    {"h3": fine, "resolution": 9, "layer_value": 1, "layer_id": "facility_density_adaptive:v3"},
                 ]
             ),
         }

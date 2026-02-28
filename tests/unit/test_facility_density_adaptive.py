@@ -7,9 +7,10 @@ from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLay
 def _v3_params() -> dict[str, int | bool]:
     return {
         "base_resolution": 4,
+        "min_output_resolution": 5,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
-        "facility_max_resolution": 13,
+        "facility_max_resolution": 9,
         "target_facilities_per_leaf": 1,
         "empty_interior_max_resolution": 7,
         "empty_refine_boundary_band_k": 1,
@@ -116,9 +117,9 @@ def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     assert metadata["layer_version"] == "v3"
     assert metadata["policy_name"] == "facility_hierarchical_partition_v3"
     assert metadata["coverage_domain"] == "country_mask_r4"
-    assert int(cells["resolution"].min()) >= int(params["base_resolution"])
+    assert int(cells["resolution"].min()) >= int(params["min_output_resolution"])
     assert int(cells["resolution"].max()) <= int(params["facility_floor_resolution"]) - 1
-    assert (cells["resolution"] == int(params["base_resolution"])).any()
+    assert (cells["resolution"] == int(params["min_output_resolution"])).any()
 
 
 def test_adaptive_v3_enforces_occupied_floor_r9() -> None:
@@ -139,9 +140,9 @@ def test_adaptive_v3_enforces_occupied_floor_r9() -> None:
     assert int(occupied["resolution"].min()) >= int(params["facility_floor_resolution"])
 
 
-def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r13_cap() -> None:
+def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r9_cap() -> None:
     base = h3.latlng_to_cell(41.8781, -87.6298, 4)
-    forced_dense_leaf = sorted(h3.cell_to_children(base, 13))[0]
+    forced_dense_leaf = sorted(h3.cell_to_children(base, 9))[0]
     lat, lon = h3.cell_to_latlng(forced_dense_leaf)
     facilities = pd.DataFrame(
         [{"facility_id": f"f{i}", "lat": lat, "lon": lon, "asof_date": "2026-02-28"} for i in range(5)]
@@ -244,4 +245,6 @@ def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_ca
         params=params,
     )
 
+    assert int(cells["resolution"].min()) >= int(params["min_output_resolution"])
+    assert int(cells["resolution"].max()) <= int(params["facility_max_resolution"])
     assert _max_neighbor_resolution_delta(cells) <= int(params["max_neighbor_resolution_delta"])

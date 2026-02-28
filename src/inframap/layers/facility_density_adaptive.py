@@ -20,6 +20,7 @@ class FacilityDensityAdaptiveLayer:
             "coverage_domain": "country_mask_r4",
             "params": [
                 "base_resolution",
+                "min_output_resolution",
                 "empty_compact_min_resolution",
                 "facility_floor_resolution",
                 "facility_max_resolution",
@@ -37,6 +38,7 @@ class FacilityDensityAdaptiveLayer:
         facilities = canonical_store["facilities"]
 
         base_resolution = int(params["base_resolution"])
+        min_output_resolution = int(params.get("min_output_resolution", 5))
         empty_compact_min_resolution = int(params["empty_compact_min_resolution"])
         facility_floor_resolution = int(params["facility_floor_resolution"])
         facility_max_resolution = int(params["facility_max_resolution"])
@@ -46,10 +48,14 @@ class FacilityDensityAdaptiveLayer:
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
 
+        if not (5 <= min_output_resolution <= 9):
+            raise ValueError("min_output_resolution must satisfy 5 <= value <= 9")
         if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
             raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
-        if not (0 <= facility_floor_resolution <= facility_max_resolution <= 13):
-            raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 13")
+        if not (0 <= facility_floor_resolution <= facility_max_resolution <= 9):
+            raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 9")
+        if min_output_resolution > facility_max_resolution:
+            raise ValueError("min_output_resolution must be <= facility_max_resolution")
         if target_facilities_per_leaf < 1:
             raise ValueError("target_facilities_per_leaf must be >= 1")
         if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
@@ -76,6 +82,7 @@ class FacilityDensityAdaptiveLayer:
             metadata = self._metadata(
                 params={
                     "base_resolution": base_resolution,
+                    "min_output_resolution": min_output_resolution,
                     "empty_compact_min_resolution": empty_compact_min_resolution,
                     "facility_floor_resolution": facility_floor_resolution,
                     "facility_max_resolution": facility_max_resolution,
@@ -177,10 +184,10 @@ class FacilityDensityAdaptiveLayer:
             if facility_count > 0:
                 return facility_max_resolution
             if resolution < base_resolution:
-                return facility_floor_resolution - 1
+                return max(min_output_resolution, facility_floor_resolution - 1)
             if is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution):
-                return facility_floor_resolution - 1
-            return min(empty_interior_max_resolution, facility_floor_resolution - 1)
+                return max(min_output_resolution, facility_floor_resolution - 1)
+            return max(min_output_resolution, min(empty_interior_max_resolution, facility_floor_resolution - 1))
 
         def add_leaf(cell: str, facility_count: int) -> None:
             leaves[str(cell)] = int(facility_count)
@@ -209,7 +216,8 @@ class FacilityDensityAdaptiveLayer:
             must_split_for_refinement = (
                 boundary_or_near_occupied and resolution < facility_floor_resolution - 1
             )
-            if must_split_for_hierarchy or must_split_for_refinement:
+            must_split_for_min_output = resolution < min_output_resolution
+            if must_split_for_hierarchy or must_split_for_refinement or must_split_for_min_output:
                 next_resolution = resolution + 1
                 children = sorted(h3.cell_to_children(cell, next_resolution))
                 for child in children:
@@ -335,6 +343,7 @@ class FacilityDensityAdaptiveLayer:
         metadata = self._metadata(
             params={
                 "base_resolution": base_resolution,
+                "min_output_resolution": min_output_resolution,
                 "empty_compact_min_resolution": empty_compact_min_resolution,
                 "facility_floor_resolution": facility_floor_resolution,
                 "facility_max_resolution": facility_max_resolution,
@@ -358,6 +367,7 @@ class FacilityDensityAdaptiveLayer:
                 "empty_branch": {
                     "rule": "hierarchy_then_topology_refine",
                     "hierarchy_required_below_resolution": params["base_resolution"],
+                    "min_output_resolution": params["min_output_resolution"],
                     "boundary_or_near_occupied_max_resolution": params["facility_floor_resolution"] - 1,
                     "empty_interior_max_resolution": params["empty_interior_max_resolution"],
                     "boundary_band_k": params["empty_refine_boundary_band_k"],
@@ -374,6 +384,10 @@ class FacilityDensityAdaptiveLayer:
                     "occupied_max_resolution": params["facility_max_resolution"],
                     "empty_max_resolution": params["facility_floor_resolution"] - 1,
                 },
+                "output_bounds": {
+                    "min_resolution": params["min_output_resolution"],
+                    "max_resolution": 9,
+                },
             },
             "distance_semantics": "hierarchical_partition_over_country_mask",
         }
@@ -386,8 +400,14 @@ class FacilityDensityAdaptiveLayer:
         if cells["h3"].duplicated().any():
             raise ValueError("Adaptive facility layer has duplicate h3 cells")
 
-        if ((cells["resolution"] < 0) | (cells["resolution"] > 13)).any():
-            raise ValueError("Adaptive facility layer has cells outside allowed resolution range [0, 13]")
+        metadata = artifacts.get("metadata", {})
+        metadata_params = metadata.get("params", {}) if isinstance(metadata, dict) else {}
+        min_output_resolution = int(metadata_params.get("min_output_resolution", 5))
+
+        if ((cells["resolution"] < min_output_resolution) | (cells["resolution"] > 9)).any():
+            raise ValueError(
+                f"Adaptive facility layer has cells outside allowed output resolution range [{min_output_resolution}, 9]"
+            )
 
         encoded_resolution = cells["h3"].astype(str).map(h3.get_resolution)
         if not encoded_resolution.equals(cells["resolution"].astype(int)):
@@ -396,9 +416,12 @@ class FacilityDensityAdaptiveLayer:
         if (cells["layer_value"] < 0).any():
             raise ValueError("Adaptive facility layer has negative facility counts")
 
+        facility_floor_resolution = int(metadata_params.get("facility_floor_resolution", 9))
         facility_bearing = cells[cells["layer_value"] > 0]
-        if not facility_bearing.empty and (facility_bearing["resolution"] < 9).any():
-            raise ValueError("Adaptive facility layer has facility-bearing cells coarser than r9")
+        if not facility_bearing.empty and (facility_bearing["resolution"] < facility_floor_resolution).any():
+            raise ValueError(
+                f"Adaptive facility layer has facility-bearing cells coarser than r{facility_floor_resolution}"
+            )
 
         cell_set = {str(cell) for cell in cells["h3"].astype(str).tolist()}
         for cell in sorted(cell_set, key=lambda value: h3.get_resolution(value)):
