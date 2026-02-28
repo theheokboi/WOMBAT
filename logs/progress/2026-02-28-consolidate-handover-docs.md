@@ -27,3 +27,17 @@
 - Evidence: docs/HANDOVER.md; deleted docs/AGENT_HANDOVER.md; deleted docs/AGENT_HANDOVER_PROMPT.md; README.md references section updated.
 - Next: Create git checkpoint commit and append commit hash evidence.
 - Docs check: updated README.md; no additional docs changes required.
+
+## Checklist Snapshot
+- [x] 1. Consolidate handover guide and prompt into one doc.
+- [x] 2. Remove superseded handover doc files.
+- [x] 3. Update any stale references.
+- [x] 4. Git checkpoint commit with evidence.
+
+## 2026-02-28T02:11:28Z
+- Status: complete
+- Checklist item: 4. Git checkpoint commit with evidence.
+- Update: Created git checkpoint commit for handover-doc consolidation and recorded commit evidence.
+- Evidence: commit `18d0d60` with message `docs: consolidate handover docs into single guide`.
+- Next: Handoff complete.
+- Docs check: no further updates required.
