@@ -7,7 +7,7 @@
 - [x] Update tests for removed selector
 - [x] Run impacted verification
 - [x] Docs/mistake replay check
-- [~] Create git checkpoint commit with evidence
+- [x] Create git checkpoint commit with evidence
 
 ## 2026-02-28T04:57:19Z
 - Status: in progress
@@ -50,3 +50,10 @@
 - Update: Docs check: no changes required because this is a UI control removal with no contract/workflow changes. Mistake replay check: no reintroduction of external style dependency or adaptive partition logic changes.
 - Evidence: `README.md`/`AGENTS.md` unchanged by design; reviewed `logs/mistakes.md` entries `2026-02-28T00:46:44Z` and `2026-02-28T04:52:14Z`.
 - Next: Create git checkpoint commit and record hash evidence.
+
+## 2026-02-28T04:58:05Z
+- Status: complete
+- Checklist item: Create git checkpoint commit with evidence
+- Update: Created checkpoint commit containing facility-style selector removal and raw-only rendering changes.
+- Evidence: `git commit` -> `6670a38` (`Remove facility style selector and keep raw facilities`).
+- Next: Handoff summary.
