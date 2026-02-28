@@ -169,13 +169,10 @@ function colorForResolution(resolution) {
 }
 
 async function init() {
-  const h3lib = window.h3;
-  const [ui, facilities, metroCells, countryCells, adaptiveMeta, adaptiveDefault] = await Promise.all([
+  const [ui, facilities, countryCells, adaptiveCells] = await Promise.all([
     loadJson('/v1/ui/config'),
     loadJson('/v1/facilities?limit=50000'),
-    loadJson('/v1/layers/metro_density_core/cells?limit=50000'),
     loadJson('/v1/layers/country_mask/cells'),
-    loadJson('/v1/layers/facility_density_adaptive/metadata'),
     loadJson('/v1/layers/facility_density_adaptive/cells?limit=100000'),
   ]);
 
@@ -249,32 +246,6 @@ async function init() {
 
   renderFacilities();
 
-  const metroLayer = L.geoJSON(metroCells, {
-    style: {
-      color: '#0f766e',
-      weight: 1,
-      fillColor: '#0f766e',
-      fillOpacity: 0.25,
-    },
-    onEachFeature: (feature, layer) => {
-      const p = feature.properties || {};
-      layer.bindTooltip(`Layer: metro_density_core<br/>H3: ${p.h3 || ''}`);
-      layer.on('click', async () => {
-        const h3 = p.h3;
-        if (!h3) return;
-        const body = await loadJson(`/v1/facilities?h3=${encodeURIComponent(h3)}&limit=200`);
-        const content = document.getElementById('drilldown-content');
-        if (!body.features || body.features.length === 0) {
-          content.textContent = `H3 ${h3}: no facilities at drill-down resolution.`;
-          return;
-        }
-        const names = body.features.slice(0, 10)
-          .map((f) => `${f.properties.org_name} / ${f.properties.source_facility_name}`);
-        content.innerHTML = `<strong>H3 ${h3}</strong><br/>${names.join('<br/>')}`;
-      });
-    },
-  }).addTo(map);
-
   const countryLayer = L.geoJSON(countryCells, {
     style: (feature) => {
       const p = feature.properties || {};
@@ -294,8 +265,6 @@ async function init() {
     },
   }).addTo(map);
 
-  let adaptiveCells = adaptiveDefault;
-  const adaptiveDefaultThreshold = Number(adaptiveMeta?.params?.split_threshold || 25);
   const adaptiveLayer = L.geoJSON(adaptiveCells, {
     style: (feature) => {
       const count = Number(feature?.properties?.layer_value || 0);
@@ -316,158 +285,14 @@ async function init() {
   }).addTo(map);
 
   const adaptiveToggle = document.getElementById('toggle-adaptive');
-  const adaptiveSlider = document.getElementById('adaptive-threshold');
-  const adaptiveValue = document.getElementById('adaptive-threshold-value');
-  const adaptiveInfo = document.getElementById('adaptive-info');
-  adaptiveSlider.value = String(adaptiveDefaultThreshold);
-  adaptiveValue.textContent = String(adaptiveDefaultThreshold);
-
-  let adaptiveRequestSeq = 0;
-  async function renderAdaptiveCells() {
+  function renderAdaptiveCells() {
     clearLayer(adaptiveLayer);
     if (!adaptiveToggle.checked) return;
     adaptiveLayer.addData(adaptiveCells);
   }
+  renderAdaptiveCells();
 
-  async function refreshAdaptiveCells() {
-    const threshold = Number(adaptiveSlider.value);
-    adaptiveValue.textContent = String(threshold);
-    adaptiveInfo.textContent = threshold === adaptiveDefaultThreshold
-      ? `Mode: published (threshold ${adaptiveDefaultThreshold})`
-      : `Mode: explore preview (threshold ${threshold})`;
-    const seq = adaptiveRequestSeq + 1;
-    adaptiveRequestSeq = seq;
-    const url = threshold === adaptiveDefaultThreshold
-      ? '/v1/layers/facility_density_adaptive/cells?limit=100000'
-      : `/v1/layers/facility_density_adaptive/cells?limit=100000&split_threshold=${encodeURIComponent(threshold)}`;
-    const payload = await loadJson(url);
-    if (seq !== adaptiveRequestSeq) return;
-    adaptiveCells = payload;
-    await renderAdaptiveCells();
-  }
-
-  adaptiveInfo.textContent = `Mode: published (threshold ${adaptiveDefaultThreshold})`;
-
-  const globalH3Layer = L.geoJSON(null, {
-    style: (feature) => {
-      const resolution = Number(feature?.properties?.resolution || 0);
-      const color = colorForResolution(resolution);
-      return {
-        color,
-        weight: 1,
-        fillColor: color,
-        fillOpacity: 0.05,
-      };
-    },
-    onEachFeature: (feature, layer) => {
-      const p = feature.properties || {};
-      layer.bindTooltip(`Layer: global_h3_viewport<br/>Resolution: ${p.resolution}<br/>H3: ${p.h3}`);
-    },
-  }).addTo(map);
-
-  const globalToggle = document.getElementById('toggle-global-h3');
-  const globalResolutionContainer = document.getElementById('global-h3-resolutions');
-  const globalSuggestedButton = document.getElementById('global-h3-suggested');
-  const globalInfo = document.getElementById('global-h3-info');
-
-  const knownResolutions = uniqueSortedResolutions(ui.zoom_to_h3_resolution);
-  const selectedResolutions = new Set();
-
-  function updateSuggestionText(cellCountByResolution = null) {
-    const suggested = suggestedResolution(map.getZoom(), ui.zoom_to_h3_resolution, ui.drilldown_resolution);
-    const selected = Array.from(selectedResolutions).sort((a, b) => a - b);
-    const countText = cellCountByResolution
-      ? ` | Rendered: ${Object.entries(cellCountByResolution).map(([res, count]) => `r${res}=${count}`).join(', ')}`
-      : '';
-    globalInfo.textContent = `Suggested: r${suggested} | Selected: ${selected.length ? selected.map((res) => `r${res}`).join(', ') : 'none'}${countText}`;
-  }
-
-  function selectedResolutionList() {
-    return Array.from(selectedResolutions).sort((a, b) => a - b);
-  }
-
-  function renderGlobalH3() {
-    clearLayer(globalH3Layer);
-    if (!globalToggle.checked) {
-      updateSuggestionText();
-      return;
-    }
-    if (!h3lib) {
-      globalInfo.textContent = 'Suggested: unavailable | h3-js not loaded';
-      return;
-    }
-
-    const resolutions = selectedResolutionList();
-    if (resolutions.length === 0) {
-      updateSuggestionText();
-      return;
-    }
-
-    const polygons = viewportPolygons(map.getBounds());
-    const featureSet = new Set();
-    const features = [];
-    const cellCountByResolution = {};
-
-    for (const resolution of resolutions) {
-      let count = 0;
-      for (const polygon of polygons) {
-        const cells = polygonToCellsCompat(h3lib, polygon, resolution);
-        for (const cell of cells) {
-          const key = `${resolution}:${cell}`;
-          if (featureSet.has(key)) continue;
-          featureSet.add(key);
-
-          const boundary = cellBoundaryCompat(h3lib, cell);
-          boundary.push(boundary[0]);
-          features.push({
-            type: 'Feature',
-            geometry: { type: 'Polygon', coordinates: [boundary] },
-            properties: { h3: cell, resolution },
-          });
-          count += 1;
-        }
-      }
-      cellCountByResolution[resolution] = count;
-    }
-
-    globalH3Layer.addData({ type: 'FeatureCollection', features });
-    updateSuggestionText(cellCountByResolution);
-  }
-
-  function setSuggestedResolutionOnly() {
-    selectedResolutions.clear();
-    selectedResolutions.add(suggestedResolution(map.getZoom(), ui.zoom_to_h3_resolution, ui.drilldown_resolution));
-    globalResolutionContainer.querySelectorAll('input[type="checkbox"]').forEach((node) => {
-      const resolution = Number(node.value);
-      node.checked = selectedResolutions.has(resolution);
-    });
-  }
-
-  for (const resolution of knownResolutions) {
-    const id = `global-h3-r${resolution}`;
-    const wrapper = document.createElement('label');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = String(resolution);
-    checkbox.id = id;
-    checkbox.addEventListener('change', (event) => {
-      const checked = event.target.checked;
-      if (checked) {
-        selectedResolutions.add(resolution);
-      } else {
-        selectedResolutions.delete(resolution);
-      }
-      renderGlobalH3();
-    });
-    wrapper.appendChild(checkbox);
-    wrapper.appendChild(document.createTextNode(` r${resolution}`));
-    globalResolutionContainer.appendChild(wrapper);
-  }
-
-  setSuggestedResolutionOnly();
-  renderGlobalH3();
-
-  const combined = L.featureGroup([facilityLayer, metroLayer, countryLayer, adaptiveLayer]);
+  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer]);
   if (combined.getBounds().isValid()) {
     map.fitBounds(combined.getBounds(), { padding: [20, 20] });
   }
@@ -483,11 +308,6 @@ async function init() {
     renderFacilities();
   });
 
-  document.getElementById('toggle-metro').addEventListener('change', (e) => {
-    clearLayer(metroLayer);
-    if (e.target.checked) metroLayer.addData(metroCells);
-  });
-
   document.getElementById('toggle-country').addEventListener('change', (e) => {
     clearLayer(countryLayer);
     if (e.target.checked) countryLayer.addData(countryCells);
@@ -495,29 +315,6 @@ async function init() {
 
   adaptiveToggle.addEventListener('change', () => {
     renderAdaptiveCells();
-  });
-
-  adaptiveSlider.addEventListener('input', () => {
-    refreshAdaptiveCells().catch((error) => {
-      adaptiveInfo.textContent = `Mode: error (${error.message})`;
-    });
-  });
-
-  globalToggle.addEventListener('change', () => {
-    renderGlobalH3();
-  });
-
-  globalSuggestedButton.addEventListener('click', () => {
-    setSuggestedResolutionOnly();
-    renderGlobalH3();
-  });
-
-  map.on('moveend', () => {
-    renderGlobalH3();
-  });
-
-  map.on('zoomend', () => {
-    updateSuggestionText();
   });
 }
 

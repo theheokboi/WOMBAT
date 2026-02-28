@@ -21,7 +21,8 @@ def test_ui_static_smoke() -> None:
     assert response.status_code == 200
     assert "Infrastructure Layers" in response.text
     assert "toggle-facilities" in response.text
-    assert "toggle-global-h3" in response.text
-    assert "global-h3-resolutions" in response.text
     assert "toggle-adaptive" in response.text
-    assert "adaptive-threshold" in response.text
+    assert "toggle-country" in response.text
+    assert "toggle-metro" not in response.text
+    assert "toggle-global-h3" not in response.text
+    assert "adaptive-threshold" not in response.text
