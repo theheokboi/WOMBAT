@@ -8,7 +8,7 @@
 - [x] Merge and resolve conflicts
 - [x] Run targeted verification
 - [x] Docs freshness and mistake replay check
-- [ ] Commit changes
+- [x] Commit changes
 
 ## 2026-02-28T07:03:00Z
 - Status: in progress
@@ -37,3 +37,10 @@
 - Update: Docs check completed: `README.md` updated for GB estimate endpoint and deprecated world alias; `AGENTS.md` unchanged (workflow commands unchanged). Mistake replay check completed against `logs/mistakes.md`; no repeated mistake pattern introduced in this change.
 - Evidence: Updated `README.md` endpoint section; reviewed `AGENTS.md`; reviewed `logs/mistakes.md` entries prior to commit.
 - Next: Create scoped commit for remaining workspace changes and record hash.
+
+## 2026-02-28T07:34:00Z
+- Status: complete
+- Checklist item: Commit changes
+- Update: Created a scoped commit for GB-focused UI/API/doc/test updates after successful targeted verification.
+- Evidence: `git commit -m "Focus UI and calibration flow on GB and show latest adaptive version"` -> `ffcdefa`.
+- Next: Handoff summary with exact behavioral outcomes and residual risk.
