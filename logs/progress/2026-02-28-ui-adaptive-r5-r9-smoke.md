@@ -6,7 +6,7 @@
 - [x] Implement defensive UI filter for adaptive cells resolution range 5..9
 - [x] Run UI smoke test and verify pass
 - [x] Docs freshness check and mistake replay check recorded
-- [~] Commit scoped changes and record hash
+- [x] Commit scoped changes and record hash
 
 ## 2026-02-28T07:39:43Z
 - Status: in progress
@@ -42,3 +42,10 @@
 - Update: Docs check: no changes required because this task only adds a defensive frontend filter and smoke assertion without workflow/contract/tooling changes. Mistake replay check: reviewed `logs/mistakes.md` and confirmed no repeated issues (used language-appropriate tests and safe single-quoted heredoc logging).
 - Evidence: `README.md` and `AGENTS.md` unchanged; `logs/mistakes.md` reviewed; `pytest -q tests/ui/test_ui_smoke.py` passing.
 - Next: Stage only owned files and create a scoped commit; record commit hash.
+
+## 2026-02-28T07:40:51Z
+- Status: complete
+- Checklist item: Commit scoped changes and record hash
+- Update: Created scoped git checkpoint commit for frontend adaptive-resolution guard and UI smoke assertions.
+- Evidence: `git commit` -> `3250694` (`ui: guard adaptive cells to resolutions 5 through 9`).
+- Next: Handoff summary to user.
