@@ -55,3 +55,10 @@
 - Update: Docs check: no changes required because Task E only updated adaptive tooltip wording and UI smoke assertion without workflow/contract/tooling changes. Mistake replay check: confirmed no repeat of logged mistakes (no new external rendering dependency and no adaptive-cell duplication logic touched).
 - Evidence: `README.md`/`AGENTS.md` unchanged in this task scope; reviewed `logs/mistakes.md` entries 2026-02-28T00:46:44Z and 2026-02-28T04:52:14Z against current diff.
 - Next: Create scoped git checkpoint commit and record hash.
+
+## 2026-02-28T05:17:30Z
+- Status: complete
+- Checklist item: Docs check (`README.md`/`AGENTS.md`) and mistake replay check before handoff.
+- Update: Created required git checkpoint commit for Task E scoped files.
+- Evidence: Commit `980d78bb3212567a8a45d2689b87484af31698eb` (`frontend: clarify adaptive tooltip as leaf facility count`).
+- Next: Final handoff with changed files and test result summary.
