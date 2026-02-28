@@ -15,6 +15,17 @@ def test_load_system_and_layers_config() -> None:
         "country_mask",
         "facility_density_adaptive",
     }
+    adaptive = next(layer for layer in layers.layers if layer.name == "facility_density_adaptive")
+    assert adaptive.version == "v2"
+    assert adaptive.params == {
+        "base_resolution": 4,
+        "empty_compact_min_resolution": 0,
+        "facility_floor_resolution": 9,
+        "facility_max_resolution": 13,
+        "target_facilities_per_leaf": 1,
+        "allow_domain_expansion": True,
+        "allow_cross_border_compaction": True,
+    }
 
 
 def test_manifest_hashes_are_deterministic() -> None:
@@ -68,3 +79,28 @@ def test_inputs_hash_includes_layer_polygon_dataset(tmp_path: Path) -> None:
     hash_b = compute_inputs_hash(system, local_layers)
 
     assert hash_a != hash_b
+
+
+def test_manifest_config_hash_changes_when_adaptive_params_change() -> None:
+    system = load_system_config(Path("configs/system.yaml"))
+    layers = load_layers_config(Path("configs/layers.yaml"))
+
+    manifest_a = build_run_manifest(system, layers, code_dir=Path("src"))
+
+    rewritten_layers = []
+    for layer in layers.layers:
+        params = dict(layer.params)
+        if layer.name == "facility_density_adaptive":
+            params["target_facilities_per_leaf"] = 2
+        rewritten_layers.append(
+            LayerConfig(
+                name=layer.name,
+                plugin=layer.plugin,
+                version=layer.version,
+                params=params,
+            )
+        )
+    local_layers = LayersConfig(layers_version=layers.layers_version, layers=rewritten_layers)
+
+    manifest_b = build_run_manifest(system, local_layers, code_dir=Path("src"))
+    assert manifest_a.config_hash != manifest_b.config_hash
