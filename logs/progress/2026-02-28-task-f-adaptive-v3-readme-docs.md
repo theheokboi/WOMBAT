@@ -27,3 +27,10 @@
 - Update: Confirmed no repeat of logged mistakes (no external runtime dependency introduced; no adaptive algorithm implementation change). Docs check complete: `AGENTS.md` unchanged because task scope is README-only and no workflow/contract/tooling change beyond adaptive version documentation refresh.
 - Evidence: `logs/mistakes.md`, `README.md`
 - Next: Handoff with changed files summary.
+
+## 2026-02-28T05:41:36Z
+- Status: complete
+- Checklist item: Add migration guidance from `v2` to `v3` in `README.md`.
+- Update: Created required git checkpoint commit for this non-trivial docs task.
+- Evidence: `git commit` -> `d688a17` (`docs: update README for adaptive v3 behavior and migration`)
+- Next: Final handoff.
