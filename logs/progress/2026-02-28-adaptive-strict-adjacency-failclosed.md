@@ -7,7 +7,7 @@
 - [x] Merge and resolve conflicts
 - [x] Run targeted verification suites
 - [x] Docs freshness + mistake replay check
-- [ ] Commit changes
+- [x] Commit changes
 
 ## 2026-02-28T07:46:00Z
 - Status: in progress
@@ -36,3 +36,10 @@
 - Update: README endpoint/status description updated to include adaptive adjacency health in latest-status payload; AGENTS workflow commands unchanged. Mistake replay check performed against `logs/mistakes.md` with no repeated pattern detected.
 - Evidence: `README.md` updated; `AGENTS.md` unchanged; reviewed `logs/mistakes.md`.
 - Next: Commit the fail-closed adjacency enforcement set and record hash.
+
+## 2026-02-28T07:54:00Z
+- Status: complete
+- Checklist item: Commit changes
+- Update: Committed strict fail-closed adjacency enforcement + status surfacing updates after targeted test pass.
+- Evidence: `git commit -m "Fail-close adaptive adjacency delta violations and surface health"` -> `cc3e40a`.
+- Next: Handoff summary including behavior change, verification, and residual notes.
