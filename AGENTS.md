@@ -221,6 +221,7 @@ Minimum metrics:
 Repository commands are currently:
 
 - `make run`
+- `make calibrate COUNTRY=GB`
 - `make serve`
 - `make ui`
 - `make test-blocking`

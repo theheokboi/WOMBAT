@@ -17,11 +17,13 @@ This repository now includes a working bootstrap stack:
 
 ```bash
 make run
+make calibrate COUNTRY=GB
 make serve
 make ui
 ```
 
 - `make run` executes the agent pipeline using `configs/system.yaml` and `configs/layers.yaml`.
+- `make calibrate COUNTRY=GB` runs a non-publish calibration workflow and writes a report under `artifacts/calibration/<timestamp>-GB/report.json`.
 - `make serve` starts FastAPI on `http://localhost:8000`.
 - `make ui` prints the UI URL (`/ui`).
 
@@ -49,6 +51,10 @@ Non-blocking suites:
 ## API Endpoints
 
 - `GET /v1/runs/latest`
+- `GET /v1/runs/latest/status` (runtime expectations, latest run metrics/progress summary, adaptive policy summary)
+- `GET /v1/runs/active/status` (best-effort staging heartbeat for in-progress runs; not yet published)
+- `GET /v1/calibration/latest` (latest calibration report from `artifacts/calibration`)
+- `GET /v1/calibration/estimates/world` (world runtime estimate derived from calibration + world driver snapshot)
 - `GET /v1/layers`
 - `GET /v1/layers/{layer}/metadata`
 - `GET /v1/layers/{layer}/cells` (`facility_density_adaptive` serves published `v3` cells; deprecated `split_threshold` is rejected with `400`)
@@ -99,6 +105,28 @@ Publish pointer:
 - Resolution transitions are smoothed by `max_neighbor_resolution_delta` to avoid abrupt detail jumps between adjacent cells.
 - Update any downstream assumptions that expected aggressive empty-space compaction in `v2`; in `v3`, empty interiors remain readable/coarse while edge and near-activity regions intentionally retain higher detail.
 - `split_threshold` remains deprecated and rejected with `400`.
+
+## Runtime Expectations and Explainability
+
+- `make run`:
+  - typical: `4-10` minutes
+  - slow path: `15-30` minutes
+- adaptive layer compute (`facility_density_adaptive`):
+  - typical: `1-4` minutes
+  - slow path: `8-20` minutes
+- integration test slice (`tests/integration/test_api.py`):
+  - typical: `1-3` minutes
+  - slow path: `5-8` minutes
+
+Run heartbeat/progress:
+
+- During a run, the agent writes append-only heartbeat events to `reports/progress.jsonl`.
+- Published runs retain this file under `data/runs/<run_id>/reports/progress.jsonl`.
+- Staging status is exposed at `/v1/runs/active/status`; latest published runtime summary is at `/v1/runs/latest/status`.
+- No-output policy:
+  - warn after ~90s without progress
+  - escalate investigation after ~5 min
+  - treat as stalled after ~10 min with no new events
 
 ## Agent Quality Workflow
 

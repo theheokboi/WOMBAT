@@ -30,3 +30,10 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Updated `src/inframap/validation/invariants.py` to allow adaptive `resolution` range `0..13`, enforce adaptive `h3`/resolution consistency, require occupied adaptive cells at `r9+`, and reject ancestor/descendant overlap.
 - Prevention rule: After parallel merges that change layer contracts, run target suites (`tests/unit/test_invariants.py` and API integration) before full suite to catch cross-cutting gate drift early.
 - Verification evidence: `pytest -q tests/unit/test_invariants.py` and `pytest -q tests/integration/test_api.py` passing.
+
+## 2026-02-28T06:31:34Z
+- Mistake: Attempted Python syntax compilation on a JavaScript file (`frontend/main.js`) during verification.
+- Root cause: Mixed-language verification command was assembled too quickly without language-specific filtering.
+- Corrective action: Re-ran `py_compile` using Python files only and kept frontend checks to UI smoke tests.
+- Prevention rule: Restrict syntax-compile commands to language-appropriate file sets; never include frontend JS in Python compile commands.
+- Verification evidence: `python -m py_compile src/inframap/agent/calibrate.py src/inframap/agent/runtime_estimator.py src/inframap/serve/app.py tests/integration/test_api.py tests/unit/test_runtime_estimator.py tests/integration/test_calibration_workflow.py` passed.

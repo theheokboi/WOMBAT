@@ -14,12 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from inframap.config import SystemConfig, load_system_config
+from inframap.agent.runtime_estimator import estimate_world_runtime
 
 
 class DataStore:
-    def __init__(self, runs_root: Path, published_root: Path):
+    def __init__(self, runs_root: Path, published_root: Path, staging_root: Path | None = None):
         self.runs_root = runs_root
         self.published_root = published_root
+        self.staging_root = staging_root
 
     def latest_run_id(self) -> str:
         latest_file = self.published_root / "latest"
@@ -44,6 +46,129 @@ def _load_layer_metadata(run_root: Path) -> list[dict[str, Any]]:
                 payload = json.loads(metadata_path.read_text(encoding="utf-8"))
                 items.append(payload)
     return items
+
+
+def _read_json_if_exists(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _latest_calibration_report() -> tuple[str, dict[str, Any]] | None:
+    calibration_root = Path("artifacts") / "calibration"
+    if not calibration_root.exists():
+        return None
+    candidates = sorted(
+        directory
+        for directory in calibration_root.iterdir()
+        if directory.is_dir() and (directory / "report.json").exists()
+    )
+    if not candidates:
+        return None
+    latest = candidates[-1]
+    payload = json.loads((latest / "report.json").read_text(encoding="utf-8"))
+    if "calibration_id" not in payload:
+        payload = {"calibration_id": latest.name, **payload}
+    return latest.name, payload
+
+
+def _from_latest_run_metrics(store: DataStore) -> dict[str, Any]:
+    try:
+        metrics = _read_json_if_exists(store.run_root() / "reports" / "metrics.json") or {}
+    except HTTPException:
+        metrics = {}
+    return {
+        "basis": "latest_run_metrics",
+        "facility_count_total": int(metrics.get("facility_count_total") or 0),
+        "facility_count_by_source": {
+            str(k): int(v) for k, v in (metrics.get("facility_count_by_source") or {}).items()
+        },
+        "country_count_total": 0,
+        "facility_count_by_country": {},
+    }
+
+
+def _build_world_snapshot(system: SystemConfig, store: DataStore) -> dict[str, Any]:
+    by_country: dict[str, int] = {}
+    by_source: dict[str, int] = {}
+    total_rows = 0
+    loaded_any = False
+
+    for source in system.inputs:
+        path = Path(source.path)
+        if not path.exists():
+            continue
+        loaded_any = True
+        sep = "\t" if path.suffix.lower() in {".tsv", ".tab"} else ","
+        frame = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False)
+        source_count = int(len(frame.index))
+        total_rows += source_count
+        by_source[source.source_name] = by_source.get(source.source_name, 0) + source_count
+        cols = {str(col).lower(): col for col in frame.columns}
+        country_col = cols.get("country")
+        if country_col is None:
+            continue
+        country_counts = (
+            frame[country_col]
+            .astype(str)
+            .str.strip()
+            .replace("", pd.NA)
+            .dropna()
+            .value_counts()
+            .to_dict()
+        )
+        for country, count in country_counts.items():
+            by_country[str(country)] = by_country.get(str(country), 0) + int(count)
+
+    if not loaded_any:
+        return _from_latest_run_metrics(store)
+
+    return {
+        "basis": "input_files",
+        "facility_count_total": total_rows,
+        "facility_count_by_source": dict(sorted(by_source.items())),
+        "country_count_total": len(by_country),
+        "facility_count_by_country": dict(sorted(by_country.items())),
+    }
+
+
+def _estimate_world_runtime(report: dict[str, Any], world_snapshot: dict[str, Any]) -> dict[str, Any]:
+    calibration_report = {
+        "facilities": int(report.get("facility_count", report.get("facility_count_total", 0)) or 0),
+        "domain_r4_cell_count": int(report.get("domain_r4_cell_count", 0) or 0),
+        "adaptive_leaf_count": int(
+            report.get("adaptive_leaf_count")
+            or ((report.get("adaptive_counters") or {}).get("leaf_count_total", 0))
+            or 0
+        ),
+        "smoothing_iterations": int(
+            report.get("smoothing_iterations")
+            or ((report.get("adaptive_counters") or {}).get("smoothing_iterations", 0))
+            or 0
+        ),
+        "adjacency_checks": int(
+            report.get("adjacency_checks")
+            or ((report.get("invariant_counters") or {}).get("adjacency_checks", 0))
+            or 0
+        ),
+        "runtime_seconds": float(
+            report.get("runtime_seconds")
+            or report.get("run_duration_seconds")
+            or (report.get("stage_durations_seconds") or {}).get("total", 0)
+            or 0.0
+        ),
+    }
+    world_driver_snapshot = {
+        "facilities": int(world_snapshot.get("facility_count_total", 0) or 0),
+        "domain_r4_cell_count": int(world_snapshot.get("country_count_total", 0) or 0),
+        "adaptive_leaf_count": int(world_snapshot.get("facility_count_total", 0) or 0),
+        "smoothing_iterations": 0,
+        "adjacency_checks": int(world_snapshot.get("facility_count_total", 0) or 0),
+    }
+    return estimate_world_runtime(
+        calibration_reports=[calibration_report],
+        world_driver_snapshot=world_driver_snapshot,
+    )
 
 
 def _tile_bbox(z: int, x: int, y: int) -> tuple[float, float, float, float]:
@@ -82,8 +207,23 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         allow_headers=["*"],
     )
 
-    store = DataStore(runs_root=runs_root, published_root=published_root)
+    store = DataStore(
+        runs_root=runs_root,
+        published_root=published_root,
+        staging_root=Path(system_config.paths.staging_root) if system_config else None,
+    )
     system = system_config or load_system_config(Path("configs/system.yaml"))
+    runtime_expectations = {
+        "make_run": {"typical_minutes": "4-10", "slow_path_minutes": "15-30"},
+        "adaptive_compute": {"typical_minutes": "1-4", "slow_path_minutes": "8-20"},
+        "integration_tests": {"typical_minutes": "1-3", "slow_path_minutes": "5-8"},
+        "heartbeat": {
+            "expected_interval_seconds": 10,
+            "warn_after_no_output_seconds": 90,
+            "escalate_after_no_output_seconds": 300,
+            "stalled_after_no_output_seconds": 600,
+        },
+    }
 
     @app.get("/v1/runs/latest")
     def get_latest_run() -> dict[str, Any]:
@@ -91,6 +231,74 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         manifest_path = store.run_root(run_id) / "reports" / "run_manifest.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         return payload
+
+    @app.get("/v1/runs/latest/status")
+    def latest_run_status() -> dict[str, Any]:
+        run_id = store.latest_run_id()
+        run_root = store.run_root(run_id)
+        layer_metadata = _load_layer_metadata(run_root)
+        adaptive = next((m for m in layer_metadata if m.get("layer_name") == "facility_density_adaptive"), None)
+        metrics = _read_json_if_exists(run_root / "reports" / "metrics.json") or {}
+        progress_path = run_root / "reports" / "progress.jsonl"
+        latest_progress = None
+        if progress_path.exists():
+            lines = [line for line in progress_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            if lines:
+                latest_progress = json.loads(lines[-1])
+        return {
+            "run_id": run_id,
+            "runtime_expectations": runtime_expectations,
+            "metrics": metrics,
+            "adaptive_policy": {
+                "layer_version": adaptive.get("layer_version") if adaptive else None,
+                "policy_name": adaptive.get("policy_name") if adaptive else None,
+                "params": adaptive.get("params") if adaptive else None,
+            },
+            "latest_progress_event": latest_progress,
+        }
+
+    @app.get("/v1/runs/active/status")
+    def active_run_status() -> dict[str, Any]:
+        staging_root = store.staging_root or Path(system.paths.staging_root)
+        active_path = staging_root / "active_run.json"
+        if not active_path.exists():
+            return {"active": False, "runtime_expectations": runtime_expectations}
+        active = json.loads(active_path.read_text(encoding="utf-8"))
+        run_id = active.get("run_id")
+        progress_path = staging_root / str(run_id) / "reports" / "progress.jsonl"
+        latest_progress = None
+        if progress_path.exists():
+            lines = [line for line in progress_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            if lines:
+                latest_progress = json.loads(lines[-1])
+        return {
+            "active": True,
+            "runtime_expectations": runtime_expectations,
+            "active_status": active,
+            "latest_progress_event": latest_progress,
+            "published_note": "This status is from staging and not yet published.",
+        }
+
+    @app.get("/v1/calibration/latest")
+    def calibration_latest() -> dict[str, Any]:
+        latest = _latest_calibration_report()
+        if latest is None:
+            raise HTTPException(status_code=404, detail="No calibration report found")
+        _, report = latest
+        return report
+
+    @app.get("/v1/calibration/estimates/world")
+    def calibration_world_estimate() -> dict[str, Any]:
+        latest = _latest_calibration_report()
+        if latest is None:
+            raise HTTPException(status_code=404, detail="No calibration report found")
+        calibration_id, report = latest
+        world_snapshot = _build_world_snapshot(system=system, store=store)
+        return {
+            "calibration_id": calibration_id,
+            "world_snapshot": world_snapshot,
+            "estimate": _estimate_world_runtime(report=report, world_snapshot=world_snapshot),
+        }
 
     @app.get("/v1/layers")
     def list_layers() -> dict[str, Any]:
@@ -125,7 +333,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                     status_code=400,
                     detail=(
                         "split_threshold preview is deprecated for facility_density_adaptive; "
-                        "query published v2 cells without split_threshold"
+                        "query published cells without split_threshold"
                     ),
                 )
             raise HTTPException(
@@ -278,7 +486,9 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
     return app
 
 
+_DEFAULT_SYSTEM = load_system_config(Path("configs/system.yaml"))
 app = create_app(
-    runs_root=Path(load_system_config(Path("configs/system.yaml")).paths.runs_root),
-    published_root=Path(load_system_config(Path("configs/system.yaml")).paths.published_root),
+    runs_root=Path(_DEFAULT_SYSTEM.paths.runs_root),
+    published_root=Path(_DEFAULT_SYSTEM.paths.published_root),
+    system_config=_DEFAULT_SYSTEM,
 )

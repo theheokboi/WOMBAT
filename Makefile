@@ -1,7 +1,10 @@
-.PHONY: run serve ui test test-blocking test-nonblocking
+.PHONY: run calibrate serve ui test test-blocking test-nonblocking
 
 run:
 	python -m inframap.agent.cli
+
+calibrate:
+	python -m inframap.agent.calibrate
 
 serve:
 	python -m inframap.serve
