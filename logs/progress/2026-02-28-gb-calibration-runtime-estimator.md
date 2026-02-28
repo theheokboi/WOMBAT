@@ -7,9 +7,9 @@
 - [x] Add calibration API endpoints and UI status integration
 - [x] Add unit/integration/perf tests for calibration and estimation
 - [x] Update README/AGENTS docs for calibration workflow
-- [~] Run verification suites and capture evidence
+- [x] Run verification suites and capture evidence
 - [x] Docs freshness + mistake replay check
-- [ ] Git checkpoint commit recorded
+- [x] Git checkpoint commit recorded
 
 ## 2026-02-28T06:26:56Z
 - Status: in progress
@@ -45,3 +45,10 @@
 - Update: Updated `README.md` and `AGENTS.md` for `make calibrate` workflow and calibration endpoints. Mistake replay check completed against `logs/mistakes.md` entries; no repeated unresolved mistake patterns remain in this change.
 - Evidence: `README.md`, `AGENTS.md`, `logs/mistakes.md` (new 2026-02-28 entry).
 - Next: Commit task files and record commit hash in this progress log.
+
+## 2026-02-28T06:53:20Z
+- Status: complete
+- Checklist item: Git checkpoint commit recorded
+- Update: Created checkpoint commit for GB calibration workflow, estimator, calibration API/UI integration, and associated tests/docs updates.
+- Evidence: `git commit` -> `1d7a9eb`.
+- Next: Handoff with residual note that full `tests/integration/test_api.py` and long perf suites were not re-run end-to-end in this cycle due runtime constraints.
