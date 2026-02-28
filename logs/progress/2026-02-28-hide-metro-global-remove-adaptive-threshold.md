@@ -7,7 +7,7 @@
 - [x] Update UI smoke tests for new expected controls
 - [x] Run verification for impacted tests
 - [x] Docs check (`README.md`, `AGENTS.md`) and mistake replay check
-- [~] Create git checkpoint commit and record evidence
+- [x] Create git checkpoint commit and record evidence
 
 ## 2026-02-28T04:55:38Z
 - Status: in progress
@@ -50,3 +50,10 @@
 - Update: Docs check: no changes required; this task only adjusts visible UI controls without workflow/API contract changes. Mistake replay check: confirmed no reintroduction of external style dependency risk and no adaptive duplicate-cell logic changes.
 - Evidence: `README.md` unchanged with valid current behavior; `AGENTS.md` unchanged; `logs/mistakes.md` reviewed entries `2026-02-28T00:46:44Z` and `2026-02-28T04:52:14Z`.
 - Next: Create git checkpoint commit and record hash evidence.
+
+## 2026-02-28T04:56:19Z
+- Status: complete
+- Checklist item: Create git checkpoint commit and record evidence
+- Update: Created checkpoint commit with UI control removals and smoke-test updates.
+- Evidence: `git commit` -> `c737066` (`Hide metro/global layers and remove adaptive threshold UI`).
+- Next: Handoff summary.
