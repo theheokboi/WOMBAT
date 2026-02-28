@@ -98,7 +98,7 @@ async function init() {
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
       layer.bindTooltip(
-        `Layer: facility_density_adaptive<br/>Count: ${Number(p.layer_value || 0).toLocaleString()}<br/>Resolution: r${p.resolution || ''}<br/>H3: ${p.h3 || ''}`
+        `Layer: facility_density_adaptive<br/>Leaf facility count: ${Number(p.layer_value || 0).toLocaleString()}<br/>Resolution: r${p.resolution || ''}<br/>H3: ${p.h3 || ''}`
       );
     },
   }).addTo(map);

@@ -27,3 +27,7 @@ def test_ui_static_smoke() -> None:
     assert "toggle-global-h3" not in response.text
     assert "adaptive-threshold" not in response.text
     assert "facility-style" not in response.text
+
+    script_response = client.get("/ui/main.js")
+    assert script_response.status_code == 200
+    assert "Leaf facility count" in script_response.text
