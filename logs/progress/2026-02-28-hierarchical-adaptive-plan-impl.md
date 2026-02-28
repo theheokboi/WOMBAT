@@ -11,7 +11,7 @@
 - [x] Merge pass and conflict resolution
 - [x] Full verification (`make run`, `make test-blocking`, `make test-nonblocking`)
 - [x] Docs freshness check (`README.md`/`AGENTS.md`) and mistake replay check
-- [ ] Git checkpoint commit recorded
+- [x] Git checkpoint commit recorded
 
 ## 2026-02-28T05:15:37Z
 - Status: in progress
@@ -47,3 +47,10 @@
 - Update: Docs check complete: `README.md` updated for adaptive `v2` behavior and migration notes; `AGENTS.md` unchanged because workflow/quality-gate contracts did not change. Mistake replay check complete against `logs/mistakes.md` (including new entry for invariant drift), and current implementation confirms the issue is not repeated.
 - Evidence: `README.md`; `logs/mistakes.md` entry `2026-02-28T05:23:01Z`; passing invariants/API suites.
 - Next: Create checkpoint commit and record hash in this log.
+
+## 2026-02-28T05:23:49Z
+- Status: complete
+- Checklist item: Git checkpoint commit recorded
+- Update: Created repository checkpoint commit capturing final adaptive v2 algorithm/API/invariant integration and progress logging updates.
+- Evidence: `git commit -m "implement hierarchical adaptive v2 layer and verification gates"` -> `82b6cd8`.
+- Next: Prepare final handoff summary with verification evidence and residual risk note.
