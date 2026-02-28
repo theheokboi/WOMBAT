@@ -50,6 +50,17 @@ def test_api_endpoints_and_tiles(tmp_path: Path) -> None:
     assert meta.status_code == 200
     assert meta.json()["layer_name"] == "metro_density_core"
 
+    adaptive_meta = client.get("/v1/layers/facility_density_adaptive/metadata")
+    assert adaptive_meta.status_code == 200
+    adaptive_meta_json = adaptive_meta.json()
+    assert adaptive_meta_json["layer_name"] == "facility_density_adaptive"
+    assert adaptive_meta_json["layer_version"] == "v2"
+    assert adaptive_meta_json["policy_name"] == "facility_hierarchical_partition_v2"
+    assert adaptive_meta_json["coverage_domain"] == "country_mask_r4"
+    assert adaptive_meta_json["params"]["facility_floor_resolution"] == 9
+    assert adaptive_meta_json["params"]["facility_max_resolution"] == 13
+    assert adaptive_meta_json["params"]["target_facilities_per_leaf"] == 1
+
     metro_cells = client.get("/v1/layers/metro_density_core/cells")
     assert metro_cells.status_code == 200
     assert len(metro_cells.json()["features"]) > 0
@@ -64,11 +75,11 @@ def test_api_endpoints_and_tiles(tmp_path: Path) -> None:
     assert adaptive_cells_default.status_code == 200
     default_features = adaptive_cells_default.json()["features"]
     assert len(default_features) > 0
+    assert "preview" not in adaptive_cells_default.json()
 
     adaptive_cells_fine = client.get("/v1/layers/facility_density_adaptive/cells?split_threshold=1")
-    assert adaptive_cells_fine.status_code == 200
-    fine_features = adaptive_cells_fine.json()["features"]
-    assert len(fine_features) >= len(default_features)
+    assert adaptive_cells_fine.status_code == 400
+    assert "split_threshold preview is deprecated for facility_density_adaptive" in adaptive_cells_fine.json()["detail"]
 
     facilities = client.get("/v1/facilities")
     assert facilities.status_code == 200
