@@ -18,12 +18,14 @@ layers:
       exclude_iso_a2: ["AQ"]
   - name: facility_density_adaptive
     plugin: inframap.layers.facility_density_adaptive:FacilityDensityAdaptiveLayer
-    version: v2
+    version: v3
     params:
       base_resolution: 4
       empty_compact_min_resolution: 0
       facility_floor_resolution: 9
       facility_max_resolution: 13
       target_facilities_per_leaf: 1
-      allow_domain_expansion: true
-      allow_cross_border_compaction: true
+      empty_interior_max_resolution: 5
+      empty_refine_boundary_band_k: 1
+      empty_refine_near_occupied_k: 1
+      max_neighbor_resolution_delta: 1

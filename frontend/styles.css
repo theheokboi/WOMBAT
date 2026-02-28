@@ -108,6 +108,17 @@ h1, h2 {
   font-size: 14px;
 }
 
+#run-status {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  border: 1px solid #ddd6c7;
+  border-radius: 6px;
+  padding: 8px;
+  background: #f8fafc;
+  font-size: 13px;
+}
+
 .swatch {
   display: inline-block;
   width: 14px;

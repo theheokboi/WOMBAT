@@ -6,6 +6,25 @@ import h3
 import pandas as pd
 
 
+def _adaptive_neighbor_smoothing_max_delta(metadata: dict[str, Any]) -> int | None:
+    params = metadata.get("params")
+    if isinstance(params, dict):
+        for key in (
+            "max_neighbor_resolution_delta",
+            "neighbor_smoothing_max_delta",
+            "smoothing_adjacency_max_delta",
+        ):
+            value = params.get(key)
+            if value is not None:
+                return int(value)
+    smoothing = metadata.get("smoothing")
+    if isinstance(smoothing, dict):
+        value = smoothing.get("max_neighbor_delta")
+        if value is not None:
+            return int(value)
+    return None
+
+
 def run_invariants(
     facilities: pd.DataFrame,
     layer_artifacts: dict[str, dict[str, Any]],
@@ -66,8 +85,56 @@ def run_invariants(
                 if not occupied.empty and (occupied["resolution"].astype(int) < 9).any():
                     raise ValueError("Invariant failed: adaptive occupied cells must be at least r9")
             adaptive_cells = {str(cell) for cell in cells["h3"].astype(str).tolist()}
+            parent_cache: dict[tuple[str, int], str] = {}
+
+            def parent_cell(cell: str, resolution: int) -> str:
+                key = (cell, resolution)
+                cached = parent_cache.get(key)
+                if cached is not None:
+                    return cached
+                if h3.get_resolution(cell) == resolution:
+                    parent_cache[key] = cell
+                else:
+                    parent_cache[key] = h3.cell_to_parent(cell, resolution)
+                return parent_cache[key]
+
             for cell in sorted(adaptive_cells, key=lambda c: h3.get_resolution(c)):
                 resolution = h3.get_resolution(cell)
                 for ancestor_resolution in range(resolution - 1, -1, -1):
-                    if h3.cell_to_parent(cell, ancestor_resolution) in adaptive_cells:
+                    if parent_cell(cell, ancestor_resolution) in adaptive_cells:
                         raise ValueError("Invariant failed: adaptive ancestor/descendant overlap")
+            max_neighbor_delta = _adaptive_neighbor_smoothing_max_delta(metadata)
+            if max_neighbor_delta is not None:
+                if max_neighbor_delta < 0:
+                    raise ValueError("Invariant failed: adaptive smoothing max delta must be non-negative")
+                resolution_by_cell = {cell: h3.get_resolution(cell) for cell in adaptive_cells}
+                by_resolution: dict[int, set[str]] = {resolution: set() for resolution in range(14)}
+                for cell, resolution in resolution_by_cell.items():
+                    by_resolution[resolution].add(cell)
+                neighbor_cache: dict[str, list[str]] = {}
+
+                def covering_leaf_for_neighbor(cell: str, resolution: int) -> tuple[str, int] | None:
+                    for ancestor_resolution in range(resolution, -1, -1):
+                        ancestor = parent_cell(cell, ancestor_resolution)
+                        if ancestor in by_resolution[ancestor_resolution]:
+                            return ancestor, ancestor_resolution
+                    return None
+
+                for cell in sorted(adaptive_cells, key=lambda c: (resolution_by_cell[c], c)):
+                    resolution = resolution_by_cell[cell]
+                    if cell in neighbor_cache:
+                        neighbors = neighbor_cache[cell]
+                    else:
+                        neighbors = [str(neighbor) for neighbor in h3.grid_disk(cell, 1)]
+                        neighbor_cache[cell] = neighbors
+                    for neighbor_str in neighbors:
+                        if neighbor_str == cell:
+                            continue
+                        covered = covering_leaf_for_neighbor(neighbor_str, resolution)
+                        if covered is None:
+                            continue
+                        _, neighbor_resolution = covered
+                        if abs(resolution - neighbor_resolution) > max_neighbor_delta:
+                            raise ValueError(
+                                "Invariant failed: adaptive smoothing adjacency delta exceeds configured maximum"
+                            )

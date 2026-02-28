@@ -74,32 +74,37 @@ def test_golden_country_mask_cells() -> None:
     assert actual == expected
 
 
-def test_golden_facility_density_adaptive_v2_fixture_is_deterministic() -> None:
+def test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid_partition() -> None:
     facilities, _, _ = ingest_and_normalize(
         [(Path("tests/fixtures/facilities_small.csv"), "fixture")],
         canonical_h3_resolutions=[4, 5, 7, 9, 13],
     )
-    country = CountryMaskLayer(version="v1")
-    _, country_cells = country.compute(
-        canonical_store={"facilities": facilities},
-        layer_store={},
-        params={
-            "resolution": 4,
-            "membership_rule": "centroid_in_polygon",
-            "polygon_dataset": "data/reference/natural_earth_admin0_subset.geojson",
-            "exclude_iso_a2": ["AQ"],
-        },
+    domain_r4 = sorted({str(cell) for cell in facilities["h3_r4"].astype(str).tolist()})
+    country_cells = (
+        facilities[["h3_r4"]]
+        .drop_duplicates()
+        .assign(
+            h3=lambda frame: frame["h3_r4"].astype(str),
+            resolution=4,
+            layer_value="land",
+            country_name="fixture",
+        )[["h3", "resolution", "layer_value", "country_name"]]
+        .sort_values("h3")
+        .reset_index(drop=True)
     )
+    assert len(domain_r4) == len(country_cells)
 
-    adaptive = FacilityDensityAdaptiveLayer(version="v2")
+    adaptive = FacilityDensityAdaptiveLayer(version="v3")
     params = {
         "base_resolution": 4,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
         "facility_max_resolution": 13,
         "target_facilities_per_leaf": 1,
-        "allow_domain_expansion": True,
-        "allow_cross_border_compaction": True,
+        "empty_interior_max_resolution": 7,
+        "empty_refine_boundary_band_k": 1,
+        "empty_refine_near_occupied_k": 1,
+        "max_neighbor_resolution_delta": 1,
     }
     metadata_a, cells_a = adaptive.compute(
         canonical_store={"facilities": facilities},
@@ -112,10 +117,16 @@ def test_golden_facility_density_adaptive_v2_fixture_is_deterministic() -> None:
         params=params,
     )
 
-    assert metadata_a["policy_name"] == "facility_hierarchical_partition_v2"
+    assert metadata_a["layer_version"] == "v3"
     assert metadata_a["coverage_domain"] == "country_mask_r4"
     assert metadata_a == metadata_b
     subset_a = cells_a[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).to_dict("records")
     subset_b = cells_b[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).to_dict("records")
     assert subset_a == subset_b
+    assert cells_a["h3"].is_unique
+    assert int(cells_a["resolution"].min()) >= 0
+    assert int(cells_a["resolution"].max()) <= 13
+    occupied = cells_a[cells_a["layer_value"] > 0]
+    assert not occupied.empty
+    assert int(occupied["resolution"].min()) >= 9
     assert not _has_ancestor_descendant_overlap(subset_a)

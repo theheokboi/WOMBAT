@@ -1,0 +1,26 @@
+{
+  "adaptive_leaf_count": 30567,
+  "adjacency_checks": 0,
+  "country_code": "GB",
+  "domain_r4_cell_count": 159,
+  "facilities": 217,
+  "facility_count": 217,
+  "invariant_error": "Invariant failed: adaptive smoothing adjacency delta exceeds configured maximum",
+  "invariant_passed": false,
+  "invariant_stage_duration_seconds": 0.27011,
+  "layer_durations_seconds": {
+    "country_mask": 0.756069,
+    "facility_density_adaptive": 0.989665,
+    "metro_density_core": 0.010853
+  },
+  "run_timestamp_utc": "2026-02-28T06:51:02Z",
+  "runtime_seconds": 2.208851,
+  "smoothing_iterations": 0,
+  "stage_durations_seconds": {
+    "filter_country": 0.003033,
+    "ingest_normalize": 0.137298,
+    "invariants": 0.27011,
+    "layers_compute": 1.79718,
+    "total": 2.208851
+  }
+}

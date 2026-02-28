@@ -16,7 +16,7 @@ class FacilityDensityAdaptiveLayer:
             "name": "facility_density_adaptive",
             "version": self.version,
             "distance_semantics": "hierarchical_partition_over_country_mask",
-            "policy_name": "facility_hierarchical_partition_v2",
+            "policy_name": "facility_hierarchical_partition_v3",
             "coverage_domain": "country_mask_r4",
             "params": [
                 "base_resolution",
@@ -24,8 +24,10 @@ class FacilityDensityAdaptiveLayer:
                 "facility_floor_resolution",
                 "facility_max_resolution",
                 "target_facilities_per_leaf",
-                "allow_domain_expansion",
-                "allow_cross_border_compaction",
+                "empty_interior_max_resolution",
+                "empty_refine_boundary_band_k",
+                "empty_refine_near_occupied_k",
+                "max_neighbor_resolution_delta",
             ],
         }
 
@@ -39,23 +41,27 @@ class FacilityDensityAdaptiveLayer:
         facility_floor_resolution = int(params["facility_floor_resolution"])
         facility_max_resolution = int(params["facility_max_resolution"])
         target_facilities_per_leaf = int(params["target_facilities_per_leaf"])
-        allow_domain_expansion = bool(params["allow_domain_expansion"])
-        allow_cross_border_compaction = bool(params["allow_cross_border_compaction"])
+        empty_interior_max_resolution = int(params["empty_interior_max_resolution"])
+        empty_refine_boundary_band_k = int(params["empty_refine_boundary_band_k"])
+        empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
+        max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
 
-        if base_resolution != 4:
-            raise ValueError("base_resolution must be 4 for facility_hierarchical_partition_v2")
-        if empty_compact_min_resolution != 0:
-            raise ValueError("empty_compact_min_resolution must be 0 for facility_hierarchical_partition_v2")
-        if facility_floor_resolution != 9:
-            raise ValueError("facility_floor_resolution must be 9 for facility_hierarchical_partition_v2")
-        if facility_max_resolution != 13:
-            raise ValueError("facility_max_resolution must be 13 for facility_hierarchical_partition_v2")
-        if target_facilities_per_leaf != 1:
-            raise ValueError("target_facilities_per_leaf must be 1 for facility_hierarchical_partition_v2")
-        if not allow_domain_expansion:
-            raise ValueError("allow_domain_expansion must be true for facility_hierarchical_partition_v2")
-        if not allow_cross_border_compaction:
-            raise ValueError("allow_cross_border_compaction must be true for facility_hierarchical_partition_v2")
+        if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
+            raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
+        if not (0 <= facility_floor_resolution <= facility_max_resolution <= 13):
+            raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 13")
+        if target_facilities_per_leaf < 1:
+            raise ValueError("target_facilities_per_leaf must be >= 1")
+        if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
+            raise ValueError(
+                "empty_interior_max_resolution must satisfy base_resolution <= value <= facility_floor_resolution - 1"
+            )
+        if empty_refine_boundary_band_k < 0:
+            raise ValueError("empty_refine_boundary_band_k must be >= 0")
+        if empty_refine_near_occupied_k < 0:
+            raise ValueError("empty_refine_near_occupied_k must be >= 0")
+        if max_neighbor_resolution_delta < 0:
+            raise ValueError("max_neighbor_resolution_delta must be >= 0")
 
         country_artifacts = layer_store.get("country_mask")
         if not isinstance(country_artifacts, dict) or "cells" not in country_artifacts:
@@ -74,15 +80,30 @@ class FacilityDensityAdaptiveLayer:
                     "facility_floor_resolution": facility_floor_resolution,
                     "facility_max_resolution": facility_max_resolution,
                     "target_facilities_per_leaf": target_facilities_per_leaf,
-                    "allow_domain_expansion": allow_domain_expansion,
-                    "allow_cross_border_compaction": allow_cross_border_compaction,
+                    "empty_interior_max_resolution": empty_interior_max_resolution,
+                    "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
+                    "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
+                    "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
                 }
             )
             return metadata, empty
 
         domain_r4_set = set(domain_r4)
+        parent_cache: dict[tuple[str, int], str] = {}
+
+        def parent_cell(cell: str, resolution: int) -> str:
+            key = (cell, resolution)
+            cached = parent_cache.get(key)
+            if cached is not None:
+                return cached
+            if h3.get_resolution(cell) == resolution:
+                parent_cache[key] = cell
+            else:
+                parent_cache[key] = h3.cell_to_parent(cell, resolution)
+            return parent_cache[key]
+
         domain_ancestors_by_resolution = {
-            resolution: {h3.cell_to_parent(cell, resolution) for cell in domain_r4_set}
+            resolution: {parent_cell(cell, resolution) for cell in domain_r4_set}
             for resolution in range(empty_compact_min_resolution, base_resolution)
         }
 
@@ -106,7 +127,7 @@ class FacilityDensityAdaptiveLayer:
                 continue
             if resolution < base_resolution:
                 series = facilities_in_domain[f"h3_r{base_resolution}"].map(
-                    lambda cell: h3.cell_to_parent(cell, resolution)
+                    lambda cell: parent_cell(str(cell), resolution)
                 )
             else:
                 series = facilities_in_domain[f"h3_r{resolution}"]
@@ -115,40 +136,159 @@ class FacilityDensityAdaptiveLayer:
             }
 
         roots = sorted(domain_ancestors_by_resolution[empty_compact_min_resolution])
-        leaves: list[tuple[str, int, int]] = []
+        leaves: dict[str, int] = {}
 
         def intersects_domain(cell: str, resolution: int) -> bool:
             if resolution < base_resolution:
                 return cell in domain_ancestors_by_resolution[resolution]
             if resolution == base_resolution:
                 return cell in domain_r4_set
-            return h3.cell_to_parent(cell, base_resolution) in domain_r4_set
+            return parent_cell(cell, base_resolution) in domain_r4_set
+
+        neighbors_cache: dict[tuple[str, int], list[str]] = {}
+
+        def neighbors_within_k(cell: str, resolution: int, k: int) -> list[str]:
+            key = (cell, k)
+            cached = neighbors_cache.get(key)
+            if cached is not None:
+                return cached
+            if k <= 0:
+                return [cell]
+            neighbors = sorted(str(neighbor) for neighbor in h3.grid_disk(cell, k))
+            neighbors_cache[key] = [neighbor for neighbor in neighbors if h3.get_resolution(neighbor) == resolution]
+            return neighbors_cache[key]
+
+        def is_boundary_band(cell: str, resolution: int) -> bool:
+            for neighbor in neighbors_within_k(cell, resolution, empty_refine_boundary_band_k):
+                if not intersects_domain(neighbor, resolution):
+                    return True
+            return False
+
+        def is_near_occupied(cell: str, resolution: int) -> bool:
+            occupied = count_by_resolution[resolution]
+            for neighbor in neighbors_within_k(cell, resolution, empty_refine_near_occupied_k):
+                if neighbor == cell:
+                    continue
+                if occupied.get(neighbor, 0) > 0:
+                    return True
+            return False
+
+        def max_allowed_resolution(cell: str, resolution: int, facility_count: int) -> int:
+            if facility_count > 0:
+                return facility_max_resolution
+            if resolution < base_resolution:
+                return facility_floor_resolution - 1
+            if is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution):
+                return facility_floor_resolution - 1
+            return min(empty_interior_max_resolution, facility_floor_resolution - 1)
+
+        def add_leaf(cell: str, facility_count: int) -> None:
+            leaves[str(cell)] = int(facility_count)
 
         def recurse(cell: str, resolution: int) -> None:
             facility_count = count_by_resolution[resolution].get(cell, 0)
-            if facility_count == 0:
-                leaves.append((cell, resolution, 0))
+            if facility_count > 0:
+                must_split_for_floor = resolution < facility_floor_resolution
+                must_split_for_density = (
+                    facility_count > target_facilities_per_leaf and resolution < facility_max_resolution
+                )
+                if not must_split_for_floor and not must_split_for_density:
+                    add_leaf(cell, facility_count)
+                    return
+
+                next_resolution = resolution + 1
+                children = sorted(h3.cell_to_children(cell, next_resolution))
+                for child in children:
+                    child_str = str(child)
+                    if intersects_domain(child_str, next_resolution):
+                        recurse(child_str, next_resolution)
                 return
 
-            must_split_for_floor = resolution < facility_floor_resolution
-            must_split_for_density = (
-                facility_count > target_facilities_per_leaf and resolution < facility_max_resolution
+            must_split_for_hierarchy = resolution < base_resolution
+            boundary_or_near_occupied = is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution)
+            must_split_for_refinement = (
+                boundary_or_near_occupied and resolution < facility_floor_resolution - 1
             )
-            if not must_split_for_floor and not must_split_for_density:
-                leaves.append((cell, resolution, facility_count))
+            if must_split_for_hierarchy or must_split_for_refinement:
+                next_resolution = resolution + 1
+                children = sorted(h3.cell_to_children(cell, next_resolution))
+                for child in children:
+                    child_str = str(child)
+                    if intersects_domain(child_str, next_resolution):
+                        recurse(child_str, next_resolution)
                 return
 
-            next_resolution = resolution + 1
-            children = sorted(h3.cell_to_children(cell, next_resolution))
-            for child in children:
-                if intersects_domain(child, next_resolution):
-                    recurse(str(child), next_resolution)
+            add_leaf(cell, 0)
 
         for root in roots:
             recurse(str(root), empty_compact_min_resolution)
 
+        def leaf_sets_by_resolution() -> dict[int, set[str]]:
+            by_resolution: dict[int, set[str]] = {resolution: set() for resolution in range(14)}
+            for cell in leaves:
+                by_resolution[h3.get_resolution(cell)].add(cell)
+            return by_resolution
+
+        def covering_leaf_for_neighbor(cell: str, resolution: int, by_resolution: dict[int, set[str]]) -> tuple[str, int] | None:
+            for ancestor_resolution in range(resolution, -1, -1):
+                ancestor = parent_cell(cell, ancestor_resolution)
+                if ancestor in by_resolution[ancestor_resolution]:
+                    return ancestor, ancestor_resolution
+            return None
+
+        def refine_leaf(cell: str, resolution: int, facility_count: int) -> bool:
+            if resolution >= max_allowed_resolution(cell, resolution, facility_count):
+                return False
+            next_resolution = resolution + 1
+            children = sorted(h3.cell_to_children(cell, next_resolution))
+            del leaves[cell]
+            for child in children:
+                child_str = str(child)
+                if intersects_domain(child_str, next_resolution):
+                    leaves[child_str] = count_by_resolution[next_resolution].get(child_str, 0)
+            return True
+
+        # Deterministic neighbor smoothing: refine the coarser side while allowed.
+        while True:
+            by_resolution = leaf_sets_by_resolution()
+            resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in leaves}
+            coarse_candidates: set[tuple[str, int, int]] = set()
+            for cell in sorted(leaves, key=lambda value: (resolution_by_leaf[value], value)):
+                resolution = resolution_by_leaf[cell]
+                same_resolution_neighbors = neighbors_within_k(cell, resolution, 1)
+                for neighbor in same_resolution_neighbors:
+                    if neighbor == cell:
+                        continue
+                    covered = covering_leaf_for_neighbor(neighbor, resolution, by_resolution)
+                    if covered is None:
+                        continue
+                    neighbor_leaf, neighbor_resolution = covered
+                    delta = abs(resolution - neighbor_resolution)
+                    if delta <= max_neighbor_resolution_delta:
+                        continue
+                    if resolution < neighbor_resolution:
+                        coarse_candidates.add((cell, resolution, leaves[cell]))
+                    elif neighbor_resolution < resolution:
+                        coarse_candidates.add((neighbor_leaf, neighbor_resolution, leaves[neighbor_leaf]))
+
+            if not coarse_candidates:
+                break
+
+            refined = False
+            for candidate_cell, candidate_resolution, candidate_count in sorted(
+                coarse_candidates, key=lambda item: (item[1], item[0])
+            ):
+                if refine_leaf(candidate_cell, candidate_resolution, candidate_count):
+                    refined = True
+                    break
+            if not refined:
+                break
+
         # Deterministic mixed-resolution leaf output.
-        output = pd.DataFrame(leaves, columns=["h3", "resolution", "layer_value"])
+        output = pd.DataFrame(
+            [(cell, h3.get_resolution(cell), count) for cell, count in leaves.items()],
+            columns=["h3", "resolution", "layer_value"],
+        )
         output = output.sort_values(by=["resolution", "h3"]).reset_index(drop=True)
         output["layer_id"] = f"facility_density_adaptive:{self.version}"
 
@@ -165,8 +305,10 @@ class FacilityDensityAdaptiveLayer:
                 "facility_floor_resolution": facility_floor_resolution,
                 "facility_max_resolution": facility_max_resolution,
                 "target_facilities_per_leaf": target_facilities_per_leaf,
-                "allow_domain_expansion": allow_domain_expansion,
-                "allow_cross_border_compaction": allow_cross_border_compaction,
+                "empty_interior_max_resolution": empty_interior_max_resolution,
+                "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
+                "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
+                "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
             }
         )
         return metadata, output
@@ -175,20 +317,28 @@ class FacilityDensityAdaptiveLayer:
         return {
             "layer_name": "facility_density_adaptive",
             "layer_version": self.version,
-            "policy_name": "facility_hierarchical_partition_v2",
+            "policy_name": "facility_hierarchical_partition_v3",
             "coverage_domain": "country_mask_r4",
             "params": params,
             "stopping_rules": {
                 "empty_branch": {
-                    "rule": "compact_upward",
-                    "min_resolution": params["empty_compact_min_resolution"],
-                    "allow_domain_expansion": params["allow_domain_expansion"],
-                    "allow_cross_border_compaction": params["allow_cross_border_compaction"],
+                    "rule": "hierarchy_then_topology_refine",
+                    "hierarchy_required_below_resolution": params["base_resolution"],
+                    "boundary_or_near_occupied_max_resolution": params["facility_floor_resolution"] - 1,
+                    "empty_interior_max_resolution": params["empty_interior_max_resolution"],
+                    "boundary_band_k": params["empty_refine_boundary_band_k"],
+                    "near_occupied_k": params["empty_refine_near_occupied_k"],
                 },
                 "facility_branch": {
                     "min_resolution": params["facility_floor_resolution"],
                     "target_facilities_per_leaf": params["target_facilities_per_leaf"],
                     "max_resolution": params["facility_max_resolution"],
+                },
+                "neighbor_smoothing": {
+                    "rule": "refine_coarser_side_until_delta_or_cap",
+                    "max_neighbor_resolution_delta": params["max_neighbor_resolution_delta"],
+                    "occupied_max_resolution": params["facility_max_resolution"],
+                    "empty_max_resolution": params["facility_floor_resolution"] - 1,
                 },
             },
             "distance_semantics": "hierarchical_partition_over_country_mask",

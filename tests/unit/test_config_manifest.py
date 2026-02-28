@@ -16,15 +16,17 @@ def test_load_system_and_layers_config() -> None:
         "facility_density_adaptive",
     }
     adaptive = next(layer for layer in layers.layers if layer.name == "facility_density_adaptive")
-    assert adaptive.version == "v2"
+    assert adaptive.version == "v3"
     assert adaptive.params == {
         "base_resolution": 4,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
         "facility_max_resolution": 13,
         "target_facilities_per_leaf": 1,
-        "allow_domain_expansion": True,
-        "allow_cross_border_compaction": True,
+        "empty_interior_max_resolution": 5,
+        "empty_refine_boundary_band_k": 1,
+        "empty_refine_near_occupied_k": 1,
+        "max_neighbor_resolution_delta": 1,
     }
 
 
@@ -91,7 +93,7 @@ def test_manifest_config_hash_changes_when_adaptive_params_change() -> None:
     for layer in layers.layers:
         params = dict(layer.params)
         if layer.name == "facility_density_adaptive":
-            params["target_facilities_per_leaf"] = 2
+            params["max_neighbor_resolution_delta"] = 2
         rewritten_layers.append(
             LayerConfig(
                 name=layer.name,

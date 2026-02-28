@@ -37,7 +37,13 @@ def test_metrics_emitted_with_required_keys(tmp_path: Path) -> None:
         "facility_count_by_source",
         "invalid_record_count",
         "layer_compute_duration_seconds",
+        "stage_duration_seconds",
+        "expected_runtime_seconds",
         "publish_timestamp",
     }
     assert required.issubset(payload.keys())
     assert payload["run_duration_seconds"] >= 0
+    assert "facility_density_adaptive" in payload["layer_compute_duration_seconds"]
+    progress_path = tmp_path / "runs" / run_id / "reports" / "progress.jsonl"
+    assert progress_path.exists()
+    assert progress_path.read_text(encoding="utf-8").strip()

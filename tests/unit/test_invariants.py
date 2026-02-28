@@ -49,8 +49,8 @@ def test_invariants_pass_for_adaptive_mixed_resolution_partition_without_overlap
         "facility_density_adaptive": {
             "metadata": {
                 "layer_name": "facility_density_adaptive",
-                "layer_version": "v2",
-                "policy_name": "facility_hierarchical_partition_v2",
+                "layer_version": "v3",
+                "policy_name": "facility_hierarchical_partition_v3",
                 "coverage_domain": "country_mask_r4",
             },
             "cells": pd.DataFrame(
@@ -59,13 +59,13 @@ def test_invariants_pass_for_adaptive_mixed_resolution_partition_without_overlap
                         "h3": child,
                         "resolution": 10,
                         "layer_value": 1,
-                        "layer_id": "facility_density_adaptive:v2",
+                        "layer_id": "facility_density_adaptive:v3",
                     },
                     {
                         "h3": sibling,
                         "resolution": 10,
                         "layer_value": 1,
-                        "layer_id": "facility_density_adaptive:v2",
+                        "layer_id": "facility_density_adaptive:v3",
                     },
                 ]
             ),
@@ -88,8 +88,8 @@ def test_invariants_fail_on_adaptive_ancestor_descendant_overlap() -> None:
         "facility_density_adaptive": {
             "metadata": {
                 "layer_name": "facility_density_adaptive",
-                "layer_version": "v2",
-                "policy_name": "facility_hierarchical_partition_v2",
+                "layer_version": "v3",
+                "policy_name": "facility_hierarchical_partition_v3",
                 "coverage_domain": "country_mask_r4",
             },
             "cells": pd.DataFrame(
@@ -98,17 +98,88 @@ def test_invariants_fail_on_adaptive_ancestor_descendant_overlap() -> None:
                         "h3": parent,
                         "resolution": 9,
                         "layer_value": 1,
-                        "layer_id": "facility_density_adaptive:v2",
+                        "layer_id": "facility_density_adaptive:v3",
                     },
                     {
                         "h3": child,
                         "resolution": 10,
                         "layer_value": 1,
-                        "layer_id": "facility_density_adaptive:v2",
+                        "layer_id": "facility_density_adaptive:v3",
                     },
                 ]
             ),
         }
     }
     with pytest.raises(ValueError, match="ancestor|descendant|overlap|partition"):
+        run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
+
+
+def test_invariants_pass_when_adaptive_neighbor_smoothing_delta_within_limit() -> None:
+    coarse = str(h3.latlng_to_cell(41.0, -87.0, 8))
+    adjacent_coarse = sorted(str(cell) for cell in h3.grid_disk(coarse, 1) if str(cell) != coarse)[0]
+    fine = None
+    for child in sorted(str(cell) for cell in h3.cell_to_children(adjacent_coarse, 9)):
+        if any(h3.cell_to_parent(str(neighbor), 8) == coarse for neighbor in h3.grid_disk(child, 1)):
+            fine = child
+            break
+    assert fine is not None
+    facilities = pd.DataFrame(
+        [
+            {"facility_id": "f1", "lat": 41.0, "lon": -87.0, "h3_r5": "852664c7fffffff"},
+            {"facility_id": "f2", "lat": 42.0, "lon": -88.0, "h3_r5": "85266437fffffff"},
+        ]
+    )
+    layer_artifacts = {
+        "facility_density_adaptive": {
+            "metadata": {
+                "layer_name": "facility_density_adaptive",
+                "layer_version": "v3",
+                "policy_name": "facility_hierarchical_partition_v3",
+                "coverage_domain": "country_mask_r4",
+                "params": {"max_neighbor_resolution_delta": 1},
+            },
+            "cells": pd.DataFrame(
+                [
+                    {"h3": coarse, "resolution": 8, "layer_value": 0, "layer_id": "facility_density_adaptive:v3"},
+                    {"h3": fine, "resolution": 9, "layer_value": 1, "layer_id": "facility_density_adaptive:v3"},
+                ]
+            ),
+        }
+    }
+    run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
+
+
+def test_invariants_fail_when_adaptive_neighbor_smoothing_delta_exceeds_limit() -> None:
+    coarse = str(h3.latlng_to_cell(41.0, -87.0, 8))
+    adjacent_coarse = sorted(str(cell) for cell in h3.grid_disk(coarse, 1) if str(cell) != coarse)[0]
+    fine = None
+    for child in sorted(str(cell) for cell in h3.cell_to_children(adjacent_coarse, 10)):
+        if any(h3.cell_to_parent(str(neighbor), 8) == coarse for neighbor in h3.grid_disk(child, 1)):
+            fine = child
+            break
+    assert fine is not None
+    facilities = pd.DataFrame(
+        [
+            {"facility_id": "f1", "lat": 41.0, "lon": -87.0, "h3_r5": "852664c7fffffff"},
+            {"facility_id": "f2", "lat": 42.0, "lon": -88.0, "h3_r5": "85266437fffffff"},
+        ]
+    )
+    layer_artifacts = {
+        "facility_density_adaptive": {
+            "metadata": {
+                "layer_name": "facility_density_adaptive",
+                "layer_version": "v3",
+                "policy_name": "facility_hierarchical_partition_v3",
+                "coverage_domain": "country_mask_r4",
+                "params": {"max_neighbor_resolution_delta": 1},
+            },
+            "cells": pd.DataFrame(
+                [
+                    {"h3": coarse, "resolution": 8, "layer_value": 0, "layer_id": "facility_density_adaptive:v3"},
+                    {"h3": fine, "resolution": 10, "layer_value": 1, "layer_id": "facility_density_adaptive:v3"},
+                ]
+            ),
+        }
+    }
+    with pytest.raises(ValueError, match="smoothing adjacency delta"):
         run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
