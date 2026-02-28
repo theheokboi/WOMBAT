@@ -49,3 +49,10 @@
 - Update: Created scoped git checkpoint commit for frontend adaptive-resolution guard and UI smoke assertions.
 - Evidence: `git commit` -> `3250694` (`ui: guard adaptive cells to resolutions 5 through 9`).
 - Next: Handoff summary to user.
+
+## 2026-02-28T07:41:11Z
+- Status: complete
+- Checklist item: Commit scoped changes and record hash
+- Update: Added follow-up commit to capture final checklist marker update in the progress log.
+- Evidence: `git commit` -> `007ec8f` (`logs: finalize ui adaptive r5-r9 task checklist`).
+- Next: None.
