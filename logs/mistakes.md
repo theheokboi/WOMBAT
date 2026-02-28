@@ -37,3 +37,17 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Re-ran `py_compile` using Python files only and kept frontend checks to UI smoke tests.
 - Prevention rule: Restrict syntax-compile commands to language-appropriate file sets; never include frontend JS in Python compile commands.
 - Verification evidence: `python -m py_compile src/inframap/agent/calibrate.py src/inframap/agent/runtime_estimator.py src/inframap/serve/app.py tests/integration/test_api.py tests/unit/test_runtime_estimator.py tests/integration/test_calibration_workflow.py` passed.
+
+## 2026-02-28T06:58:47Z
+- Mistake: Used unescaped backticks inside a shell heredoc while appending progress log evidence, causing unintended command substitution.
+- Root cause: Quick log append used double-quoted shell command without considering markdown backtick expansion.
+- Corrective action: Corrected the broken progress-log entry using  and switched to safer quoting for subsequent log appends.
+- Prevention rule: When appending markdown containing backticks via shell, use single-quoted heredoc delimiters or apply_patch edits to avoid shell interpolation.
+- Verification evidence:  now contains corrected evidence text and no shell artifacts.
+
+## 2026-02-28T06:59:12Z
+- Mistake: Used unescaped markdown backticks in shell log-append commands, triggering unintended command substitution.
+- Root cause: Used double-quoted shell strings for markdown content that included backticks.
+- Corrective action: Replaced shell append approach with a single-quoted heredoc and corrected the malformed progress-log evidence entry.
+- Prevention rule: For markdown log appends, always use single-quoted heredocs or `apply_patch`; never embed backticks in double-quoted shell command strings.
+- Verification evidence: `logs/mistakes.md` has this entry and `logs/progress/2026-02-28-ui-gb-only-display.md` contains clean evidence text.

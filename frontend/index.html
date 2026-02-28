@@ -9,20 +9,21 @@
   </head>
   <body>
     <div id="panel">
-      <h1>Infrastructure Layers</h1>
+      <h1>Infrastructure Layers (GB Only)</h1>
+      <div id="display-scope">Display scope: GB only (loading...)</div>
       <div class="controls">
-        <label><input type="checkbox" id="toggle-facilities" checked /> Facilities</label>
-        <label><input type="checkbox" id="toggle-country" checked /> Country H3</label>
-        <label><input type="checkbox" id="toggle-adaptive" checked /> Adaptive Facility H3</label>
+        <label><input type="checkbox" id="toggle-facilities" checked /> Facilities (GB)</label>
+        <label><input type="checkbox" id="toggle-country" checked /> Country H3 (GB)</label>
+        <label><input type="checkbox" id="toggle-adaptive" checked /> Adaptive Facility H3 (GB)</label>
       </div>
       <div id="legend">
-        <div><span class="swatch facility"></span> Facility points</div>
-        <div><span class="swatch country"></span> Country cells</div>
-        <div><span class="swatch adaptive"></span> Adaptive facility cells</div>
+        <div><span class="swatch facility"></span> Facility points (GB)</div>
+        <div><span class="swatch country"></span> Country cells (GB mask)</div>
+        <div><span class="swatch adaptive"></span> Adaptive facility cells (GB)</div>
       </div>
       <div id="stats">
-        <div id="facility-count">Facilities loaded: --</div>
-        <div id="location-count">Unique locations: --</div>
+        <div id="facility-count">GB facilities loaded: --</div>
+        <div id="location-count">GB unique locations: --</div>
       </div>
       <div id="run-status">
         <h2>Run & Adaptive Status</h2>
@@ -31,7 +32,7 @@
         <div id="latest-run-runtime">Latest run runtime: --</div>
         <div id="active-run-status">Active run: --</div>
         <div id="calibration-basis">Calibration basis: --</div>
-        <div id="calibration-world-estimate">World runtime estimate: --</div>
+        <div id="calibration-world-estimate">GB-calibrated world runtime estimate: --</div>
       </div>
       <div id="drilldown">
         <h2>Cell Drill-down</h2>

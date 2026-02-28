@@ -19,7 +19,8 @@ def test_ui_static_smoke() -> None:
 
     response = client.get("/ui/")
     assert response.status_code == 200
-    assert "Infrastructure Layers" in response.text
+    assert "Infrastructure Layers (GB Only)" in response.text
+    assert "display-scope" in response.text
     assert "toggle-facilities" in response.text
     assert "toggle-adaptive" in response.text
     assert "toggle-country" in response.text
@@ -28,6 +29,7 @@ def test_ui_static_smoke() -> None:
     assert "runtime-expectation" in response.text
     assert "calibration-basis" in response.text
     assert "calibration-world-estimate" in response.text
+    assert "GB-calibrated world runtime estimate" in response.text
     assert "toggle-metro" not in response.text
     assert "toggle-global-h3" not in response.text
     assert "adaptive-threshold" not in response.text
