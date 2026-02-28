@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import h3
 import pandas as pd
 
 
@@ -38,7 +39,11 @@ def run_invariants(
         if not cells.empty:
             if "resolution" not in cells.columns:
                 raise ValueError(f"Invariant failed: layer {layer_name} missing resolution")
-            if (cells["resolution"] <= 0).any():
+            resolutions = cells["resolution"].astype(int)
+            if layer_name == "facility_density_adaptive":
+                if ((resolutions < 0) | (resolutions > 13)).any():
+                    raise ValueError("Invariant failed: adaptive layer has invalid resolution range")
+            elif (resolutions <= 0).any():
                 raise ValueError(f"Invariant failed: invalid resolution values for {layer_name}")
 
         if layer_name == "metro_density_core":
@@ -49,3 +54,20 @@ def run_invariants(
         if layer_name == "country_mask" and not cells.empty:
             if cells["h3"].duplicated().any():
                 raise ValueError("Invariant failed: country mask has duplicate h3 assignments")
+
+        if layer_name == "facility_density_adaptive" and not cells.empty:
+            if cells["h3"].duplicated().any():
+                raise ValueError("Invariant failed: adaptive layer has duplicate h3 assignments")
+            encoded_resolution = cells["h3"].astype(str).map(h3.get_resolution)
+            if not encoded_resolution.equals(cells["resolution"].astype(int)):
+                raise ValueError("Invariant failed: adaptive layer has h3/resolution mismatch")
+            if "layer_value" in cells.columns:
+                occupied = cells[cells["layer_value"].astype(int) > 0]
+                if not occupied.empty and (occupied["resolution"].astype(int) < 9).any():
+                    raise ValueError("Invariant failed: adaptive occupied cells must be at least r9")
+            adaptive_cells = {str(cell) for cell in cells["h3"].astype(str).tolist()}
+            for cell in sorted(adaptive_cells, key=lambda c: h3.get_resolution(c)):
+                resolution = h3.get_resolution(cell)
+                for ancestor_resolution in range(resolution - 1, -1, -1):
+                    if h3.cell_to_parent(cell, ancestor_resolution) in adaptive_cells:
+                        raise ValueError("Invariant failed: adaptive ancestor/descendant overlap")

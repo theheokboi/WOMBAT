@@ -14,7 +14,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from inframap.config import SystemConfig, load_system_config
-from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
 
 
 class DataStore:
@@ -120,26 +119,20 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         if not versions:
             raise HTTPException(status_code=404, detail=f"Layer not found: {layer}")
         latest_layer_dir = versions[-1]
-        cells = pd.read_parquet(latest_layer_dir / "cells.parquet")
-        preview_params: dict[str, Any] | None = None
         if split_threshold is not None:
-            if layer != "facility_density_adaptive":
+            if layer == "facility_density_adaptive":
                 raise HTTPException(
                     status_code=400,
-                    detail="split_threshold override is only supported for facility_density_adaptive",
+                    detail=(
+                        "split_threshold preview is deprecated for facility_density_adaptive; "
+                        "query published v2 cells without split_threshold"
+                    ),
                 )
-            layer_meta = json.loads((latest_layer_dir / "layer_metadata.json").read_text(encoding="utf-8"))
-            params = dict(layer_meta.get("params", {}))
-            params["split_threshold"] = int(split_threshold)
-            facilities = pd.read_parquet(run_root / "canonical" / "facilities.parquet")
-            adaptive = FacilityDensityAdaptiveLayer(version=str(layer_meta.get("layer_version", "v1")))
-            _, cells = adaptive.compute(
-                canonical_store={"facilities": facilities},
-                layer_store={},
-                params=params,
+            raise HTTPException(
+                status_code=400,
+                detail=f"split_threshold is not supported for layer: {layer}",
             )
-            adaptive.validate({"metadata": layer_meta, "cells": cells})
-            preview_params = params
+        cells = pd.read_parquet(latest_layer_dir / "cells.parquet")
         cells = cells.head(limit)
         features = []
         for _, row in cells.iterrows():
@@ -160,10 +153,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                     "properties": props,
                 }
             )
-        payload: dict[str, Any] = {"run_id": run_id, "type": "FeatureCollection", "features": features}
-        if preview_params is not None:
-            payload["preview"] = {"params": preview_params}
-        return payload
+        return {"run_id": run_id, "type": "FeatureCollection", "features": features}
 
     @app.get("/v1/facilities")
     def get_facilities(

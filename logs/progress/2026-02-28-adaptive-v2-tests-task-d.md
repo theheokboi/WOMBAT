@@ -88,3 +88,20 @@
 - [x] Review mistake ledger and record mistake replay check.
 - [x] Docs check (`README.md`/`AGENTS.md`) and rationale.
 - [~] Create required git checkpoint commit and record hash.
+
+## 2026-02-28T05:20:28Z
+- Status: complete
+- Checklist item: Create required git checkpoint commit and record hash.
+- Update: Staged only Task D test/log files and created checkpoint commit.
+- Evidence: `git commit -m "test: add hierarchical adaptive v2 coverage"` -> `a444626`.
+- Next: Handoff changed files and targeted test command outcomes.
+
+## Checklist
+- [x] Confirm v2 requirements from docs and existing test surface under `tests/`.
+- [x] Add/refresh unit tests for empty compaction, facility floor r9, split-to-singleton-or-r13, and no ancestor/descendant overlap.
+- [x] Update integration API tests for adaptive v2 metadata fields and `split_threshold` rejection.
+- [x] Update golden/invariant tests for deterministic adaptive v2 fixture behavior.
+- [x] Run targeted test commands and capture outcomes.
+- [x] Review mistake ledger and record mistake replay check.
+- [x] Docs check (`README.md`/`AGENTS.md`) and rationale.
+- [x] Create required git checkpoint commit and record hash.

@@ -23,3 +23,10 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Replaced recursion with iterative active-cell reassignment per facility row and final deterministic group-by aggregation.
 - Prevention rule: For adaptive partition algorithms, model one current cell assignment per record and refine in-place; avoid recursive group trees unless uniqueness invariants are explicitly proven and tested.
 - Verification evidence: `tests/integration/test_api.py` and `make test-blocking` pass; plugin validation no longer raises duplicate-cell error.
+
+## 2026-02-28T05:23:01Z
+- Mistake: Parallel task merge initially left `run_invariants` inconsistent with adaptive v2 policy (`r0` empties rejected and adaptive overlap not checked).
+- Root cause: Integration pass did not immediately reconcile generic invariants with new layer-specific contracts after accepting parallel subagent commits.
+- Corrective action: Updated `src/inframap/validation/invariants.py` to allow adaptive `resolution` range `0..13`, enforce adaptive `h3`/resolution consistency, require occupied adaptive cells at `r9+`, and reject ancestor/descendant overlap.
+- Prevention rule: After parallel merges that change layer contracts, run target suites (`tests/unit/test_invariants.py` and API integration) before full suite to catch cross-cutting gate drift early.
+- Verification evidence: `pytest -q tests/unit/test_invariants.py` and `pytest -q tests/integration/test_api.py` passing.
