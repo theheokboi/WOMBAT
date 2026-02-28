@@ -1,0 +1,3 @@
+ORGANIZATION,NODE_NAME,LATITUDE,LONGITUDE,CITY,STATE,COUNTRY,SOURCE,ASOF_DATE
+Example Networks,Example Facility A,41.8781,-87.6298,Chicago,IL,US,manual_seed,2026-02-28
+Example Networks,Example Facility B,37.7749,-122.4194,San Francisco,CA,US,manual_seed,2026-02-28

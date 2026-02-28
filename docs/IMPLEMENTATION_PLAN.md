@@ -20,7 +20,13 @@ Given your guidance, this plan optimizes for simplicity and clarity over perform
 - Frontend: Vite + TypeScript + MapLibre GL JS; minimal UI components.
 - Publish gates: strict core gates (unit + property + golden + invariants + integration are blocking); perf and UI smoke are non-blocking in CI initially.
 - Country layer: Natural Earth Admin-0 polygons with `centroid_in_polygon` membership rule.
-- Local-first operation: manual CSV input and deterministic local run directories.
+- Local-first operation: manual CSV input from `data/facilities/` and deterministic local run directories.
+
+## Input Staging Convention
+- Raw facility snapshots are dropped in `data/facilities/`.
+- Expected schema is documented in `data/facilities/README.md`.
+- `data/facilities/facilities_template.csv` is the canonical starter fixture for quick local runs.
+- Suggested file naming: `<source>_<YYYY-MM-DD>.csv`.
 
 ## Repository Structure
 - `configs/`
