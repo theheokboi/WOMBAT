@@ -46,3 +46,17 @@
 - Update: Docs check: no changes required for `AGENTS.md` because no workflow/tooling/quality-gate or contract-policy instructions changed in this task scope.
 - Evidence: `AGENTS.md`
 - Next: Perform mistake replay check and finalize handoff artifacts.
+
+# Task Checklist Snapshot 4
+- [x] Confirm locked decisions and current README/AGENTS state
+- [x] Update README adaptive policy text to hierarchical v2
+- [x] Add migration note (v1 threshold -> v2 hierarchical)
+- [x] Review AGENTS.md change requirement and record rationale
+- [x] Mistake replay check and final handoff prep
+
+## 2026-02-28T05:17:30Z
+- Status: complete
+- Checklist item: Mistake replay check and final handoff prep
+- Update: Ran mistake replay check against `logs/mistakes.md` entries and confirmed this doc-only change does not repeat logged issues (no external rendering dependency introduced; no adaptive algorithm logic touched). Created required git checkpoint commit for this task.
+- Evidence: `logs/mistakes.md`; commit `69f0aca` (`docs: migrate adaptive layer docs to hierarchical v2`)
+- Next: Handoff summary to user with changed files and AGENTS rationale.
