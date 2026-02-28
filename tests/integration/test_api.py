@@ -8,7 +8,37 @@ from inframap.config import load_layers_config, load_system_config
 from inframap.serve.app import create_app
 
 
-def _build_system_with_tmp_paths(tmp_path: Path):
+def _write_gb_input_fixture(tmp_path: Path) -> Path:
+    fixture_path = tmp_path / "facilities_gb.csv"
+    fixture_path.write_text(
+        "\n".join(
+            [
+                "ORGANIZATION,NODE_NAME,LATITUDE,LONGITUDE,SOURCE,ASOF_DATE,COUNTRY",
+                "ExampleNet,London-1,51.5074,-0.1278,fixture,2026-02-28,GB",
+                "ExampleNet,London-2,51.5074,-0.1278,fixture,2026-02-28,GB",
+                "ExampleNet,Manchester-1,53.4808,-2.2426,fixture,2026-02-28,GB",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return fixture_path
+
+
+def _write_gb_only_polygon_dataset(tmp_path: Path) -> Path:
+    source_path = Path("data/reference/natural_earth_admin0_subset.geojson")
+    payload = json.loads(source_path.read_text(encoding="utf-8"))
+    payload["features"] = [
+        feature
+        for feature in payload["features"]
+        if str(feature.get("properties", {}).get("iso_a2", "")).upper() == "GB"
+    ]
+    out_path = tmp_path / "gb_only_admin0.geojson"
+    out_path.write_text(json.dumps(payload), encoding="utf-8")
+    return out_path
+
+
+def _build_system_with_tmp_paths(tmp_path: Path, input_path: Path):
     system = load_system_config(Path("configs/system.yaml"))
     return system.__class__(
         config_version=system.config_version,
@@ -17,7 +47,7 @@ def _build_system_with_tmp_paths(tmp_path: Path):
         country_mask_resolution=system.country_mask_resolution,
         zoom_to_h3_resolution=system.zoom_to_h3_resolution,
         ui=system.ui,
-        inputs=list(system.inputs),
+        inputs=[system.inputs[0].__class__(path=str(input_path), source_name="fixture")],
         paths=system.paths.__class__(
             runs_root=str(tmp_path / "runs"),
             staging_root=str(tmp_path / "staging"),
@@ -26,9 +56,25 @@ def _build_system_with_tmp_paths(tmp_path: Path):
     )
 
 
-def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
-    system = _build_system_with_tmp_paths(tmp_path)
+def _build_layers_with_gb_scope(gb_polygon_path: Path):
     layers = load_layers_config(Path("configs/layers.yaml"))
+    updated_layers = []
+    for layer in layers.layers:
+        if layer.name != "country_mask":
+            updated_layers.append(layer)
+            continue
+        params = dict(layer.params)
+        params["polygon_dataset"] = str(gb_polygon_path)
+        params["exclude_iso_a2"] = []
+        updated_layers.append(layer.__class__(name=layer.name, plugin=layer.plugin, version=layer.version, params=params))
+    return layers.__class__(layers_version=layers.layers_version, layers=updated_layers)
+
+
+def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
+    gb_fixture = _write_gb_input_fixture(tmp_path)
+    gb_polygons = _write_gb_only_polygon_dataset(tmp_path)
+    system = _build_system_with_tmp_paths(tmp_path, input_path=gb_fixture)
+    layers = _build_layers_with_gb_scope(gb_polygon_path=gb_polygons)
     run_id = run_pipeline(system, layers)
 
     app = create_app(
@@ -37,6 +83,7 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
         system_config=system,
     )
     client = TestClient(app)
+    monkeypatch.chdir(tmp_path)
 
     latest = client.get("/v1/runs/latest")
     assert latest.status_code == 200
@@ -56,6 +103,8 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
 
     calibration_latest_missing = client.get("/v1/calibration/latest")
     assert calibration_latest_missing.status_code == 404
+    calibration_gb_missing = client.get("/v1/calibration/estimates/gb")
+    assert calibration_gb_missing.status_code == 404
     calibration_world_missing = client.get("/v1/calibration/estimates/world")
     assert calibration_world_missing.status_code == 404
 
@@ -94,6 +143,7 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     country_features = country_cells.json()["features"]
     assert len(country_features) > 0
     assert "country_color" in country_features[0]["properties"]
+    assert {feature["properties"]["layer_value"] for feature in country_features} == {"GB"}
 
     adaptive_cells_default = client.get("/v1/layers/facility_density_adaptive/cells")
     assert adaptive_cells_default.status_code == 200
@@ -140,20 +190,28 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
         encoding="utf-8",
     )
     (latest_report_dir / "report.json").write_text(
-        json.dumps({"country": "US", "runtime_seconds": 60.0, "facility_count_total": 100}),
+        json.dumps({"country": "GB", "runtime_seconds": 60.0, "facility_count_total": 100}),
         encoding="utf-8",
     )
-    monkeypatch.chdir(tmp_path)
 
     calibration_latest = client.get("/v1/calibration/latest")
     assert calibration_latest.status_code == 200
     calibration_latest_body = calibration_latest.json()
-    assert calibration_latest_body["country"] == "US"
+    assert calibration_latest_body["country"] == "GB"
     assert calibration_latest_body["calibration_id"] == "20260228T020000Z"
+
+    calibration_gb = client.get("/v1/calibration/estimates/gb")
+    assert calibration_gb.status_code == 200
+    calibration_gb_body = calibration_gb.json()
+    assert calibration_gb_body["calibration_id"] == "20260228T020000Z"
+    assert calibration_gb_body["country"] == "GB"
+    assert calibration_gb_body["estimate_basis"] == "latest_calibration_report"
+    assert "estimate" in calibration_gb_body
 
     calibration_world = client.get("/v1/calibration/estimates/world")
     assert calibration_world.status_code == 200
     calibration_world_body = calibration_world.json()
     assert calibration_world_body["calibration_id"] == "20260228T020000Z"
-    assert "world_snapshot" in calibration_world_body
-    assert "estimate" in calibration_world_body
+    assert calibration_world_body["country"] == "GB"
+    assert calibration_world_body["deprecated"] is True
+    assert calibration_world_body["deprecated_alias_for"] == "/v1/calibration/estimates/gb"
