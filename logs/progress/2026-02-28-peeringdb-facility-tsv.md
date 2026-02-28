@@ -6,8 +6,8 @@
 - [x] Implement minimal ingestion/config changes for `data/facilities/peeringdb_facility.tsv`
 - [x] Run impacted blocking tests and `make run`
 - [x] Update docs/config references and validate freshness
-- [ ] Run mistake replay check against `logs/mistakes.md`
-- [~] Create required git checkpoint commit
+- [x] Run mistake replay check against `logs/mistakes.md`
+- [x] Create required git checkpoint commit
 
 ## 2026-02-28T04:32:30Z
 - Status: in progress
@@ -50,3 +50,10 @@
 - Update: Reviewed ledger entry about external map-style dependency; confirmed this task did not introduce any new external rendering dependency or repeat that mistake.
 - Evidence: `logs/mistakes.md` (entry `2026-02-28T00:46:44Z`); changes limited to ingest/config/tests/docs.
 - Next: Create required git checkpoint commit and record hash.
+
+## 2026-02-28T04:34:19Z
+- Status: complete
+- Checklist item: Create required git checkpoint commit
+- Update: Created checkpoint commit containing ingest adapter, config/docs updates, tests, and updated facilities file set.
+- Evidence: `git commit` -> `283907f` (`Support peeringdb facility TSV ingestion as default input`).
+- Next: Handoff with change summary and verification evidence.
