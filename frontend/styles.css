@@ -5,6 +5,7 @@
   --facility: #f97316;
   --metro: #0f766e;
   --country: #1d4ed8;
+  --adaptive: #7c2d12;
   --global: #b91c1c;
 }
 
@@ -46,6 +47,24 @@ h1, h2 {
   background: #fffaf0;
   display: grid;
   gap: 6px;
+}
+
+#adaptive-controls {
+  border: 1px solid #ddd6c7;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fff7ed;
+  display: grid;
+  gap: 6px;
+}
+
+#adaptive-threshold {
+  width: 100%;
+}
+
+#adaptive-info {
+  font-size: 12px;
+  color: #4b5563;
 }
 
 .control-title {
@@ -107,6 +126,10 @@ h1, h2 {
 
 .swatch.country {
   background: var(--country);
+}
+
+.swatch.adaptive {
+  background: var(--adaptive);
 }
 
 .swatch.global {

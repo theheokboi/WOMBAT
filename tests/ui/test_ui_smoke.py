@@ -23,3 +23,5 @@ def test_ui_static_smoke() -> None:
     assert "toggle-facilities" in response.text
     assert "toggle-global-h3" in response.text
     assert "global-h3-resolutions" in response.text
+    assert "toggle-adaptive" in response.text
+    assert "adaptive-threshold" in response.text

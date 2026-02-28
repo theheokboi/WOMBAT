@@ -7,7 +7,7 @@ Deterministic, geometry-first pipelines for building a multi-resolution map of p
 This repository now includes a working bootstrap stack:
 
 - Deterministic agent pipeline (ingest -> canonicalize -> layer compute -> invariants -> atomic publish)
-- Layer plugins: `metro_density_core` (M1) and `country_mask` (centroid rule over Natural Earth admin-0 countries with deterministic neighboring-country color classes)
+- Layer plugins: `metro_density_core` (M1), `country_mask` (centroid rule over Natural Earth admin-0 countries with deterministic neighboring-country color classes), and `facility_density_adaptive` (r1-r10 threshold-based refinement)
 - Immutable run artifacts and single latest-pointer publish semantics
 - FastAPI read-only API under `/v1`
 - Internal map UI at `/ui` with facility and H3 overlays, toggles, tooltips, drill-down, and viewport-based global H3 multi-resolution overlays
@@ -51,6 +51,7 @@ Non-blocking suites:
 - `GET /v1/runs/latest`
 - `GET /v1/layers`
 - `GET /v1/layers/{layer}/metadata`
+- `GET /v1/layers/{layer}/cells` (supports `split_threshold` preview override for `facility_density_adaptive`)
 - `GET /v1/facilities`
 - `GET /v1/tiles/{z}/{x}/{y}.mvt`
 - `GET /v1/health`

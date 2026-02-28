@@ -14,7 +14,14 @@
         <label><input type="checkbox" id="toggle-facilities" checked /> Facilities</label>
         <label><input type="checkbox" id="toggle-metro" checked /> Metro H3</label>
         <label><input type="checkbox" id="toggle-country" checked /> Country H3</label>
+        <label><input type="checkbox" id="toggle-adaptive" checked /> Adaptive Facility H3</label>
         <label><input type="checkbox" id="toggle-global-h3" checked /> Global H3 (viewport)</label>
+        <div id="adaptive-controls">
+          <div class="control-title">Adaptive threshold (Explore)</div>
+          <label for="adaptive-threshold">Split threshold: <span id="adaptive-threshold-value">--</span></label>
+          <input type="range" id="adaptive-threshold" min="1" max="100" step="1" />
+          <div id="adaptive-info">Mode: published</div>
+        </div>
         <div id="global-h3-controls">
           <div class="control-title">Global H3 resolutions</div>
           <div id="global-h3-resolutions"></div>
@@ -34,6 +41,7 @@
         <div><span class="swatch facility"></span> Facility points</div>
         <div><span class="swatch metro"></span> Metro cells</div>
         <div><span class="swatch country"></span> Country cells</div>
+        <div><span class="swatch adaptive"></span> Adaptive facility cells</div>
         <div><span class="swatch global"></span> Global H3 cells</div>
       </div>
       <div id="stats">

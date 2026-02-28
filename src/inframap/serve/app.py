@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from inframap.config import SystemConfig, load_system_config
+from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
 
 
 class DataStore:
@@ -107,14 +108,39 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         return {"run_id": run_id, **candidates[-1]}
 
     @app.get("/v1/layers/{layer}/cells")
-    def get_layer_cells(layer: str, limit: int = 200000) -> dict[str, Any]:
+    def get_layer_cells(
+        layer: str,
+        limit: int = 200000,
+        split_threshold: int | None = Query(default=None, ge=1),
+    ) -> dict[str, Any]:
         run_id = store.latest_run_id()
         run_root = store.run_root(run_id)
         layer_root = run_root / "layers" / layer
         versions = sorted(layer_root.glob("*")) if layer_root.exists() else []
         if not versions:
             raise HTTPException(status_code=404, detail=f"Layer not found: {layer}")
-        cells = pd.read_parquet(versions[-1] / "cells.parquet").head(limit)
+        latest_layer_dir = versions[-1]
+        cells = pd.read_parquet(latest_layer_dir / "cells.parquet")
+        preview_params: dict[str, Any] | None = None
+        if split_threshold is not None:
+            if layer != "facility_density_adaptive":
+                raise HTTPException(
+                    status_code=400,
+                    detail="split_threshold override is only supported for facility_density_adaptive",
+                )
+            layer_meta = json.loads((latest_layer_dir / "layer_metadata.json").read_text(encoding="utf-8"))
+            params = dict(layer_meta.get("params", {}))
+            params["split_threshold"] = int(split_threshold)
+            facilities = pd.read_parquet(run_root / "canonical" / "facilities.parquet")
+            adaptive = FacilityDensityAdaptiveLayer(version=str(layer_meta.get("layer_version", "v1")))
+            _, cells = adaptive.compute(
+                canonical_store={"facilities": facilities},
+                layer_store={},
+                params=params,
+            )
+            adaptive.validate({"metadata": layer_meta, "cells": cells})
+            preview_params = params
+        cells = cells.head(limit)
         features = []
         for _, row in cells.iterrows():
             cell = str(row["h3"])
@@ -122,6 +148,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                 "h3": cell,
                 "layer_name": layer,
                 "layer_value": str(row.get("layer_value", "")),
+                "resolution": int(row.get("resolution", 0)),
             }
             for optional_key in ["country_name", "country_color", "country_color_hex"]:
                 if optional_key in row and pd.notna(row[optional_key]):
@@ -133,7 +160,10 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                     "properties": props,
                 }
             )
-        return {"run_id": run_id, "type": "FeatureCollection", "features": features}
+        payload: dict[str, Any] = {"run_id": run_id, "type": "FeatureCollection", "features": features}
+        if preview_params is not None:
+            payload["preview"] = {"params": preview_params}
+        return payload
 
     @app.get("/v1/facilities")
     def get_facilities(
@@ -197,7 +227,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
             )
 
         h3_features = []
-        for layer_name in ["metro_density_core", "country_mask"]:
+        for layer_name in ["metro_density_core", "country_mask", "facility_density_adaptive"]:
             layer_dirs = sorted((run_root / "layers" / layer_name).glob("*"))
             if not layer_dirs:
                 continue
@@ -215,6 +245,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                             "h3": cell,
                             "layer_name": layer_name,
                             "layer_value": str(row.get("layer_value", "")),
+                            "resolution": int(row.get("resolution", 0)),
                         },
                     }
                 )

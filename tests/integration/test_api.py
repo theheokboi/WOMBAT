@@ -44,7 +44,7 @@ def test_api_endpoints_and_tiles(tmp_path: Path) -> None:
     layers_resp = client.get("/v1/layers")
     assert layers_resp.status_code == 200
     names = {entry["layer_name"] for entry in layers_resp.json()["layers"]}
-    assert {"metro_density_core", "country_mask"}.issubset(names)
+    assert {"metro_density_core", "country_mask", "facility_density_adaptive"}.issubset(names)
 
     meta = client.get("/v1/layers/metro_density_core/metadata")
     assert meta.status_code == 200
@@ -59,6 +59,16 @@ def test_api_endpoints_and_tiles(tmp_path: Path) -> None:
     country_features = country_cells.json()["features"]
     assert len(country_features) > 0
     assert "country_color" in country_features[0]["properties"]
+
+    adaptive_cells_default = client.get("/v1/layers/facility_density_adaptive/cells")
+    assert adaptive_cells_default.status_code == 200
+    default_features = adaptive_cells_default.json()["features"]
+    assert len(default_features) > 0
+
+    adaptive_cells_fine = client.get("/v1/layers/facility_density_adaptive/cells?split_threshold=1")
+    assert adaptive_cells_fine.status_code == 200
+    fine_features = adaptive_cells_fine.json()["features"]
+    assert len(fine_features) >= len(default_features)
 
     facilities = client.get("/v1/facilities")
     assert facilities.status_code == 200

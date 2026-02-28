@@ -10,7 +10,11 @@ def test_load_system_and_layers_config() -> None:
     assert system.config_version == 1
     assert len(system.inputs) >= 1
     assert layers.layers_version == 1
-    assert {layer.name for layer in layers.layers} == {"metro_density_core", "country_mask"}
+    assert {layer.name for layer in layers.layers} == {
+        "metro_density_core",
+        "country_mask",
+        "facility_density_adaptive",
+    }
 
 
 def test_manifest_hashes_are_deterministic() -> None:

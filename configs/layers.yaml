@@ -16,3 +16,10 @@ layers:
       membership_rule: centroid_in_polygon
       polygon_dataset: data/reference/natural_earth_admin0_subset.geojson
       exclude_iso_a2: ["AQ"]
+  - name: facility_density_adaptive
+    plugin: inframap.layers.facility_density_adaptive:FacilityDensityAdaptiveLayer
+    version: v1
+    params:
+      min_resolution: 1
+      max_resolution: 10
+      split_threshold: 25

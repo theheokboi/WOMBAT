@@ -9,7 +9,7 @@ from inframap.layers.registry import build_layer_registry
 def test_layer_registry_loads_explicit_plugins() -> None:
     layers = load_layers_config(Path("configs/layers.yaml"))
     registry = build_layer_registry(layers)
-    assert set(registry.keys()) == {"metro_density_core", "country_mask"}
+    assert set(registry.keys()) == {"metro_density_core", "country_mask", "facility_density_adaptive"}
 
 
 def test_metro_density_core_outputs_seed_and_cells() -> None:

@@ -170,11 +170,13 @@ function colorForResolution(resolution) {
 
 async function init() {
   const h3lib = window.h3;
-  const [ui, facilities, metroCells, countryCells] = await Promise.all([
+  const [ui, facilities, metroCells, countryCells, adaptiveMeta, adaptiveDefault] = await Promise.all([
     loadJson('/v1/ui/config'),
     loadJson('/v1/facilities?limit=50000'),
     loadJson('/v1/layers/metro_density_core/cells?limit=50000'),
     loadJson('/v1/layers/country_mask/cells'),
+    loadJson('/v1/layers/facility_density_adaptive/metadata'),
+    loadJson('/v1/layers/facility_density_adaptive/cells?limit=100000'),
   ]);
 
   const [lon, lat] = ui.center;
@@ -291,6 +293,60 @@ async function init() {
       );
     },
   }).addTo(map);
+
+  let adaptiveCells = adaptiveDefault;
+  const adaptiveDefaultThreshold = Number(adaptiveMeta?.params?.split_threshold || 25);
+  const adaptiveLayer = L.geoJSON(adaptiveCells, {
+    style: (feature) => {
+      const count = Number(feature?.properties?.layer_value || 0);
+      const fillOpacity = Math.min(0.45, 0.1 + Math.log10(Math.max(1, count)) * 0.08);
+      return {
+        color: '#7c2d12',
+        weight: 1,
+        fillColor: '#7c2d12',
+        fillOpacity,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties || {};
+      layer.bindTooltip(
+        `Layer: facility_density_adaptive<br/>Count: ${Number(p.layer_value || 0).toLocaleString()}<br/>Resolution: r${p.resolution || ''}<br/>H3: ${p.h3 || ''}`
+      );
+    },
+  }).addTo(map);
+
+  const adaptiveToggle = document.getElementById('toggle-adaptive');
+  const adaptiveSlider = document.getElementById('adaptive-threshold');
+  const adaptiveValue = document.getElementById('adaptive-threshold-value');
+  const adaptiveInfo = document.getElementById('adaptive-info');
+  adaptiveSlider.value = String(adaptiveDefaultThreshold);
+  adaptiveValue.textContent = String(adaptiveDefaultThreshold);
+
+  let adaptiveRequestSeq = 0;
+  async function renderAdaptiveCells() {
+    clearLayer(adaptiveLayer);
+    if (!adaptiveToggle.checked) return;
+    adaptiveLayer.addData(adaptiveCells);
+  }
+
+  async function refreshAdaptiveCells() {
+    const threshold = Number(adaptiveSlider.value);
+    adaptiveValue.textContent = String(threshold);
+    adaptiveInfo.textContent = threshold === adaptiveDefaultThreshold
+      ? `Mode: published (threshold ${adaptiveDefaultThreshold})`
+      : `Mode: explore preview (threshold ${threshold})`;
+    const seq = adaptiveRequestSeq + 1;
+    adaptiveRequestSeq = seq;
+    const url = threshold === adaptiveDefaultThreshold
+      ? '/v1/layers/facility_density_adaptive/cells?limit=100000'
+      : `/v1/layers/facility_density_adaptive/cells?limit=100000&split_threshold=${encodeURIComponent(threshold)}`;
+    const payload = await loadJson(url);
+    if (seq !== adaptiveRequestSeq) return;
+    adaptiveCells = payload;
+    await renderAdaptiveCells();
+  }
+
+  adaptiveInfo.textContent = `Mode: published (threshold ${adaptiveDefaultThreshold})`;
 
   const globalH3Layer = L.geoJSON(null, {
     style: (feature) => {
@@ -411,7 +467,7 @@ async function init() {
   setSuggestedResolutionOnly();
   renderGlobalH3();
 
-  const combined = L.featureGroup([facilityLayer, metroLayer, countryLayer]);
+  const combined = L.featureGroup([facilityLayer, metroLayer, countryLayer, adaptiveLayer]);
   if (combined.getBounds().isValid()) {
     map.fitBounds(combined.getBounds(), { padding: [20, 20] });
   }
@@ -435,6 +491,16 @@ async function init() {
   document.getElementById('toggle-country').addEventListener('change', (e) => {
     clearLayer(countryLayer);
     if (e.target.checked) countryLayer.addData(countryCells);
+  });
+
+  adaptiveToggle.addEventListener('change', () => {
+    renderAdaptiveCells();
+  });
+
+  adaptiveSlider.addEventListener('input', () => {
+    refreshAdaptiveCells().catch((error) => {
+      adaptiveInfo.textContent = `Mode: error (${error.message})`;
+    });
   });
 
   globalToggle.addEventListener('change', () => {
