@@ -43,4 +43,7 @@ def test_ui_static_smoke() -> None:
     assert "/v1/runs/latest/status" in script_response.text
     assert "/v1/runs/active/status" in script_response.text
     assert "/v1/calibration/latest" in script_response.text
+    assert "ADAPTIVE_MIN_RESOLUTION = 5" in script_response.text
+    assert "ADAPTIVE_MAX_RESOLUTION = 9" in script_response.text
+    assert "isAdaptiveResolutionAllowed" in script_response.text
     assert "/v1/calibration/estimates/world" not in script_response.text

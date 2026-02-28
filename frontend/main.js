@@ -13,6 +13,8 @@ async function tryLoadJson(path) {
 }
 
 const GB_COUNTRY_CODE = 'GB';
+const ADAPTIVE_MIN_RESOLUTION = 5;
+const ADAPTIVE_MAX_RESOLUTION = 9;
 
 function clearLayer(layer) {
   if (layer) layer.clearLayers();
@@ -42,6 +44,13 @@ function getAdaptiveResolution(properties) {
   if (properties.resolution !== undefined && properties.resolution !== null) return properties.resolution;
   if (properties.leaf_resolution !== undefined && properties.leaf_resolution !== null) return properties.leaf_resolution;
   return '';
+}
+
+function isAdaptiveResolutionAllowed(properties) {
+  const raw = getAdaptiveResolution(properties);
+  const resolution = Number(raw);
+  if (!Number.isInteger(resolution)) return false;
+  return resolution >= ADAPTIVE_MIN_RESOLUTION && resolution <= ADAPTIVE_MAX_RESOLUTION;
 }
 
 function getAdaptiveH3(properties) {
@@ -143,7 +152,10 @@ async function init() {
   const gbFacilities = { ...facilities, features: gbFacilitiesFeatures };
 
   const adaptiveFeatures = featureCollectionFeatures(adaptiveCells);
-  const gbAdaptiveFeatures = adaptiveFeatures.filter((feature) => featureIsGbScoped(feature, gbCountryCellSet));
+  const gbAdaptiveFeatures = adaptiveFeatures.filter((feature) => (
+    featureIsGbScoped(feature, gbCountryCellSet) &&
+    isAdaptiveResolutionAllowed(feature?.properties || {})
+  ));
   const gbCountryCells = { ...countryCells, features: gbCountryFeatures };
 
   const adaptivePolicyName = adaptiveMetadata?.policy_name || adaptiveMetadata?.policy?.name || null;
