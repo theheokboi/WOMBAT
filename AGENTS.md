@@ -85,6 +85,25 @@ Do not skip step 2 for behavior changes.
 - If no updates are needed, include an explicit statement in the progress log: `Docs check: no changes required` with justification.
 - Documentation drift is treated as a quality issue and blocks completion.
 
+## Mistake Tracking and Prevention
+
+All agents must track mistakes and enforce non-repetition.
+
+- Maintain a mistake ledger at `logs/mistakes.md` (append-only).
+- Every discovered mistake (process, implementation, testing, or communication) must be logged with:
+  - UTC timestamp
+  - short mistake description
+  - root cause
+  - corrective action taken
+  - prevention rule for future tasks
+  - verification evidence
+- Before final handoff, run a "mistake replay check":
+  - review relevant ledger entries
+  - confirm current change does not repeat any logged mistake
+  - record this confirmation in the progress log
+- If a previously logged mistake is about to repeat, stop and correct course before proceeding.
+- Repeating a logged mistake without explicit user approval is a workflow violation.
+
 ## Testing and Quality Gates
 
 Blocking (must pass before publish path changes are accepted):
@@ -148,6 +167,32 @@ No implicit plugin/source discovery in production mode. Use explicit config regi
 - Avoid heavy client-side geospatial joins.
 - Prioritize legibility: clear legends, layer toggles, provenance in tooltips.
 
+## Visual Development and User Verification Protocol
+
+For any UI/visualization change, agents must verify both technical correctness and user-visible output.
+
+- Required local verification sequence:
+  - run pipeline data prep: `make run`
+  - run server: `make serve`
+  - verify API payload presence for rendered layers/endpoints before debugging UI
+  - run UI smoke tests (non-blocking but required reporting)
+- Required artifact capture:
+  - capture at least one screenshot after each substantive visual change
+  - save to `artifacts/screenshots/<YYYY-MM-DD>-<short-name>.png` when possible
+  - include screenshot path and what it demonstrates in the progress log
+- Required user verification loop:
+  - state exactly what changed visually
+  - provide direct path(s) to screenshot artifact(s)
+  - if user reports mismatch, reproduce and iterate until visual intent matches
+- Rendering reliability policy:
+  - do not depend on a single fragile rendering path (for example WebGL-only) without a tested fallback
+  - confirm rendered feature count is plausible against API/canonical counts when user expects “missing” data
+- Debug order for “nothing shown” reports:
+  - confirm published run exists
+  - confirm API endpoints return non-empty data
+  - confirm browser/runtime rendering path loads without critical errors
+  - then adjust styling/symbolization/aggregation mode
+
 ## Publish Safety Rules
 
 - Publish is atomic:
@@ -171,6 +216,19 @@ Minimum metrics:
 - `layer_compute_duration_seconds` by layer
 - `publish_timestamp`
 
+## Current Commands
+
+Repository commands are currently:
+
+- `make run`
+- `make serve`
+- `make ui`
+- `make test-blocking`
+- `make test-nonblocking`
+- `make test`
+
+These commands are part of the expected workflow and should stay synchronized with implementation changes.
+
 ## Code and Commit Conventions
 
 - Prefer small, focused commits aligned to one change intent.
@@ -178,6 +236,10 @@ Minimum metrics:
 - Avoid hidden behavior in global state.
 - Make configuration explicit; do not auto-tune parameters implicitly.
 - Do not introduce destructive filesystem/git operations unless explicitly requested.
+- Git checkpoint is required for every non-trivial task before handoff:
+  - create at least one commit that captures completed progress
+  - record commit hash in the task progress log evidence
+  - do not hand off with only uncommitted local changes unless explicitly requested by the user
 
 ## Definition of Done (Per Change)
 

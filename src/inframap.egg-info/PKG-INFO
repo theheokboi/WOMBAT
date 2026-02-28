@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: inframap
+Version: 0.1.0
+Summary: Deterministic H3 infrastructure map bootstrap
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.116.0
+Requires-Dist: uvicorn>=0.30.0
+Requires-Dist: pydantic>=2.8.0
+Requires-Dist: PyYAML>=6.0.1
+Requires-Dist: pandas>=2.2.0
+Requires-Dist: pyarrow>=16.0.0
+Requires-Dist: h3>=4.1.0
+Requires-Dist: shapely>=2.0.0
+Requires-Dist: mapbox-vector-tile>=2.0.1
+Requires-Dist: mercantile>=1.2.1
+Requires-Dist: httpx>=0.27.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.0; extra == "dev"
+Requires-Dist: hypothesis>=6.112.0; extra == "dev"

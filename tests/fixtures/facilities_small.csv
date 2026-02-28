@@ -1,0 +1,4 @@
+ORGANIZATION,NODE_NAME,LATITUDE,LONGITUDE,CITY,STATE,COUNTRY,SOURCE,ASOF_DATE
+Example Networks,Chicago 1,41.8781,-87.6298,Chicago,IL,US,fixture,2026-02-28
+Example Networks,San Francisco 1,37.7749,-122.4194,San Francisco,CA,US,fixture,2026-02-28
+EuroNet,Frankfurt 1,50.1109,8.6821,Frankfurt,,DE,fixture,2026-02-28

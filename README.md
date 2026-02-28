@@ -1,75 +1,52 @@
 # Physical Network Infrastructure Map
 
-Deterministic, test-first pipelines for building a multi-resolution map of physical network infrastructure using H3.
+Deterministic, geometry-first pipelines for building a multi-resolution map of physical network infrastructure using H3.
 
-## Status
+## Implemented Bootstrap
 
-This repository is currently bootstrap-stage. The design and implementation intent are defined in:
+This repository now includes a working bootstrap stack:
 
-- `docs/PROJECT.md`
-- `docs/IMPLEMENTATION_PLAN.md`
+- Deterministic agent pipeline (ingest -> canonicalize -> layer compute -> invariants -> atomic publish)
+- Layer plugins: `metro_density_core` (M1) and `country_mask` (centroid rule over Natural Earth admin-0 countries with deterministic neighboring-country color classes)
+- Immutable run artifacts and single latest-pointer publish semantics
+- FastAPI read-only API under `/v1`
+- Internal map UI at `/ui` with facility and H3 overlays, toggles, tooltips, drill-down, and viewport-based global H3 multi-resolution overlays
+- Blocking and non-blocking test suites with explicit make targets
 
-## Project Goals
+## Run and Serve
 
-- Ingest facility-level datasets (initially CSV/TSV, PeeringDB-style).
-- Normalize into canonical facility and organization datasets.
-- Index facilities into configured H3 resolutions.
-- Compute derived layers (metro clusters and country masks).
-- Publish immutable, versioned run artifacts.
-- Serve API/tile endpoints and an internal map UI.
-- Enforce correctness with strict automated tests and publish gates.
-
-## Core Principles
-
-- Geometry-first: spatial logic comes from coordinates, H3 cells, and polygon rules.
-- Determinism: identical inputs and config produce identical outputs.
-- Explicit versioning: all outputs are traceable by `run_id`, `inputs_hash`, `config_hash`, and `code_hash`.
-- Fail-closed quality: blocking tests and invariants gate publish.
-- Simplicity-first UX: internal map clarity over aggressive optimization.
-
-## Planned Architecture
-
-- Pipeline and agent: Python 3.11+
-- Spatial indexing: H3 (`h3-py`)
-- Geometry tooling: `shapely`, `pyproj`
-- Local analytics storage: DuckDB + Parquet
-- API: FastAPI
-- Map UI: Vite + TypeScript + MapLibre GL JS
-
-## Intended Repository Layout
-
-```text
-configs/
-src/agent/
-src/ingest/
-src/normalize/
-src/layers/
-src/serve/
-frontend/
-tests/
-tests/fixtures/
-tests/golden/
-docs/
-data/                  # gitignored
-Makefile
-docker-compose.yml
+```bash
+make run
+make serve
+make ui
 ```
 
-## Data and Run Artifacts
+- `make run` executes the agent pipeline using `configs/system.yaml` and `configs/layers.yaml`.
+- `make serve` starts FastAPI on `http://localhost:8000`.
+- `make ui` prints the UI URL (`/ui`).
 
-Per-run outputs are versioned under:
+## Quality Gates
 
-```text
-data/runs/<run_id>/
-  inputs/
-  canonical/
-  layers/
-  reports/
+```bash
+make test-blocking
+make test-nonblocking
+make test
 ```
 
-Publish flow is atomic via staging and a single `data/published/latest` pointer update.
+Blocking suites:
 
-## API Contract (Minimum)
+- Unit
+- Property-based
+- Golden regression
+- Invariants/publish-gate checks
+- Integration
+
+Non-blocking suites:
+
+- UI smoke (`ui_smoke` marker)
+- Performance/monitoring (`perf_monitoring` marker)
+
+## API Endpoints
 
 - `GET /v1/runs/latest`
 - `GET /v1/layers`
@@ -77,43 +54,53 @@ Publish flow is atomic via staging and a single `data/published/latest` pointer 
 - `GET /v1/facilities`
 - `GET /v1/tiles/{z}/{x}/{y}.mvt`
 - `GET /v1/health`
+- `GET /v1/ui/config` (additive helper for UI center/zoom/resolution mapping)
 
-## Testing Strategy (Publish-Critical)
+## Data and Artifacts
 
-Blocking suites:
+Input staging:
 
-- Unit tests
-- Property-based tests
-- Golden regression tests
-- Invariant tests
-- Integration tests
+- `data/facilities/peeringdb.csv`
+- `data/facilities/atlas.csv`
+- `data/facilities/facilities_template.csv`
 
-Non-blocking initially (reported in CI):
+Run artifacts:
 
-- UI smoke tests
-- Performance/monitoring tests
+```text
+data/runs/<run_id>/
+  inputs/
+  canonical/
+    facilities.parquet
+    organizations.parquet
+  layers/
+    metro_density_core/m1/
+    country_mask/v1/
+  reports/
+    run_manifest.json
+    metrics.json
+```
 
-## Agentic Development Workflow
+Publish pointer:
 
-- Use `docs/PROJECT.md` as source-of-truth contracts.
-- Use `docs/IMPLEMENTATION_PLAN.md` as implementation sequence.
-- Build incrementally by milestone with tests added before publish path wiring.
-- Treat schema and API contracts as versioned interfaces.
-- Keep `README.md` and `AGENTS.md` synchronized with current workflow and contracts in every relevant change.
+- `data/published/latest` (atomic single-file flip)
 
-Detailed operational rules for contributors and coding agents are in `AGENTS.md`.
+## Determinism and Safety
 
-## Documentation Maintenance
+- `run_id`, `inputs_hash`, `config_hash`, and `code_hash` are persisted in `reports/run_manifest.json`.
+- Canonical outputs and layers are deterministic for identical inputs/config/code.
+- Publish is fail-closed and atomic.
+- Published run directories are immutable.
 
-- `README.md` and `AGENTS.md` must be reviewed on every non-trivial change.
-- If behavior, contracts, tests, commands, or workflow changed, both files must be updated in the same change set.
-- If no update is needed, the change log/progress note must explicitly say docs were reviewed and why no edits were required.
+## Agent Quality Workflow
 
-## Next Bootstrap Steps
+- Agents must maintain an append-only mistake ledger at `logs/mistakes.md`.
+- Each mistake must include root cause, corrective action, and a prevention rule.
+- Before handoff, agents must perform a mistake replay check to confirm no logged mistake was repeated.
 
-1. Scaffold Python package and config loader.
-2. Implement ingest + canonical normalization + H3 indexing.
-3. Add layer plugin registry and `metro_density_core`.
-4. Add invariant and golden tests.
-5. Expose minimal read-only API.
-6. Build internal map with facility and H3 overlays.
+## References
+
+- `docs/PROJECT.md`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/LOGS.md`
+- `docs/NEXT_STEPS.md`
+- `AGENTS.md`

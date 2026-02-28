@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inframap"
+version = "0.1.0"
+description = "Deterministic H3 infrastructure map bootstrap"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn>=0.30.0",
+  "pydantic>=2.8.0",
+  "PyYAML>=6.0.1",
+  "pandas>=2.2.0",
+  "pyarrow>=16.0.0",
+  "h3>=4.1.0",
+  "shapely>=2.0.0",
+  "mapbox-vector-tile>=2.0.1",
+  "mercantile>=1.2.1",
+  "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "hypothesis>=6.112.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "ui_smoke: non-blocking UI smoke tests",
+  "perf_monitoring: non-blocking perf/monitoring tests",
+]
