@@ -42,3 +42,10 @@ Checklist
 - Update: Docs check: no changes required. The change only narrows integration test fixture scope to GB and does not alter developer workflow, commands, contracts, or quality gates.
 - Evidence: `README.md` and `AGENTS.md` requirements unchanged by test-only patch.
 - Next: Final response.
+
+## 2026-02-28T07:36:27Z
+- Status: complete
+- Checklist item: Report root cause and recommended mitigation to user
+- Update: Created required git checkpoint commit for this task.
+- Evidence: commit `aa6c6c4` (`Scope API integration test to GB fixtures`), plus verification `pytest -q tests/integration/test_api.py` -> `1 passed in 5.64s`.
+- Next: Handoff summary.
