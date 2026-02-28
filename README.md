@@ -51,7 +51,7 @@ Non-blocking suites:
 ## API Endpoints
 
 - `GET /v1/runs/latest`
-- `GET /v1/runs/latest/status` (runtime expectations, latest run metrics/progress summary, adaptive policy summary)
+- `GET /v1/runs/latest/status` (runtime expectations, latest run metrics/progress summary, adaptive policy summary including metadata-driven adjacency health counters)
 - `GET /v1/runs/active/status` (best-effort staging heartbeat for in-progress runs; not yet published)
 - `GET /v1/calibration/latest` (latest calibration report from `artifacts/calibration`)
 - `GET /v1/calibration/estimates/gb` (GB-focused runtime estimate derived from latest calibration report)

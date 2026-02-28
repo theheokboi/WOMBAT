@@ -120,6 +120,7 @@ def run_invariants(
                             return ancestor, ancestor_resolution
                     return None
 
+                violating_pairs: set[tuple[str, int, str, int, int]] = set()
                 for cell in sorted(adaptive_cells, key=lambda c: (resolution_by_cell[c], c)):
                     resolution = resolution_by_cell[cell]
                     if cell in neighbor_cache:
@@ -133,8 +134,22 @@ def run_invariants(
                         covered = covering_leaf_for_neighbor(neighbor_str, resolution)
                         if covered is None:
                             continue
-                        _, neighbor_resolution = covered
-                        if abs(resolution - neighbor_resolution) > max_neighbor_delta:
-                            raise ValueError(
-                                "Invariant failed: adaptive smoothing adjacency delta exceeds configured maximum"
-                            )
+                        neighbor_leaf, neighbor_resolution = covered
+                        delta = abs(resolution - neighbor_resolution)
+                        if delta > max_neighbor_delta:
+                            left = (cell, resolution)
+                            right = (neighbor_leaf, neighbor_resolution)
+                            if right < left:
+                                left, right = right, left
+                            violating_pairs.add((left[0], left[1], right[0], right[1], delta))
+                if violating_pairs:
+                    samples = sorted(violating_pairs)[:3]
+                    sample_text = ", ".join(
+                        f"{left}@r{left_res}<->{right}@r{right_res} (delta={delta})"
+                        for left, left_res, right, right_res, delta in samples
+                    )
+                    raise ValueError(
+                        "Invariant failed: adaptive smoothing adjacency delta exceeds configured maximum "
+                        f"(max_allowed_delta={max_neighbor_delta}, violating_pairs={len(violating_pairs)}, "
+                        f"sample=[{sample_text}])"
+                    )

@@ -223,8 +223,12 @@ def test_invariants_fail_when_adaptive_neighbor_smoothing_delta_exceeds_limit() 
             ),
         }
     }
-    with pytest.raises(ValueError, match="smoothing adjacency delta"):
+    with pytest.raises(ValueError, match="smoothing adjacency delta") as excinfo:
         run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
+    message = str(excinfo.value)
+    assert "max_allowed_delta=1" in message
+    assert "violating_pairs=" in message
+    assert "sample=[" in message
 
 
 def test_invariants_pass_for_real_adaptive_output_with_dense_local_neighbors() -> None:

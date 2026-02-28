@@ -91,7 +91,13 @@ class FacilityDensityAdaptiveLayer:
                     "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
                     "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
                     "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
-                }
+                },
+                counters={
+                    "adjacency_checks": 0,
+                    "violating_neighbor_pairs": 0,
+                    "max_neighbor_delta_observed": 0,
+                    "smoothing_iterations": 0,
+                },
             )
             return metadata, empty
 
@@ -270,6 +276,7 @@ class FacilityDensityAdaptiveLayer:
             return True
 
         # Deterministic neighbor smoothing: refine the coarser side while allowed.
+        smoothing_iterations = 0
         while True:
             by_resolution = leaf_sets_by_resolution()
             resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in leaves}
@@ -303,6 +310,7 @@ class FacilityDensityAdaptiveLayer:
             if not coarse_candidates:
                 break
 
+            smoothing_iterations += 1
             refined = False
             for candidate_cell in sorted(
                 coarse_candidates,
@@ -325,6 +333,19 @@ class FacilityDensityAdaptiveLayer:
                     break
             if not refined:
                 break
+
+        adjacency_counters = self._adjacency_counters(
+            leaves=leaves,
+            max_neighbor_resolution_delta=max_neighbor_resolution_delta,
+        )
+        if adjacency_counters["violating_neighbor_pairs"] > 0:
+            raise ValueError(
+                "Adaptive facility layer violates max_neighbor_resolution_delta after smoothing; "
+                f"violating_pairs={adjacency_counters['violating_neighbor_pairs']}, "
+                f"max_delta_observed={adjacency_counters['max_neighbor_delta_observed']}, "
+                f"allowed={max_neighbor_resolution_delta}"
+            )
+        adjacency_counters["smoothing_iterations"] = smoothing_iterations
 
         # Deterministic mixed-resolution leaf output.
         output = pd.DataFrame(
@@ -352,16 +373,86 @@ class FacilityDensityAdaptiveLayer:
                 "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
                 "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
                 "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
-            }
+            },
+            counters=adjacency_counters,
         )
         return metadata, output
 
-    def _metadata(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _adjacency_counters(self, leaves: dict[str, int], max_neighbor_resolution_delta: int) -> dict[str, int]:
+        if not leaves:
+            return {
+                "adjacency_checks": 0,
+                "violating_neighbor_pairs": 0,
+                "max_neighbor_delta_observed": 0,
+            }
+
+        by_resolution: dict[int, set[str]] = {resolution: set() for resolution in range(14)}
+        resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in leaves}
+        for cell, resolution in resolution_by_leaf.items():
+            by_resolution[resolution].add(cell)
+
+        parent_cache: dict[tuple[str, int], str] = {}
+
+        def parent_cell(cell: str, resolution: int) -> str:
+            key = (cell, resolution)
+            cached = parent_cache.get(key)
+            if cached is not None:
+                return cached
+            if h3.get_resolution(cell) == resolution:
+                parent_cache[key] = cell
+            else:
+                parent_cache[key] = h3.cell_to_parent(cell, resolution)
+            return parent_cache[key]
+
+        def covering_leaf_for_neighbor(cell: str, resolution: int) -> tuple[str, int] | None:
+            for ancestor_resolution in range(resolution, -1, -1):
+                ancestor = parent_cell(cell, ancestor_resolution)
+                if ancestor in by_resolution[ancestor_resolution]:
+                    return ancestor, ancestor_resolution
+            return None
+
+        adjacency_checks = 0
+        violating_neighbor_pairs = 0
+        max_neighbor_delta_observed = 0
+        for cell in sorted(leaves, key=lambda value: (resolution_by_leaf[value], value)):
+            resolution = resolution_by_leaf[cell]
+            for neighbor in sorted(str(value) for value in h3.grid_disk(cell, 1)):
+                if neighbor == cell:
+                    continue
+                covered = covering_leaf_for_neighbor(neighbor, resolution)
+                if covered is None:
+                    continue
+                _, neighbor_resolution = covered
+                delta = abs(resolution - neighbor_resolution)
+                adjacency_checks += 1
+                if delta > max_neighbor_delta_observed:
+                    max_neighbor_delta_observed = delta
+                if delta > max_neighbor_resolution_delta:
+                    violating_neighbor_pairs += 1
+
+        return {
+            "adjacency_checks": adjacency_checks,
+            "violating_neighbor_pairs": violating_neighbor_pairs,
+            "max_neighbor_delta_observed": max_neighbor_delta_observed,
+        }
+
+    def _metadata(self, params: dict[str, Any], counters: dict[str, int] | None = None) -> dict[str, Any]:
+        if counters is None:
+            counters = {
+                "adjacency_checks": 0,
+                "violating_neighbor_pairs": 0,
+                "max_neighbor_delta_observed": 0,
+                "smoothing_iterations": 0,
+            }
         return {
             "layer_name": "facility_density_adaptive",
             "layer_version": self.version,
             "policy_name": "facility_hierarchical_partition_v3",
             "coverage_domain": "country_mask_r4",
+            "adjacency_checks": int(counters["adjacency_checks"]),
+            "violating_neighbor_pairs": int(counters["violating_neighbor_pairs"]),
+            "max_neighbor_delta_observed": int(counters["max_neighbor_delta_observed"]),
+            "smoothing_iterations": int(counters["smoothing_iterations"]),
             "params": params,
             "stopping_rules": {
                 "empty_branch": {

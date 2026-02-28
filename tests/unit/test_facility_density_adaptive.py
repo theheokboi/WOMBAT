@@ -1,5 +1,6 @@
 import h3
 import pandas as pd
+import pytest
 
 from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
 
@@ -239,7 +240,7 @@ def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_ca
     params = _v3_params()
 
     layer = FacilityDensityAdaptiveLayer(version="v3")
-    _, cells = layer.compute(
+    metadata, cells = layer.compute(
         canonical_store={"facilities": facilities},
         layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=2),
         params=params,
@@ -247,4 +248,43 @@ def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_ca
 
     assert int(cells["resolution"].min()) >= int(params["min_output_resolution"])
     assert int(cells["resolution"].max()) <= int(params["facility_max_resolution"])
-    assert _max_neighbor_resolution_delta(cells) <= int(params["max_neighbor_resolution_delta"])
+    observed_max_delta = _max_neighbor_resolution_delta(cells)
+    assert observed_max_delta <= int(params["max_neighbor_resolution_delta"])
+    assert int(metadata["adjacency_checks"]) > 0
+    assert int(metadata["violating_neighbor_pairs"]) == 0
+    assert int(metadata["max_neighbor_delta_observed"]) == observed_max_delta
+    assert int(metadata["smoothing_iterations"]) >= 0
+
+
+def test_adaptive_v3_adjacency_counters_detect_violating_pair() -> None:
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    counters = layer._adjacency_counters(
+        leaves={"852664c3fffffff": 0, "862664c57ffffff": 0},
+        max_neighbor_resolution_delta=0,
+    )
+    assert int(counters["adjacency_checks"]) > 0
+    assert int(counters["max_neighbor_delta_observed"]) == 1
+    assert int(counters["violating_neighbor_pairs"]) > 0
+
+
+def test_adaptive_v3_fails_closed_when_final_adjacency_check_violates_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    facilities = _facilities_from_cells(["8d2664c2abaa53f"])
+    params = _v3_params()
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+
+    monkeypatch.setattr(
+        layer,
+        "_adjacency_counters",
+        lambda leaves, max_neighbor_resolution_delta: {
+            "adjacency_checks": 3,
+            "violating_neighbor_pairs": 1,
+            "max_neighbor_delta_observed": int(max_neighbor_resolution_delta) + 1,
+        },
+    )
+
+    with pytest.raises(ValueError, match="violates max_neighbor_resolution_delta after smoothing"):
+        layer.compute(
+            canonical_store={"facilities": facilities},
+            layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=1),
+            params=params,
+        )

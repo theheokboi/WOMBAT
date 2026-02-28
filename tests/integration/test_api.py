@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from inframap.agent.runner import run_pipeline
@@ -76,6 +77,23 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     system = _build_system_with_tmp_paths(tmp_path, input_path=gb_fixture)
     layers = _build_layers_with_gb_scope(gb_polygon_path=gb_polygons)
     run_id = run_pipeline(system, layers)
+    adaptive_metadata_path = (
+        Path(system.paths.runs_root)
+        / run_id
+        / "layers"
+        / "facility_density_adaptive"
+        / "v3"
+        / "layer_metadata.json"
+    )
+    adaptive_metadata = json.loads(adaptive_metadata_path.read_text(encoding="utf-8"))
+    adaptive_metadata["adaptive_counters"] = {
+        "adjacency_checks": 12,
+        "adjacency_violations": 2,
+        "adjacency_violation_samples": [
+            "872664c28ffffff@r7<->892664c28a3ffff@r9 (delta=2)",
+        ],
+    }
+    adaptive_metadata_path.write_text(json.dumps(adaptive_metadata, sort_keys=True, indent=2), encoding="utf-8")
 
     app = create_app(
         runs_root=Path(system.paths.runs_root),
@@ -96,6 +114,13 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert "runtime_expectations" in latest_status_body
     assert latest_status_body["adaptive_policy"]["layer_version"] == "v3"
     assert latest_status_body["adaptive_policy"]["policy_name"] == "facility_hierarchical_partition_v3"
+    assert latest_status_body["adaptive_policy"]["adjacency_health"]["status"] == "violations_detected"
+    assert latest_status_body["adaptive_policy"]["adjacency_health"]["adjacency_checks"] == 12
+    assert latest_status_body["adaptive_policy"]["adjacency_health"]["adjacency_violations"] == 2
+    assert latest_status_body["adaptive_policy"]["adjacency_health"]["violation_rate"] == pytest.approx(2 / 12)
+    assert latest_status_body["adaptive_policy"]["adjacency_health"]["sample"] == [
+        "872664c28ffffff@r7<->892664c28a3ffff@r9 (delta=2)"
+    ]
 
     active_status = client.get("/v1/runs/active/status")
     assert active_status.status_code == 200

@@ -54,6 +54,82 @@ def _read_json_if_exists(path: Path) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _first_int(payload: dict[str, Any], keys: tuple[str, ...]) -> int | None:
+    for key in keys:
+        value = payload.get(key)
+        if value is None:
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _adaptive_adjacency_health(adaptive_metadata: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(adaptive_metadata, dict):
+        return {"status": "unknown", "adjacency_checks": None, "adjacency_violations": None, "sample": []}
+
+    top_level_checks = _first_int(
+        adaptive_metadata,
+        ("adjacency_checks", "neighbor_adjacency_checks", "smoothing_adjacency_checks"),
+    )
+    top_level_violations = _first_int(
+        adaptive_metadata,
+        (
+            "violating_neighbor_pairs",
+            "adjacency_violations",
+            "neighbor_adjacency_violations",
+            "smoothing_adjacency_violations",
+        ),
+    )
+    top_level_max_delta = _first_int(
+        adaptive_metadata,
+        ("max_neighbor_delta_observed", "neighbor_max_delta_observed", "smoothing_max_delta_observed"),
+    )
+
+    counters = adaptive_metadata.get("adaptive_counters")
+    if not isinstance(counters, dict):
+        counters = adaptive_metadata.get("counters")
+    if not isinstance(counters, dict):
+        counters = {}
+
+    checks = _first_int(counters, ("adjacency_checks", "neighbor_adjacency_checks", "smoothing_adjacency_checks"))
+    violations = _first_int(
+        counters,
+        ("adjacency_violations", "neighbor_adjacency_violations", "smoothing_adjacency_violations"),
+    )
+    sample = counters.get("adjacency_violation_samples")
+    if not isinstance(sample, list):
+        sample = counters.get("neighbor_adjacency_violation_samples")
+    if not isinstance(sample, list):
+        sample = counters.get("smoothing_adjacency_violation_samples")
+    if not isinstance(sample, list):
+        sample = []
+    sample = sample[:3]
+
+    checks = checks if checks is not None else top_level_checks
+    violations = violations if violations is not None else top_level_violations
+
+    if checks is None and violations is None:
+        status = "unknown"
+    elif (violations or 0) > 0:
+        status = "violations_detected"
+    else:
+        status = "ok"
+    violation_rate = None
+    if checks is not None and checks > 0 and violations is not None:
+        violation_rate = violations / checks
+    return {
+        "status": status,
+        "adjacency_checks": checks,
+        "adjacency_violations": violations,
+        "max_neighbor_delta_observed": top_level_max_delta,
+        "violation_rate": violation_rate,
+        "sample": sample,
+    }
+
+
 def _latest_calibration_report() -> tuple[str, dict[str, Any]] | None:
     calibration_root = Path("artifacts") / "calibration"
     if not calibration_root.exists():
@@ -193,6 +269,7 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                 "layer_version": adaptive.get("layer_version") if adaptive else None,
                 "policy_name": adaptive.get("policy_name") if adaptive else None,
                 "params": adaptive.get("params") if adaptive else None,
+                "adjacency_health": _adaptive_adjacency_health(adaptive),
             },
             "latest_progress_event": latest_progress,
         }
