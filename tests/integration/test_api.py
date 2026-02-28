@@ -127,7 +127,7 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert adaptive_meta_json["params"]["base_resolution"] == 4
     assert adaptive_meta_json["params"]["empty_compact_min_resolution"] == 0
     assert adaptive_meta_json["params"]["facility_floor_resolution"] == 9
-    assert adaptive_meta_json["params"]["facility_max_resolution"] == 13
+    assert adaptive_meta_json["params"]["facility_max_resolution"] == 9
     assert adaptive_meta_json["params"]["target_facilities_per_leaf"] == 1
     assert adaptive_meta_json["params"]["empty_interior_max_resolution"] == 5
     assert adaptive_meta_json["params"]["empty_refine_boundary_band_k"] == 1
@@ -149,6 +149,9 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert adaptive_cells_default.status_code == 200
     default_features = adaptive_cells_default.json()["features"]
     assert len(default_features) > 0
+    default_resolutions = [int(feature["properties"]["resolution"]) for feature in default_features]
+    assert min(default_resolutions) >= 5
+    assert max(default_resolutions) <= 9
     assert "preview" not in adaptive_cells_default.json()
 
     adaptive_cells_fine = client.get("/v1/layers/facility_density_adaptive/cells?split_threshold=1")

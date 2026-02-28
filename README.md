@@ -7,7 +7,7 @@ Deterministic, geometry-first pipelines for building a multi-resolution map of p
 This repository now includes a working bootstrap stack:
 
 - Deterministic agent pipeline (ingest -> canonicalize -> layer compute -> invariants -> atomic publish)
-- Layer plugins: `metro_density_core` (M1), `country_mask` (centroid rule over Natural Earth admin-0 countries with deterministic neighboring-country color classes), and `facility_density_adaptive` (`v3` adaptive hierarchical partition over `country_mask` r4 domain: coarse empty interiors, detailed refinement at boundaries and near occupied cells, with neighbor-resolution smoothing)
+- Layer plugins: `metro_density_core` (M1), `country_mask` (centroid rule over Natural Earth admin-0 countries with deterministic neighboring-country color classes), and `facility_density_adaptive` (`v3` adaptive hierarchical partition over `country_mask` r4 domain with published levels constrained to `r5..r9`: coarse empty interiors, detailed refinement at boundaries and near occupied cells, with neighbor-resolution smoothing)
 - Immutable run artifacts and single latest-pointer publish semantics
 - FastAPI read-only API under `/v1`
 - Internal map UI at `/ui` with facility and H3 overlays, toggles, tooltips, drill-down, and viewport-based global H3 multi-resolution overlays
@@ -58,7 +58,7 @@ Non-blocking suites:
 - `GET /v1/calibration/estimates/world` (deprecated backward-compatible alias for `/v1/calibration/estimates/gb`)
 - `GET /v1/layers`
 - `GET /v1/layers/{layer}/metadata`
-- `GET /v1/layers/{layer}/cells` (`facility_density_adaptive` serves published `v3` cells; deprecated `split_threshold` is rejected with `400`)
+- `GET /v1/layers/{layer}/cells` (`facility_density_adaptive` serves published `v3` cells in `r5..r9`; deprecated `split_threshold` is rejected with `400`)
 - `GET /v1/facilities`
 - `GET /v1/tiles/{z}/{x}/{y}.mvt`
 - `GET /v1/health`
@@ -101,6 +101,7 @@ Publish pointer:
 ## Adaptive Layer Migration (v2 -> v3)
 
 - `facility_density_adaptive` now uses `v3` adaptive partition behavior.
+- Adaptive output levels are now bounded to `r5..r9` by default (`base_resolution=4`, `empty_compact_min_resolution=0`, `facility_floor_resolution=9`, `facility_max_resolution=9`).
 - Empty-space handling is now tiered: interior empty regions stay coarse (up to configured `empty_interior_max_resolution`), while empty cells near country boundaries (`empty_refine_boundary_band_k`) or near occupied cells (`empty_refine_near_occupied_k`) refine in more detail.
 - Occupied-cell behavior remains deterministic with floor/cap controls (`facility_floor_resolution`, `facility_max_resolution`, `target_facilities_per_leaf`).
 - Resolution transitions are smoothed by `max_neighbor_resolution_delta` to avoid abrupt detail jumps between adjacent cells.

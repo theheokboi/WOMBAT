@@ -21,7 +21,7 @@ def test_load_system_and_layers_config() -> None:
         "base_resolution": 4,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
-        "facility_max_resolution": 13,
+        "facility_max_resolution": 9,
         "target_facilities_per_leaf": 1,
         "empty_interior_max_resolution": 5,
         "empty_refine_boundary_band_k": 1,
