@@ -26,3 +26,4 @@ def test_ui_static_smoke() -> None:
     assert "toggle-metro" not in response.text
     assert "toggle-global-h3" not in response.text
     assert "adaptive-threshold" not in response.text
+    assert "facility-style" not in response.text
