@@ -1,16 +1,16 @@
-# Agent Handover Guide
+# Agent Handover
 
-Use this guide when transferring an in-progress task to another coding agent.
+Use this document both as a handover checklist and as a reusable transfer prompt.
 
-## 1. Preconditions Before Handover
+## Preconditions Before Handover
 
 - Ensure progress tracking file exists at `logs/progress/<YYYY-MM-DD>-<task>.md`.
 - Update checklist statuses to reflect current reality.
 - Add a final timestamped progress entry immediately before handover.
-- Record any unresolved blockers with `BLOCKED:` in checklist text.
+- Record unresolved blockers with `BLOCKED:` in checklist text.
 - Run relevant verification commands and record evidence.
 
-## 2. Required Handover Package
+## Required Handover Package
 
 Provide all items below in one handover message/document:
 
@@ -26,7 +26,7 @@ Provide all items below in one handover message/document:
 - Relevant screenshot paths for UI tasks.
 - Mistake replay check summary referencing `logs/mistakes.md`.
 
-## 3. Verification Expectations for Receiving Agent
+## Verification Expectations for Receiving Agent
 
 Receiving agent must:
 
@@ -36,7 +36,7 @@ Receiving agent must:
 - Confirm whether claims in handover match repository state.
 - Continue checklist/progress log updates in append-only mode.
 
-## 4. Handover Output Format
+## Handover Output Format
 
 Use this structure:
 
@@ -47,7 +47,66 @@ Use this structure:
 5. Risks and assumptions
 6. Immediate next actions
 
-## 5. Minimal Example Snippet
+## Reusable Prompt
+
+Copy/paste and fill placeholders.
+
+```text
+You are taking over an in-progress task in this repository.
+
+Read first:
+- docs/PROJECT.md
+- docs/IMPLEMENTATION_PLAN.md
+- AGENTS.md
+- README.md
+- docs/HANDOVER.md
+- logs/progress/<YYYY-MM-DD>-<task>.md
+- logs/mistakes.md
+
+Task objective:
+<OBJECTIVE>
+
+Current status:
+- Completed:
+  - <ITEM>
+- In progress:
+  - <ITEM>
+- Blocked:
+  - <ITEM or "none">
+
+Changed files so far:
+- <PATH>
+- <PATH>
+
+Verification evidence so far:
+- <COMMAND> -> <RESULT>
+- <COMMAND> -> <RESULT>
+
+UI evidence (if applicable):
+- Screenshot(s): <PATH>
+- User-reported mismatch: <DESCRIPTION or "none">
+
+Constraints to preserve:
+- Determinism and fail-closed publish behavior
+- Immutable published artifacts
+- Versioned `/v1` API compatibility rules
+- Progress log append-only discipline
+
+Your required actions:
+1. Re-verify current claims with local commands.
+2. Continue from the next unfinished checklist item.
+3. Keep changes minimal and test-first.
+4. Update progress log at every status transition.
+5. Perform mistake replay check before final handoff.
+
+Deliver at handoff:
+- concise change summary
+- exact tests run and status (blocking/non-blocking)
+- remaining risks/assumptions
+- next recommended milestone steps
+```
+
+## Minimal Example Snippet
 
 ```text
 Context: Implement multi-layer H3 overlay in UI.

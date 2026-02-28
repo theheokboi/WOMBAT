@@ -101,6 +101,7 @@ Publish pointer:
 
 - `docs/PROJECT.md`
 - `docs/IMPLEMENTATION_PLAN.md`
+- `docs/HANDOVER.md`
 - `docs/LOGS.md`
 - `docs/NEXT_STEPS.md`
 - `AGENTS.md`
