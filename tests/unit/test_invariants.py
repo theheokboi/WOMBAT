@@ -2,7 +2,48 @@ import h3
 import pandas as pd
 import pytest
 
+from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
 from inframap.validation.invariants import run_invariants
+
+
+def _adaptive_v3_params() -> dict[str, int]:
+    return {
+        "base_resolution": 4,
+        "empty_compact_min_resolution": 0,
+        "facility_floor_resolution": 9,
+        "facility_max_resolution": 13,
+        "target_facilities_per_leaf": 1,
+        "empty_interior_max_resolution": 7,
+        "empty_refine_boundary_band_k": 1,
+        "empty_refine_near_occupied_k": 1,
+        "max_neighbor_resolution_delta": 1,
+    }
+
+
+def _country_mask_store(
+    base_resolution: int = 4, radius: int = 0
+) -> dict[str, dict[str, pd.DataFrame | dict[str, str]]]:
+    base_cell = str(h3.latlng_to_cell(41.8781, -87.6298, base_resolution))
+    cells_set = {base_cell}
+    if radius > 0:
+        cells_set = {str(cell) for cell in h3.grid_disk(base_cell, radius)}
+    cells = pd.DataFrame(
+        [{"h3": cell, "resolution": base_resolution, "layer_value": "land", "country_name": "US"} for cell in sorted(cells_set)]
+    )
+    return {
+        "country_mask": {
+            "metadata": {"layer_name": "country_mask", "layer_version": "v1"},
+            "cells": cells,
+        }
+    }
+
+
+def _facilities_from_cells(cells: list[str], asof_date: str = "2026-02-28") -> pd.DataFrame:
+    rows = []
+    for i, cell in enumerate(cells):
+        lat, lon = h3.cell_to_latlng(cell)
+        rows.append({"facility_id": f"f{i}", "lat": lat, "lon": lon, "h3_r5": "852664c7fffffff", "asof_date": asof_date})
+    return pd.DataFrame(rows)
 
 
 def test_invariants_pass_for_valid_data() -> None:
@@ -183,3 +224,16 @@ def test_invariants_fail_when_adaptive_neighbor_smoothing_delta_exceeds_limit() 
     }
     with pytest.raises(ValueError, match="smoothing adjacency delta"):
         run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
+
+
+def test_invariants_pass_for_real_adaptive_output_with_dense_local_neighbors() -> None:
+    params = _adaptive_v3_params()
+    facilities = _facilities_from_cells(["8d2664c2abaa53f", "8d2664c2aba343f"])
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities[["facility_id", "lat", "lon", "asof_date"]]},
+        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=2),
+        params=params,
+    )
+    layer_artifacts = {"facility_density_adaptive": {"metadata": metadata, "cells": cells}}
+    run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])

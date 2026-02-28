@@ -60,6 +60,47 @@ def _has_ancestor_descendant_overlap(cells: pd.DataFrame) -> bool:
     return False
 
 
+def _max_neighbor_resolution_delta(cells: pd.DataFrame) -> int:
+    adaptive_cells = {str(cell) for cell in cells["h3"].astype(str).tolist()}
+    if not adaptive_cells:
+        return 0
+    resolution_by_cell = {cell: h3.get_resolution(cell) for cell in adaptive_cells}
+    by_resolution: dict[int, set[str]] = {resolution: set() for resolution in range(14)}
+    for cell, resolution in resolution_by_cell.items():
+        by_resolution[resolution].add(cell)
+    parent_cache: dict[tuple[str, int], str] = {}
+
+    def parent_cell(cell: str, resolution: int) -> str:
+        key = (cell, resolution)
+        cached = parent_cache.get(key)
+        if cached is not None:
+            return cached
+        if h3.get_resolution(cell) == resolution:
+            parent_cache[key] = cell
+        else:
+            parent_cache[key] = h3.cell_to_parent(cell, resolution)
+        return parent_cache[key]
+
+    def covering_leaf_for_neighbor(cell: str, resolution: int) -> int | None:
+        for ancestor_resolution in range(resolution, -1, -1):
+            ancestor = parent_cell(cell, ancestor_resolution)
+            if ancestor in by_resolution[ancestor_resolution]:
+                return ancestor_resolution
+        return None
+
+    max_delta = 0
+    for cell in sorted(adaptive_cells, key=lambda c: (resolution_by_cell[c], c)):
+        resolution = resolution_by_cell[cell]
+        for neighbor in [str(value) for value in h3.grid_disk(cell, 1)]:
+            if neighbor == cell:
+                continue
+            neighbor_resolution = covering_leaf_for_neighbor(neighbor, resolution)
+            if neighbor_resolution is None:
+                continue
+            max_delta = max(max_delta, abs(resolution - neighbor_resolution))
+    return max_delta
+
+
 def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
     params = _v3_params()
@@ -190,3 +231,17 @@ def test_adaptive_v3_repeat_runs_are_deterministic() -> None:
     subset_a = cells_a[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).reset_index(drop=True)
     subset_b = cells_b[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).reset_index(drop=True)
     pd.testing.assert_frame_equal(subset_a, subset_b, check_like=False)
+
+
+def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_case() -> None:
+    facilities = _facilities_from_cells(["8d2664c2abaa53f", "8d2664c2aba343f"])
+    params = _v3_params()
+
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    _, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=2),
+        params=params,
+    )
+
+    assert _max_neighbor_resolution_delta(cells) <= int(params["max_neighbor_resolution_delta"])

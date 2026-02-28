@@ -236,8 +236,21 @@ class FacilityDensityAdaptiveLayer:
                     return ancestor, ancestor_resolution
             return None
 
-        def refine_leaf(cell: str, resolution: int, facility_count: int) -> bool:
-            if resolution >= max_allowed_resolution(cell, resolution, facility_count):
+        def refine_leaf(
+            cell: str,
+            resolution: int,
+            facility_count: int,
+            required_min_resolution: int | None = None,
+        ) -> bool:
+            allowed_max_resolution = max_allowed_resolution(cell, resolution, facility_count)
+            # Neighbor smoothing is a hard output guarantee; allow empty leaves to
+            # refine past their normal cap only when required to satisfy it.
+            if required_min_resolution is not None and facility_count == 0:
+                allowed_max_resolution = max(
+                    allowed_max_resolution,
+                    min(int(required_min_resolution), facility_max_resolution),
+                )
+            if resolution >= allowed_max_resolution:
                 return False
             next_resolution = resolution + 1
             children = sorted(h3.cell_to_children(cell, next_resolution))
@@ -252,7 +265,7 @@ class FacilityDensityAdaptiveLayer:
         while True:
             by_resolution = leaf_sets_by_resolution()
             resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in leaves}
-            coarse_candidates: set[tuple[str, int, int]] = set()
+            coarse_candidates: dict[str, int] = {}
             for cell in sorted(leaves, key=lambda value: (resolution_by_leaf[value], value)):
                 resolution = resolution_by_leaf[cell]
                 same_resolution_neighbors = neighbors_within_k(cell, resolution, 1)
@@ -267,18 +280,39 @@ class FacilityDensityAdaptiveLayer:
                     if delta <= max_neighbor_resolution_delta:
                         continue
                     if resolution < neighbor_resolution:
-                        coarse_candidates.add((cell, resolution, leaves[cell]))
+                        coarse_cell = cell
+                        finer_resolution = neighbor_resolution
                     elif neighbor_resolution < resolution:
-                        coarse_candidates.add((neighbor_leaf, neighbor_resolution, leaves[neighbor_leaf]))
+                        coarse_cell = neighbor_leaf
+                        finer_resolution = resolution
+                    else:
+                        continue
+                    required_min_resolution = finer_resolution - max_neighbor_resolution_delta
+                    current_required = coarse_candidates.get(coarse_cell)
+                    if current_required is None or required_min_resolution > current_required:
+                        coarse_candidates[coarse_cell] = required_min_resolution
 
             if not coarse_candidates:
                 break
 
             refined = False
-            for candidate_cell, candidate_resolution, candidate_count in sorted(
-                coarse_candidates, key=lambda item: (item[1], item[0])
+            for candidate_cell in sorted(
+                coarse_candidates,
+                key=lambda item: (resolution_by_leaf.get(item, 14), item),
             ):
-                if refine_leaf(candidate_cell, candidate_resolution, candidate_count):
+                if candidate_cell not in leaves:
+                    continue
+                candidate_resolution = resolution_by_leaf[candidate_cell]
+                candidate_count = leaves[candidate_cell]
+                required_min_resolution = coarse_candidates[candidate_cell]
+                if candidate_resolution >= required_min_resolution:
+                    continue
+                if refine_leaf(
+                    candidate_cell,
+                    candidate_resolution,
+                    candidate_count,
+                    required_min_resolution=required_min_resolution,
+                ):
                     refined = True
                     break
             if not refined:
