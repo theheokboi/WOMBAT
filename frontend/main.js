@@ -124,7 +124,7 @@ function featureIsGbScoped(feature, countryCellSet) {
 }
 
 async function init() {
-  const [ui, facilities, countryCells, adaptiveCells, adaptiveMetadata, latestStatus, activeStatus, calibrationLatest, calibrationWorldEstimate] = await Promise.all([
+  const [ui, facilities, countryCells, adaptiveCells, adaptiveMetadata, latestStatus, activeStatus, calibrationLatest] = await Promise.all([
     loadJson('/v1/ui/config'),
     loadJson('/v1/facilities?limit=50000'),
     loadJson('/v1/layers/country_mask/cells'),
@@ -133,7 +133,6 @@ async function init() {
     tryLoadJson('/v1/runs/latest/status'),
     tryLoadJson('/v1/runs/active/status'),
     tryLoadJson('/v1/calibration/latest'),
-    tryLoadJson('/v1/calibration/estimates/world'),
   ]);
   const countryFeatures = featureCollectionFeatures(countryCells);
   const gbCountryFeatures = countryFeatures.filter((feature) => isGbCountryFeature(feature));
@@ -154,13 +153,19 @@ async function init() {
   document.getElementById('facility-count').textContent = `GB facilities loaded: ${gbFacilities.features.length.toLocaleString()}`;
   document.getElementById('location-count').textContent = `GB unique locations: ${new Set((gbFacilities.features || []).map((f) => f.geometry.coordinates.join(','))).size.toLocaleString()}`;
   const displayScopeNode = document.getElementById('display-scope');
+  const latestAdaptiveVersionNode = document.getElementById('latest-adaptive-version');
   const adaptivePolicyNode = document.getElementById('adaptive-policy');
   const runtimeExpectationNode = document.getElementById('runtime-expectation');
   const latestRunRuntimeNode = document.getElementById('latest-run-runtime');
   const activeRunStatusNode = document.getElementById('active-run-status');
   const calibrationBasisNode = document.getElementById('calibration-basis');
-  const calibrationWorldEstimateNode = document.getElementById('calibration-world-estimate');
   displayScopeNode.textContent = `Display scope: GB only (country_mask=GB, filtered in UI; ${gbCountryFeatures.length.toLocaleString()} country cells, ${gbAdaptiveFeatures.length.toLocaleString()} adaptive cells)`;
+
+  const latestRunId = latestStatus?.run_id || '--';
+  const latestPolicyName = latestStatus?.adaptive_policy?.policy_name || adaptivePolicyName || '--';
+  const latestPolicyVersion = latestStatus?.adaptive_policy?.layer_version || policyVersion || '--';
+  latestAdaptiveVersionNode.textContent =
+    `Latest published adaptive version: ${latestRunId} | ${latestPolicyName} | ${latestPolicyVersion}`;
 
   adaptivePolicyNode.textContent = `Adaptive policy: ${adaptivePolicyName || '--'} (${policyVersion})`;
 
@@ -195,22 +200,6 @@ async function init() {
     calibrationBasisNode.textContent = `Calibration basis: ${basisCountry} (${calibrationId}), runtime ${runtimeLabel}`;
   } else {
     calibrationBasisNode.textContent = 'Calibration basis: unavailable';
-  }
-
-  if (calibrationWorldEstimate) {
-    const estimate = calibrationWorldEstimate.estimate || {};
-    const typicalMin = estimate.estimated_seconds_typical_min;
-    const typicalMax = estimate.estimated_seconds_typical_max;
-    const slowMax = estimate.estimated_seconds_slow_path_max;
-    if (typeof typicalMin === 'number' && typeof typicalMax === 'number') {
-      const slowLabel = typeof slowMax === 'number' ? `, slow path ${(slowMax / 60).toFixed(2)} min` : '';
-      calibrationWorldEstimateNode.textContent =
-        `GB-calibrated world runtime estimate: typical ${(typicalMin / 60).toFixed(2)}-${(typicalMax / 60).toFixed(2)} min${slowLabel}`;
-    } else {
-      calibrationWorldEstimateNode.textContent = 'GB-calibrated world runtime estimate: unavailable';
-    }
-  } else {
-    calibrationWorldEstimateNode.textContent = 'GB-calibrated world runtime estimate: unavailable';
   }
 
   const map = L.map('map', {

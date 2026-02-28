@@ -72,67 +72,7 @@ def _latest_calibration_report() -> tuple[str, dict[str, Any]] | None:
     return latest.name, payload
 
 
-def _from_latest_run_metrics(store: DataStore) -> dict[str, Any]:
-    try:
-        metrics = _read_json_if_exists(store.run_root() / "reports" / "metrics.json") or {}
-    except HTTPException:
-        metrics = {}
-    return {
-        "basis": "latest_run_metrics",
-        "facility_count_total": int(metrics.get("facility_count_total") or 0),
-        "facility_count_by_source": {
-            str(k): int(v) for k, v in (metrics.get("facility_count_by_source") or {}).items()
-        },
-        "country_count_total": 0,
-        "facility_count_by_country": {},
-    }
-
-
-def _build_world_snapshot(system: SystemConfig, store: DataStore) -> dict[str, Any]:
-    by_country: dict[str, int] = {}
-    by_source: dict[str, int] = {}
-    total_rows = 0
-    loaded_any = False
-
-    for source in system.inputs:
-        path = Path(source.path)
-        if not path.exists():
-            continue
-        loaded_any = True
-        sep = "\t" if path.suffix.lower() in {".tsv", ".tab"} else ","
-        frame = pd.read_csv(path, sep=sep, dtype=str, keep_default_na=False)
-        source_count = int(len(frame.index))
-        total_rows += source_count
-        by_source[source.source_name] = by_source.get(source.source_name, 0) + source_count
-        cols = {str(col).lower(): col for col in frame.columns}
-        country_col = cols.get("country")
-        if country_col is None:
-            continue
-        country_counts = (
-            frame[country_col]
-            .astype(str)
-            .str.strip()
-            .replace("", pd.NA)
-            .dropna()
-            .value_counts()
-            .to_dict()
-        )
-        for country, count in country_counts.items():
-            by_country[str(country)] = by_country.get(str(country), 0) + int(count)
-
-    if not loaded_any:
-        return _from_latest_run_metrics(store)
-
-    return {
-        "basis": "input_files",
-        "facility_count_total": total_rows,
-        "facility_count_by_source": dict(sorted(by_source.items())),
-        "country_count_total": len(by_country),
-        "facility_count_by_country": dict(sorted(by_country.items())),
-    }
-
-
-def _estimate_world_runtime(report: dict[str, Any], world_snapshot: dict[str, Any]) -> dict[str, Any]:
+def _estimate_runtime_from_calibration(report: dict[str, Any]) -> dict[str, Any]:
     calibration_report = {
         "facilities": int(report.get("facility_count", report.get("facility_count_total", 0)) or 0),
         "domain_r4_cell_count": int(report.get("domain_r4_cell_count", 0) or 0),
@@ -158,16 +98,16 @@ def _estimate_world_runtime(report: dict[str, Any], world_snapshot: dict[str, An
             or 0.0
         ),
     }
-    world_driver_snapshot = {
-        "facilities": int(world_snapshot.get("facility_count_total", 0) or 0),
-        "domain_r4_cell_count": int(world_snapshot.get("country_count_total", 0) or 0),
-        "adaptive_leaf_count": int(world_snapshot.get("facility_count_total", 0) or 0),
-        "smoothing_iterations": 0,
-        "adjacency_checks": int(world_snapshot.get("facility_count_total", 0) or 0),
+    driver_snapshot = {
+        "facilities": calibration_report["facilities"],
+        "domain_r4_cell_count": calibration_report["domain_r4_cell_count"],
+        "adaptive_leaf_count": calibration_report["adaptive_leaf_count"],
+        "smoothing_iterations": calibration_report["smoothing_iterations"],
+        "adjacency_checks": calibration_report["adjacency_checks"],
     }
     return estimate_world_runtime(
         calibration_reports=[calibration_report],
-        world_driver_snapshot=world_driver_snapshot,
+        world_driver_snapshot=driver_snapshot,
     )
 
 
@@ -287,17 +227,27 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         _, report = latest
         return report
 
-    @app.get("/v1/calibration/estimates/world")
-    def calibration_world_estimate() -> dict[str, Any]:
+    @app.get("/v1/calibration/estimates/gb")
+    def calibration_gb_estimate() -> dict[str, Any]:
         latest = _latest_calibration_report()
         if latest is None:
             raise HTTPException(status_code=404, detail="No calibration report found")
         calibration_id, report = latest
-        world_snapshot = _build_world_snapshot(system=system, store=store)
         return {
             "calibration_id": calibration_id,
-            "world_snapshot": world_snapshot,
-            "estimate": _estimate_world_runtime(report=report, world_snapshot=world_snapshot),
+            "country": "GB",
+            "estimate_basis": "latest_calibration_report",
+            "estimate": _estimate_runtime_from_calibration(report=report),
+        }
+
+    @app.get("/v1/calibration/estimates/world")
+    def calibration_world_estimate() -> dict[str, Any]:
+        # Backward-compatible alias retained for existing clients.
+        payload = calibration_gb_estimate()
+        return {
+            **payload,
+            "deprecated": True,
+            "deprecated_alias_for": "/v1/calibration/estimates/gb",
         }
 
     @app.get("/v1/layers")
