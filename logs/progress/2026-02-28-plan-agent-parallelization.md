@@ -5,7 +5,7 @@
 - [x] Write/replace plan document with task-by-task agent execution model
 - [x] Add explicit orchestration section: spawn agent per task, wait for all, validate outputs
 - [x] Docs check (`README.md`, `AGENTS.md`) and mistake replay check
-- [~] Create git checkpoint commit and record evidence
+- [x] Create git checkpoint commit and record evidence
 
 ## 2026-02-28T05:11:13Z
 - Status: in progress
@@ -34,3 +34,10 @@
 - Update: Docs check: no updates needed for `README.md` or `AGENTS.md` because this change only adds a planning document. Mistake replay check: confirmed plan explicitly enforces deterministic partition and post-join verification, avoiding prior duplicate-cell and fragile-render-path mistakes.
 - Evidence: `README.md` unchanged; `AGENTS.md` unchanged; `logs/mistakes.md` entries reviewed (`2026-02-28T00:46:44Z`, `2026-02-28T04:52:14Z`).
 - Next: Create checkpoint commit and record hash evidence.
+
+## 2026-02-28T05:12:11Z
+- Status: complete
+- Checklist item: Create git checkpoint commit and record evidence
+- Update: Created checkpoint commit for the new plan document and progress log.
+- Evidence: `git commit` -> `39e68fc` (`Add hierarchical adaptive plan with parallel agent orchestration`).
+- Next: Handoff summary.
