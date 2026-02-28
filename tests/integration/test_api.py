@@ -16,7 +16,7 @@ def _build_system_with_tmp_paths(tmp_path: Path):
         country_mask_resolution=system.country_mask_resolution,
         zoom_to_h3_resolution=system.zoom_to_h3_resolution,
         ui=system.ui,
-        inputs=[system.inputs[0], system.inputs[2]],
+        inputs=list(system.inputs),
         paths=system.paths.__class__(
             runs_root=str(tmp_path / "runs"),
             staging_root=str(tmp_path / "staging"),

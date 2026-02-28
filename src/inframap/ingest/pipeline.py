@@ -49,16 +49,64 @@ def _validate_required_columns(columns: Iterable[str]) -> None:
         raise ValueError(f"Missing required columns: {sorted(missing)}")
 
 
+def _extract_asof_date(value: str | None) -> str | None:
+    cleaned = _clean(value)
+    if not cleaned:
+        return None
+    return cleaned[:10]
+
+
+def _looks_like_peeringdb_facility_schema(columns: Iterable[str]) -> bool:
+    cols = set(columns)
+    required = {"name", "org_id", "latitude", "longitude", "updated"}
+    return required.issubset(cols)
+
+
+def _normalize_peeringdb_facility_row(
+    row: dict[str, str | None], source_name: str
+) -> dict[str, str | None]:
+    org_id = _clean(row.get("org_id"))
+    organization = _clean(row.get("org_name"))
+    if not organization and org_id:
+        organization = f"org_{org_id}"
+
+    asof_date = _extract_asof_date(row.get("updated"))
+    if not asof_date:
+        asof_date = _extract_asof_date(row.get("created"))
+
+    normalized: dict[str, str | None] = {
+        "ORGANIZATION": organization,
+        "NODE_NAME": _clean(row.get("name")),
+        "LATITUDE": _clean(row.get("latitude")),
+        "LONGITUDE": _clean(row.get("longitude")),
+        "CITY": _clean(row.get("city")),
+        "STATE": _clean(row.get("state")),
+        "COUNTRY": _clean(row.get("country")),
+        "SOURCE": _clean(row.get("source")) or source_name,
+        "ASOF_DATE": asof_date,
+    }
+    return normalized
+
+
 def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
     delimiter = _detect_delimiter(path)
     with path.open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle, delimiter=delimiter)
         if reader.fieldnames is None:
             raise ValueError(f"Input file has no header: {path}")
-        _validate_required_columns(reader.fieldnames)
+        use_peeringdb_adapter = False
+        if REQUIRED_INPUT_COLUMNS.issubset(set(reader.fieldnames)):
+            _validate_required_columns(reader.fieldnames)
+        elif _looks_like_peeringdb_facility_schema(reader.fieldnames):
+            use_peeringdb_adapter = True
+        else:
+            _validate_required_columns(reader.fieldnames)
         rows: list[dict[str, str | None]] = []
         for row in reader:
             row = dict(row)
+            if use_peeringdb_adapter:
+                rows.append(_normalize_peeringdb_facility_row(row, source_name))
+                continue
             if not _clean(row.get("SOURCE")):
                 row["SOURCE"] = source_name
             rows.append(row)

@@ -21,6 +21,7 @@ CSV or TSV with these columns:
 - Geometry is authoritative; city/state/country are metadata labels only.
 - Latitude must be within `[-90, 90]`; longitude within `[-180, 180]`.
 - Keep one logical snapshot per file when possible.
+- Raw PeeringDB facility exports (for example `peeringdb_facility.tsv`) are supported via source normalization during ingest.
 
 ## Suggested naming
 

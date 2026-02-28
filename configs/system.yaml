@@ -14,12 +14,8 @@ ui:
   zoom: 2
   drilldown_resolution: 7
 inputs:
-  - path: data/facilities/peeringdb.csv
+  - path: data/facilities/peeringdb_facility.tsv
     source_name: PeeringDB
-  - path: data/facilities/atlas.csv
-    source_name: Internet Atlas
-  - path: data/facilities/facilities_template.csv
-    source_name: manual_seed
 paths:
   runs_root: data/runs
   staging_root: data/staging

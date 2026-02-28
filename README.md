@@ -60,9 +60,7 @@ Non-blocking suites:
 
 Input staging:
 
-- `data/facilities/peeringdb.csv`
-- `data/facilities/atlas.csv`
-- `data/facilities/facilities_template.csv`
+- `data/facilities/peeringdb_facility.tsv` (PeeringDB facility export schema is normalized during ingest)
 
 Run artifacts:
 

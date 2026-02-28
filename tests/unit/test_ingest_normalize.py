@@ -59,3 +59,24 @@ def test_ingest_deduplicates_same_facility_id(tmp_path: Path) -> None:
     )
     assert invalid_count == 0
     assert len(facilities) == 1
+
+
+def test_ingest_normalizes_peeringdb_facility_tsv_schema(tmp_path: Path) -> None:
+    path = tmp_path / "peeringdb_facility.tsv"
+    path.write_text(
+        "id\tname\torg_id\tcity\tstate\tcountry\tlatitude\tlongitude\tupdated\n"
+        "19\tCoreSite LA1\t34\tLos Angeles\tCA\tUS\t34.047942\t-118.255564\t2025-09-26 22:42:05.000000 +00:00\n",
+        encoding="utf-8",
+    )
+
+    facilities, organizations, invalid_count = ingest_and_normalize(
+        [(path, "PeeringDB")], canonical_h3_resolutions=[5]
+    )
+
+    assert invalid_count == 0
+    assert len(facilities) == 1
+    assert len(organizations) == 1
+    assert facilities.iloc[0]["source_name"] == "PeeringDB"
+    assert facilities.iloc[0]["source_facility_name"] == "CoreSite LA1"
+    assert facilities.iloc[0]["org_name"] == "org_34"
+    assert facilities.iloc[0]["asof_date"] == "2025-09-26"
