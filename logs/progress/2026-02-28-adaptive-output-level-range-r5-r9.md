@@ -7,7 +7,7 @@
 - [x] Run focused unit tests for touched behavior
 - [x] Docs check (`README.md`/`AGENTS.md`) and rationale
 - [x] Mistake replay check against `logs/mistakes.md`
-- [~] Final handoff summary
+- [x] Final handoff summary
 
 ## 2026-02-28T07:39:55Z
 - Status: in progress
@@ -57,3 +57,10 @@
 - Update: Reviewed ledger entries and confirmed this change does not repeat logged mistakes (used safe single-quoted heredoc/apply_patch for markdown appends, and verification remained language-appropriate via pytest only).
 - Evidence: `logs/mistakes.md` reviewed; focused tests run: adaptive/invariants suites.
 - Next: Create required git checkpoint commit and record hash.
+
+## 2026-02-28T07:43:03Z
+- Status: complete
+- Checklist item: Final handoff summary
+- Update: Completed scoped adaptive output range enforcement with explicit minimum param and r9 max cap using existing max controls; focused unit suites pass.
+- Evidence: Commit `0a1f45d`; `pytest -q tests/unit/test_facility_density_adaptive.py` (7 passed), `pytest -q tests/unit/test_invariants.py` (7 passed).
+- Next: Handoff complete.
