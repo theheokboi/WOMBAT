@@ -27,13 +27,19 @@ def _write_gb_input_fixture(tmp_path: Path) -> Path:
 
 
 def _write_gb_only_polygon_dataset(tmp_path: Path) -> Path:
-    source_path = Path("data/reference/natural_earth_admin0_subset.geojson")
+    source_path = Path("data/countries/GB.geojson")
     payload = json.loads(source_path.read_text(encoding="utf-8"))
-    payload["features"] = [
-        feature
-        for feature in payload["features"]
-        if str(feature.get("properties", {}).get("iso_a2", "")).upper() == "GB"
-    ]
+    features = []
+    for feature in payload.get("features", []):
+        properties = feature.get("properties", {})
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {"iso_a2": "GB", "name": str(properties.get("COUNTRY", "GB"))},
+                "geometry": feature["geometry"],
+            }
+        )
+    payload["features"] = features
     out_path = tmp_path / "gb_only_admin0.geojson"
     out_path.write_text(json.dumps(payload), encoding="utf-8")
     return out_path

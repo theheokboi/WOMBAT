@@ -45,6 +45,11 @@ def compute_inputs_hash(system: SystemConfig, layers: LayersConfig) -> str:
         dataset_path = layer.params.get("polygon_dataset")
         if isinstance(dataset_path, str):
             layer_input_paths.add(dataset_path)
+        dataset_dir = layer.params.get("polygon_dataset_dir")
+        include_iso = layer.params.get("include_iso_a2")
+        if isinstance(dataset_dir, str) and isinstance(include_iso, list):
+            for iso in sorted({str(code).upper() for code in include_iso}):
+                layer_input_paths.add(str(Path(dataset_dir) / f"{iso}.geojson"))
     for dataset_path in sorted(layer_input_paths):
         file_path = Path(dataset_path)
         if not file_path.exists():

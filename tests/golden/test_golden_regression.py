@@ -9,6 +9,24 @@ from inframap.layers.metro_density_core import MetroDensityCoreLayer
 import h3
 
 
+def _write_country_polygon_dataset(tmp_path: Path, iso_a2: str) -> Path:
+    source = Path(f"data/countries/{iso_a2.upper()}.geojson")
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    features = []
+    for feature in payload.get("features", []):
+        properties = feature.get("properties", {})
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {"iso_a2": iso_a2.upper(), "name": str(properties.get("COUNTRY", iso_a2.upper()))},
+                "geometry": feature["geometry"],
+            }
+        )
+    out_path = tmp_path / f"{iso_a2.lower()}_country_mask_fixture.geojson"
+    out_path.write_text(json.dumps({"type": "FeatureCollection", "features": features}), encoding="utf-8")
+    return out_path
+
+
 def _has_ancestor_descendant_overlap(cells: list[dict[str, object]]) -> bool:
     for i, row in enumerate(cells):
         cell = str(row["h3"])
@@ -50,11 +68,12 @@ def test_golden_metro_density_core_cells() -> None:
     assert sorted(cells["h3"].tolist()) == expected
 
 
-def test_golden_country_mask_cells() -> None:
+def test_golden_country_mask_cells(tmp_path: Path) -> None:
     facilities, _, _ = ingest_and_normalize(
         [(Path("tests/fixtures/facilities_small.csv"), "fixture")],
         canonical_h3_resolutions=[4, 5, 7],
     )
+    polygon_dataset = _write_country_polygon_dataset(tmp_path, "US")
     layer = CountryMaskLayer(version="v1")
     _, cells = layer.compute(
         canonical_store={"facilities": facilities},
@@ -62,7 +81,7 @@ def test_golden_country_mask_cells() -> None:
         params={
             "resolution": 4,
             "membership_rule": "centroid_in_polygon",
-            "polygon_dataset": "data/reference/natural_earth_admin0_subset.geojson",
+            "polygon_dataset": str(polygon_dataset),
             "exclude_iso_a2": ["AQ"],
         },
     )

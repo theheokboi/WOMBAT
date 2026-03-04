@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 import warnings
 
@@ -30,7 +31,14 @@ class CountryMaskLayer:
             "name": "country_mask",
             "version": self.version,
             "distance_semantics": "centroid_in_polygon",
-            "params": ["resolution", "membership_rule", "polygon_dataset", "exclude_iso_a2"],
+            "params": [
+                "resolution",
+                "membership_rule",
+                "polygon_dataset",
+                "polygon_dataset_dir",
+                "include_iso_a2",
+                "exclude_iso_a2",
+            ],
         }
 
     def compute(
@@ -39,21 +47,47 @@ class CountryMaskLayer:
         facilities = canonical_store["facilities"]
         resolution = int(params["resolution"])
         rule = str(params["membership_rule"])
-        dataset = str(params["polygon_dataset"])
+        dataset = params.get("polygon_dataset")
+        dataset_dir = params.get("polygon_dataset_dir")
+        include_iso = {str(code).upper() for code in params.get("include_iso_a2", [])}
         exclude_iso = {str(code).upper() for code in params.get("exclude_iso_a2", [])}
-        dataset_is_legacy_world = dataset == self.legacy_world_dataset_path
-        if dataset_is_legacy_world:
-            warnings.warn(
-                (
-                    "country_mask polygon_dataset is using deprecated legacy world file "
-                    f"'{self.legacy_world_dataset_path}'. Migrate to per-country dataset selection "
-                    "(e.g., files under data/countries with explicit ISO selection per run)."
-                ),
-                UserWarning,
-                stacklevel=2,
-            )
+        dataset_is_legacy_world = False
+        selected_datasets: list[str] = []
+        dataset_source = "geojson_file"
 
-        polygons = self._load_polygons(dataset, exclude_iso=exclude_iso)
+        if isinstance(dataset_dir, str):
+            if not include_iso:
+                raise ValueError("country_mask requires non-empty include_iso_a2 when polygon_dataset_dir is set")
+            polygons, selected_datasets = self._load_polygons_from_dir(
+                dataset_dir,
+                include_iso=include_iso,
+                exclude_iso=exclude_iso,
+            )
+            dataset_source = "country_geojson_directory"
+            dataset = None
+        elif isinstance(dataset, str):
+            dataset_is_legacy_world = dataset == self.legacy_world_dataset_path
+            if dataset_is_legacy_world:
+                warnings.warn(
+                    (
+                        "country_mask polygon_dataset is using deprecated legacy world file "
+                        f"'{self.legacy_world_dataset_path}'. Migrate to per-country dataset selection "
+                        "(e.g., files under data/countries with explicit ISO selection per run)."
+                    ),
+                    UserWarning,
+                    stacklevel=2,
+                )
+            polygons = self._load_polygons_from_dataset(dataset, exclude_iso=exclude_iso)
+            selected_datasets = [dataset]
+            include_iso = {iso for iso, _, _ in polygons}
+            dataset_source = (
+                "Natural Earth admin-0 subset"
+                if dataset_is_legacy_world
+                else "geojson_file"
+            )
+        else:
+            raise ValueError("country_mask requires either polygon_dataset or polygon_dataset_dir")
+
         # Deterministic rule: first country in sorted ISO order claims each cell.
         cell_to_country: dict[str, tuple[str, str]] = {}
         for iso, name, polygon in polygons:
@@ -90,9 +124,12 @@ class CountryMaskLayer:
                 "resolution": resolution,
                 "membership_rule": rule,
                 "polygon_dataset": dataset,
+                "polygon_dataset_dir": str(dataset_dir) if isinstance(dataset_dir, str) else None,
+                "include_iso_a2": sorted(include_iso),
                 "exclude_iso_a2": sorted(exclude_iso),
             },
-            "polygon_dataset_source": "Natural Earth admin-0 subset",
+            "polygon_dataset_source": dataset_source,
+            "polygon_dataset_files": sorted(selected_datasets),
             "polygon_dataset_deprecated": dataset_is_legacy_world,
             "polygon_dataset_deprecation_notice": (
                 "legacy_world_dataset_deprecated_use_country_selection"
@@ -111,19 +148,58 @@ class CountryMaskLayer:
         geojson = polygon.__geo_interface__
         return list(h3.geo_to_cells(geojson, resolution))
 
-    def _load_polygons(self, path: str, exclude_iso: set[str]) -> list[tuple[str, str, Any]]:
+    def _load_polygons_from_dataset(self, path: str, exclude_iso: set[str]) -> list[tuple[str, str, Any]]:
+        fallback_iso = Path(path).stem.upper()
         with open(path, "r", encoding="utf-8") as handle:
             data = json.load(handle)
         polygons = []
         for feature in data["features"]:
-            iso = str(feature["properties"]["iso_a2"]).upper()
+            iso = self._feature_country_iso(feature, fallback_iso=fallback_iso)
             if iso in exclude_iso:
                 continue
-            name = str(feature["properties"]["name"])
+            name = self._feature_country_name(feature, default=iso)
             geom = shape(feature["geometry"])
             polygons.append((iso, name, geom))
         polygons.sort(key=lambda x: x[0])
         return polygons
+
+    def _load_polygons_from_dir(
+        self, directory: str, include_iso: set[str], exclude_iso: set[str]
+    ) -> tuple[list[tuple[str, str, Any]], list[str]]:
+        polygons: list[tuple[str, str, Any]] = []
+        selected_files: list[str] = []
+        for iso in sorted(include_iso - exclude_iso):
+            path = Path(directory) / f"{iso}.geojson"
+            if not path.exists():
+                raise ValueError(f"country_mask missing dataset for ISO '{iso}' at {path}")
+            selected_files.append(str(path))
+            with path.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            for feature in data["features"]:
+                feature_iso = self._feature_country_iso(feature, fallback_iso=iso)
+                if feature_iso in exclude_iso:
+                    continue
+                name = self._feature_country_name(feature, default=feature_iso)
+                geom = shape(feature["geometry"])
+                polygons.append((feature_iso, name, geom))
+        polygons.sort(key=lambda x: x[0])
+        return polygons, selected_files
+
+    def _feature_country_iso(self, feature: dict[str, Any], fallback_iso: str) -> str:
+        properties = feature.get("properties", {})
+        for key in ("iso_a2", "ISO_A2", "GID_0"):
+            value = properties.get(key)
+            if value:
+                return str(value).upper()[:2]
+        return fallback_iso
+
+    def _feature_country_name(self, feature: dict[str, Any], default: str) -> str:
+        properties = feature.get("properties", {})
+        for key in ("name", "NAME", "COUNTRY", "NAME_0"):
+            value = properties.get(key)
+            if value:
+                return str(value)
+        return default
 
     def _build_country_colors(self, cell_to_country: dict[str, tuple[str, str]]) -> dict[str, int]:
         codes = sorted({iso for iso, _ in cell_to_country.values()})

@@ -14,8 +14,9 @@ layers:
     params:
       resolution: 4
       membership_rule: centroid_in_polygon
-      polygon_dataset: data/reference/natural_earth_admin0_subset.geojson
-      exclude_iso_a2: ["AQ"]
+      polygon_dataset_dir: data/countries
+      include_iso_a2: ["AR", "GB", "JP", "TW", "US"]
+      exclude_iso_a2: []
   - name: facility_density_adaptive
     plugin: inframap.layers.facility_density_adaptive:FacilityDensityAdaptiveLayer
     version: v3
