@@ -25,6 +25,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--refine-1", type=int, default=5)
     parser.add_argument("--refine-2", type=int, default=6)
     parser.add_argument(
+        "--refine-levels",
+        default="",
+        help="Comma-separated refinement resolutions (for example: 3,4,5). Overrides --refine-1/--refine-2 when set.",
+    )
+    parser.add_argument(
         "--overlap-threshold",
         type=float,
         default=0.15,
@@ -35,6 +40,15 @@ def parse_args() -> argparse.Namespace:
         choices=["overlap_threshold", "intersects"],
         default="overlap_threshold",
         help="Child inclusion rule for boundary refinement.",
+    )
+    parser.add_argument(
+        "--base-contain",
+        choices=["center", "full", "overlap", "bbox_overlap"],
+        default="center",
+        help=(
+            "Containment mode for initial base-resolution cells. "
+            "Uses h3shape_to_cells_experimental unless mode is center."
+        ),
     )
     parser.add_argument(
         "--progress-every",
@@ -233,37 +247,48 @@ def main() -> None:
     print("[phase] load_geometry")
     country_geom = load_country_geometry(shp_path)
 
+    if args.refine_levels.strip():
+        refine_levels = [int(value.strip()) for value in args.refine_levels.split(",") if value.strip()]
+    else:
+        refine_levels = [int(args.refine_1), int(args.refine_2)]
+    if not refine_levels:
+        raise ValueError("At least one refinement resolution is required")
+    if any(level <= int(args.base_resolution) for level in refine_levels):
+        raise ValueError("All refine levels must be greater than base resolution")
+    if refine_levels != sorted(refine_levels):
+        raise ValueError("Refine levels must be sorted in ascending order")
+
     print("[phase] build_base_cells")
-    base_cells = set(h3.geo_to_cells(country_geom.__geo_interface__, args.base_resolution))
+    if args.base_contain == "center":
+        base_cells = set(h3.geo_to_cells(country_geom.__geo_interface__, args.base_resolution))
+    else:
+        h3shape = h3.geo_to_h3shape(country_geom.__geo_interface__)
+        base_cells = set(
+            h3.h3shape_to_cells_experimental(
+                h3shape=h3shape,
+                res=args.base_resolution,
+                contain=args.base_contain,
+            )
+        )
     leaves = set(base_cells)
     print(f"[info] base_cells={len(base_cells)}")
 
-    print("[phase] refine_r4_boundary_to_r5")
-    r4_boundary = boundary_cells(base_cells)
-    leaves = refine_with_threshold(
-        leaves=leaves,
-        cells_to_refine=r4_boundary,
-        next_resolution=args.refine_1,
-        geom=country_geom,
-        threshold=args.overlap_threshold,
-        selection_mode=args.selection_mode,
-        phase_name="r4->r5",
-        progress_every=max(1, args.progress_every),
-    )
-
-    print("[phase] refine_r5_boundary_to_r6")
-    r5_candidates = {cell for cell in leaves if h3.get_resolution(cell) == args.refine_1}
-    r5_boundary = boundary_cells(r5_candidates)
-    leaves = refine_with_threshold(
-        leaves=leaves,
-        cells_to_refine=r5_boundary,
-        next_resolution=args.refine_2,
-        geom=country_geom,
-        threshold=args.overlap_threshold,
-        selection_mode=args.selection_mode,
-        phase_name="r5->r6",
-        progress_every=max(1, args.progress_every),
-    )
+    current_resolution = int(args.base_resolution)
+    for next_resolution in refine_levels:
+        print(f"[phase] refine_r{current_resolution}_boundary_to_r{next_resolution}")
+        candidates = {cell for cell in leaves if h3.get_resolution(cell) == current_resolution}
+        boundary = boundary_cells(candidates)
+        leaves = refine_with_threshold(
+            leaves=leaves,
+            cells_to_refine=boundary,
+            next_resolution=next_resolution,
+            geom=country_geom,
+            threshold=args.overlap_threshold,
+            selection_mode=args.selection_mode,
+            phase_name=f"r{current_resolution}->r{next_resolution}",
+            progress_every=max(1, args.progress_every),
+        )
+        current_resolution = next_resolution
 
     print("[phase] build_features")
     features = build_features(leaves=leaves, country_code=args.country_code)
@@ -305,7 +330,8 @@ def main() -> None:
             "source_shapefile": str(shp_path),
             "country": args.country_code,
             "base_resolution": args.base_resolution,
-            "refined_resolutions": [args.refine_1, args.refine_2],
+            "base_contain_mode": args.base_contain,
+            "refined_resolutions": refine_levels,
             "algorithm": "boundary_refine_with_overlap_threshold_and_parent_fallback",
             "overlap_threshold_t": args.overlap_threshold,
             "selection_mode": args.selection_mode,
@@ -329,9 +355,10 @@ def main() -> None:
         if args.selection_mode == "intersects"
         else f"overlap-threshold t={args.overlap_threshold}"
     )
+    levels_label = "/".join([f"r{args.base_resolution}"] + [f"r{level}" for level in refine_levels])
     title = (
         f"{args.country_code} geometry + {mode_label} multi-level H3 "
-        f"(r{args.base_resolution}/r{args.refine_1}/r{args.refine_2})"
+        f"({levels_label}, base={args.base_contain})"
     )
     render_png(country_geom=country_geom, features=features, out_png=out_png, title=title)
 
