@@ -30,7 +30,15 @@ def _append_jsonl(path: Path, payload: dict) -> None:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
-def run_pipeline(system: SystemConfig, layers: LayersConfig) -> str:
+def run_pipeline(
+    system: SystemConfig,
+    layers: LayersConfig,
+    *,
+    latest_pointer: str = "latest-dev",
+    compatibility_alias: str | None = "latest",
+    enforce_blocking_checks: bool = False,
+    run_invariants_check: bool = False,
+) -> str:
     started = perf_counter()
     manifest = build_run_manifest(system, layers, code_dir=Path("src"))
 
@@ -142,13 +150,16 @@ def run_pipeline(system: SystemConfig, layers: LayersConfig) -> str:
             layer_duration_seconds[layer_cfg.name] = perf_counter() - layer_started
             mark_stage_finish(stage_name, note=f"cells={len(cells)}")
 
-        mark_stage_start("invariants")
-        run_invariants(
-            facilities=facilities,
-            layer_artifacts=layer_artifacts,
-            required_h3_resolutions=system.canonical_h3_resolutions,
-        )
-        mark_stage_finish("invariants")
+        if run_invariants_check:
+            mark_stage_start("invariants")
+            run_invariants(
+                facilities=facilities,
+                layer_artifacts=layer_artifacts,
+                required_h3_resolutions=system.canonical_h3_resolutions,
+            )
+            mark_stage_finish("invariants")
+        else:
+            heartbeat("invariants", "skipped", note="dev_mode")
 
         _write_json(reports_dir / "run_manifest.json", manifest_to_dict(manifest))
         metrics = {
@@ -174,7 +185,9 @@ def run_pipeline(system: SystemConfig, layers: LayersConfig) -> str:
             staging_root=staging_root,
             runs_root=runs_root,
             published_root=Path(system.paths.published_root),
-            blocking_checks_passed=True,
+            blocking_checks_passed=enforce_blocking_checks,
+            latest_pointer=latest_pointer,
+            compatibility_alias=compatibility_alias,
         )
         progress_path = runs_root / manifest.run_id / "reports" / "progress.jsonl"
         mark_stage_finish("publish", note="pointer_flipped")

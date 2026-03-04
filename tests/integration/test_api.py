@@ -68,6 +68,24 @@ def _build_layers_with_gb_scope(gb_polygon_path: Path):
         params["polygon_dataset"] = str(gb_polygon_path)
         params["exclude_iso_a2"] = []
         updated_layers.append(layer.__class__(name=layer.name, plugin=layer.plugin, version=layer.version, params=params))
+    updated_layers.append(
+        layers.layers[0].__class__(
+            name="country_mask_adaptive",
+            plugin="inframap.layers.country_mask_adaptive:CountryMaskAdaptiveLayer",
+            version="v1",
+            params={
+                "country_code": "GB",
+                "membership_rule": "centroid_in_polygon",
+                "polygon_dataset": str(gb_polygon_path),
+                "min_resolution": 4,
+                "max_resolution": 7,
+                "boundary_band_k": 1,
+                "coastline_min_resolution": 6,
+                "fit_error_threshold": 0.03,
+                "exclude_iso_a2": [],
+            },
+        )
+    )
     return layers.__class__(layers_version=layers.layers_version, layers=updated_layers)
 
 
@@ -77,6 +95,10 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     system = _build_system_with_tmp_paths(tmp_path, input_path=gb_fixture)
     layers = _build_layers_with_gb_scope(gb_polygon_path=gb_polygons)
     run_id = run_pipeline(system, layers)
+    published_root = Path(system.paths.published_root)
+    assert (published_root / "latest-dev").read_text(encoding="utf-8").strip() == run_id
+    assert (published_root / "latest").read_text(encoding="utf-8").strip() == run_id
+
     adaptive_metadata_path = (
         Path(system.paths.runs_root)
         / run_id
@@ -105,13 +127,25 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
 
     latest = client.get("/v1/runs/latest")
     assert latest.status_code == 200
-    assert latest.json()["run_id"] == run_id
+    latest_body = latest.json()
+    assert latest_body["run_id"] == run_id
+    assert latest_body["pointer"] == "latest-dev"
+    assert latest_body["lane"] == "dev"
+    assert latest_body["inputs_hash"]
+    assert latest_body["config_hash"]
+    assert latest_body["code_hash"]
 
     latest_status = client.get("/v1/runs/latest/status")
     assert latest_status.status_code == 200
     latest_status_body = latest_status.json()
     assert latest_status_body["run_id"] == run_id
+    assert latest_status_body["pointer"] == "latest-dev"
+    assert latest_status_body["lane"] == "dev"
     assert "runtime_expectations" in latest_status_body
+    assert latest_status_body["metrics"]["facility_count_total"] > 0
+    assert latest_status_body["latest_progress_event"] is not None
+    assert latest_status_body["latest_progress_event"]["status"] == "complete"
+    assert latest_status_body["latest_progress_event"]["stage"] == "pipeline"
     assert latest_status_body["adaptive_policy"]["layer_version"] == "v3"
     assert latest_status_body["adaptive_policy"]["policy_name"] == "facility_hierarchical_partition_v3"
     assert latest_status_body["adaptive_policy"]["adjacency_health"]["status"] == "violations_detected"
@@ -124,7 +158,47 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
 
     active_status = client.get("/v1/runs/active/status")
     assert active_status.status_code == 200
-    assert active_status.json()["active"] is False
+    active_status_body = active_status.json()
+    assert active_status_body["active"] is False
+    assert "runtime_expectations" in active_status_body
+
+    staging_root = Path(system.paths.staging_root)
+    staging_progress_dir = staging_root / run_id / "reports"
+    staging_progress_dir.mkdir(parents=True, exist_ok=True)
+    (staging_progress_dir / "progress.jsonl").write_text(
+        json.dumps(
+            {
+                "ts_utc": "2026-03-04T00:00:00Z",
+                "run_id": run_id,
+                "stage": "invariants",
+                "status": "in_progress",
+                "elapsed_s": 42.0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (staging_root / "active_run.json").write_text(
+        json.dumps(
+            {
+                "run_id": run_id,
+                "status": "in_progress",
+                "stage": "invariants",
+                "elapsed_s": 42.0,
+                "ts_utc": "2026-03-04T00:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    active_status_live = client.get("/v1/runs/active/status")
+    assert active_status_live.status_code == 200
+    active_status_live_body = active_status_live.json()
+    assert active_status_live_body["active"] is True
+    assert active_status_live_body["active_status"]["run_id"] == run_id
+    assert active_status_live_body["active_status"]["stage"] == "invariants"
+    assert active_status_live_body["latest_progress_event"] is not None
+    assert active_status_live_body["latest_progress_event"]["stage"] == "invariants"
+    assert "not yet published" in active_status_live_body["published_note"]
 
     calibration_latest_missing = client.get("/v1/calibration/latest")
     assert calibration_latest_missing.status_code == 404
@@ -170,6 +244,12 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert "country_color" in country_features[0]["properties"]
     assert {feature["properties"]["layer_value"] for feature in country_features} == {"GB"}
 
+    adaptive_country_cells = client.get("/v1/layers/country_mask_adaptive/cells")
+    assert adaptive_country_cells.status_code == 200
+    adaptive_country_features = adaptive_country_cells.json()["features"]
+    assert len(adaptive_country_features) > 0
+    assert {feature["properties"]["layer_value"] for feature in adaptive_country_features} == {"GB"}
+
     adaptive_cells_default = client.get("/v1/layers/facility_density_adaptive/cells")
     assert adaptive_cells_default.status_code == 200
     default_features = adaptive_cells_default.json()["features"]
@@ -195,7 +275,11 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
 
     health = client.get("/v1/health")
     assert health.status_code == 200
-    assert health.json()["status"] == "ok"
+    health_body = health.json()
+    assert health_body["status"] == "ok"
+    assert health_body["run_id"] == run_id
+    assert health_body["pointer"] == "latest-dev"
+    assert health_body["lane"] == "dev"
 
     ui_config = client.get("/v1/ui/config")
     assert ui_config.status_code == 200
@@ -207,6 +291,24 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     root = client.get("/", follow_redirects=False)
     assert root.status_code == 307
     assert root.headers["location"] == "/ui/"
+    ar = client.get("/ar", follow_redirects=False)
+    assert ar.status_code == 307
+    assert ar.headers["location"] == "/ui/?country=AR"
+    ar_slash = client.get("/ar/", follow_redirects=False)
+    assert ar_slash.status_code == 307
+    assert ar_slash.headers["location"] == "/ui/?country=AR"
+    gb = client.get("/gb", follow_redirects=False)
+    assert gb.status_code == 307
+    assert gb.headers["location"] == "/ui/?country=GB"
+    gb_slash = client.get("/gb/", follow_redirects=False)
+    assert gb_slash.status_code == 307
+    assert gb_slash.headers["location"] == "/ui/?country=GB"
+    demo = client.get("/demo", follow_redirects=False)
+    assert demo.status_code == 307
+    assert demo.headers["location"] == "/ui/?country=DEMO"
+    demo_slash = client.get("/demo/", follow_redirects=False)
+    assert demo_slash.status_code == 307
+    assert demo_slash.headers["location"] == "/ui/?country=DEMO"
 
     calibration_dir = tmp_path / "artifacts" / "calibration"
     old_report_dir = calibration_dir / "20260228T010000Z"

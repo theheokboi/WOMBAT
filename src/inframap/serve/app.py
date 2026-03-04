@@ -23,11 +23,20 @@ class DataStore:
         self.published_root = published_root
         self.staging_root = staging_root
 
+    def latest_pointer(self) -> dict[str, str]:
+        for pointer_name in ("latest-dev", "latest"):
+            pointer_path = self.published_root / pointer_name
+            if not pointer_path.exists():
+                continue
+            run_id = pointer_path.read_text(encoding="utf-8").strip()
+            if not run_id:
+                continue
+            lane = "dev" if pointer_name == "latest-dev" else "legacy"
+            return {"pointer": pointer_name, "lane": lane, "run_id": run_id}
+        raise HTTPException(status_code=404, detail="No published run (expected pointer latest-dev or latest)")
+
     def latest_run_id(self) -> str:
-        latest_file = self.published_root / "latest"
-        if not latest_file.exists():
-            raise HTTPException(status_code=404, detail="No published run")
-        return latest_file.read_text(encoding="utf-8").strip()
+        return self.latest_pointer()["run_id"]
 
     def run_root(self, run_id: str | None = None) -> Path:
         rid = run_id or self.latest_run_id()
@@ -243,14 +252,16 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
 
     @app.get("/v1/runs/latest")
     def get_latest_run() -> dict[str, Any]:
-        run_id = store.latest_run_id()
+        pointer_info = store.latest_pointer()
+        run_id = pointer_info["run_id"]
         manifest_path = store.run_root(run_id) / "reports" / "run_manifest.json"
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-        return payload
+        return {**payload, "pointer": pointer_info["pointer"], "lane": pointer_info["lane"]}
 
     @app.get("/v1/runs/latest/status")
     def latest_run_status() -> dict[str, Any]:
-        run_id = store.latest_run_id()
+        pointer_info = store.latest_pointer()
+        run_id = pointer_info["run_id"]
         run_root = store.run_root(run_id)
         layer_metadata = _load_layer_metadata(run_root)
         adaptive = next((m for m in layer_metadata if m.get("layer_name") == "facility_density_adaptive"), None)
@@ -263,6 +274,8 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                 latest_progress = json.loads(lines[-1])
         return {
             "run_id": run_id,
+            "pointer": pointer_info["pointer"],
+            "lane": pointer_info["lane"],
             "runtime_expectations": runtime_expectations,
             "metrics": metrics,
             "adaptive_policy": {
@@ -487,11 +500,16 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
     @app.get("/v1/health")
     def health() -> dict[str, Any]:
         run_id = None
+        pointer = None
+        lane = None
         try:
-            run_id = store.latest_run_id()
+            pointer_info = store.latest_pointer()
+            run_id = pointer_info["run_id"]
+            pointer = pointer_info["pointer"]
+            lane = pointer_info["lane"]
         except HTTPException:
             pass
-        return {"status": "ok", "run_id": run_id}
+        return {"status": "ok", "run_id": run_id, "pointer": pointer, "lane": lane}
 
     @app.get("/v1/ui/config")
     def ui_config() -> dict[str, Any]:
@@ -505,6 +523,24 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
     @app.get("/", include_in_schema=False)
     def root_redirect() -> RedirectResponse:
         return RedirectResponse(url="/ui/", status_code=307)
+
+    @app.get("/ar", include_in_schema=False)
+    @app.get("/ar/", include_in_schema=False)
+    def argentina_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/ui/?country=AR", status_code=307)
+
+    @app.get("/demo", include_in_schema=False)
+    @app.get("/demo/", include_in_schema=False)
+    def demo_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/ui/?country=DEMO", status_code=307)
+
+    @app.get("/{country_code}", include_in_schema=False)
+    @app.get("/{country_code}/", include_in_schema=False)
+    def country_redirect(country_code: str) -> RedirectResponse:
+        code = country_code.strip().upper()
+        if len(code) != 2 or not code.isalpha() or code in {"UI", "V1"}:
+            raise HTTPException(status_code=404, detail="Not Found")
+        return RedirectResponse(url=f"/ui/?country={code}", status_code=307)
 
     frontend_dir = Path("frontend")
     if frontend_dir.exists():

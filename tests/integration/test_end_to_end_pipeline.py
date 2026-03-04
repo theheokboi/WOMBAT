@@ -32,6 +32,7 @@ def test_end_to_end_run_publishes_artifacts(tmp_path: Path) -> None:
     assert (run_root / "canonical" / "facilities.parquet").exists()
     assert (run_root / "layers" / "metro_density_core" / "m1" / "cells.parquet").exists()
     assert (run_root / "layers" / "country_mask" / "v1" / "cells.parquet").exists()
+    assert (tmp_path / "published" / "latest-dev").read_text(encoding="utf-8").strip() == run_id
     assert (tmp_path / "published" / "latest").read_text(encoding="utf-8").strip() == run_id
 
     facilities = pd.read_parquet(run_root / "canonical" / "facilities.parquet")
