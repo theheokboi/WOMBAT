@@ -56,6 +56,18 @@ def parse_args() -> argparse.Namespace:
         default=25,
         help="Progress update interval for refinement loops.",
     )
+    parser.add_argument(
+        "--max-neighbor-delta",
+        type=int,
+        default=-1,
+        help="Maximum allowed resolution jump across adjacent cells. Set <0 to disable smoothing.",
+    )
+    parser.add_argument(
+        "--smoothing-progress-every",
+        type=int,
+        default=10,
+        help="Progress update interval (iterations) for smoothing loop.",
+    )
     return parser.parse_args()
 
 
@@ -167,6 +179,156 @@ def leaf_covers_point(point_lon: float, point_lat: float, leaves_by_res: dict[in
         if cell in cells:
             return True
     return False
+
+
+def expand_leaves_to_resolution(leaves: set[str], target_resolution: int) -> set[str]:
+    out: set[str] = set()
+    for cell in leaves:
+        resolution = h3.get_resolution(cell)
+        if resolution == target_resolution:
+            out.add(cell)
+        elif resolution < target_resolution:
+            out.update(str(child) for child in h3.cell_to_children(cell, target_resolution))
+        else:
+            out.add(str(h3.cell_to_parent(cell, target_resolution)))
+    return out
+
+
+def _parent_cell(cell: str, resolution: int, cache: dict[tuple[str, int], str]) -> str:
+    key = (cell, resolution)
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    if h3.get_resolution(cell) == resolution:
+        cache[key] = cell
+    else:
+        cache[key] = h3.cell_to_parent(cell, resolution)
+    return cache[key]
+
+
+def _leaf_sets_by_resolution(leaves: set[str]) -> dict[int, set[str]]:
+    out: dict[int, set[str]] = {resolution: set() for resolution in range(16)}
+    for cell in leaves:
+        out[h3.get_resolution(cell)].add(cell)
+    return out
+
+
+def _covering_leaf_for_neighbor(
+    cell: str,
+    resolution: int,
+    by_resolution: dict[int, set[str]],
+    parent_cache: dict[tuple[str, int], str],
+) -> tuple[str, int] | None:
+    for ancestor_resolution in range(resolution, -1, -1):
+        ancestor = _parent_cell(cell, ancestor_resolution, parent_cache)
+        if ancestor in by_resolution[ancestor_resolution]:
+            return ancestor, ancestor_resolution
+    return None
+
+
+def count_neighbor_delta_violations(leaves: set[str], max_neighbor_delta: int) -> int:
+    if max_neighbor_delta < 0 or not leaves:
+        return 0
+    by_resolution = _leaf_sets_by_resolution(leaves)
+    parent_cache: dict[tuple[str, int], str] = {}
+    resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in leaves}
+    violations = 0
+    for cell in sorted(leaves, key=lambda value: (resolution_by_leaf[value], value)):
+        resolution = resolution_by_leaf[cell]
+        for neighbor in sorted(str(value) for value in h3.grid_disk(cell, 1)):
+            if neighbor == cell:
+                continue
+            covered = _covering_leaf_for_neighbor(neighbor, resolution, by_resolution, parent_cache)
+            if covered is None:
+                continue
+            _, neighbor_resolution = covered
+            if abs(resolution - neighbor_resolution) > max_neighbor_delta:
+                violations += 1
+    return violations
+
+
+def smooth_neighbor_deltas(
+    leaves: set[str],
+    max_neighbor_delta: int,
+    max_resolution: int,
+    progress_every: int,
+) -> tuple[set[str], dict[str, int]]:
+    if max_neighbor_delta < 0:
+        return set(leaves), {"enabled": 0, "iterations": 0, "refined_cells": 0, "violations_after": 0}
+
+    working = set(leaves)
+    iterations = 0
+    refined_cells = 0
+    started = time.perf_counter()
+
+    while True:
+        by_resolution = _leaf_sets_by_resolution(working)
+        parent_cache: dict[tuple[str, int], str] = {}
+        resolution_by_leaf = {cell: h3.get_resolution(cell) for cell in working}
+        coarse_candidates: dict[str, int] = {}
+
+        for cell in sorted(working, key=lambda value: (resolution_by_leaf[value], value)):
+            resolution = resolution_by_leaf[cell]
+            for neighbor in sorted(str(value) for value in h3.grid_disk(cell, 1)):
+                if neighbor == cell:
+                    continue
+                covered = _covering_leaf_for_neighbor(neighbor, resolution, by_resolution, parent_cache)
+                if covered is None:
+                    continue
+                neighbor_leaf, neighbor_resolution = covered
+                delta = abs(resolution - neighbor_resolution)
+                if delta <= max_neighbor_delta:
+                    continue
+                if resolution < neighbor_resolution:
+                    coarse = cell
+                    finer_resolution = neighbor_resolution
+                else:
+                    coarse = neighbor_leaf
+                    finer_resolution = resolution
+                required_resolution = finer_resolution - max_neighbor_delta
+                current = coarse_candidates.get(coarse)
+                if current is None or required_resolution > current:
+                    coarse_candidates[coarse] = required_resolution
+
+        if not coarse_candidates:
+            break
+
+        iterations += 1
+        refined = False
+        for coarse in sorted(coarse_candidates, key=lambda value: (h3.get_resolution(value), value)):
+            if coarse not in working:
+                continue
+            coarse_resolution = h3.get_resolution(coarse)
+            target_resolution = coarse_candidates[coarse]
+            if coarse_resolution >= target_resolution:
+                continue
+            if coarse_resolution >= max_resolution:
+                continue
+            working.remove(coarse)
+            child_resolution = coarse_resolution + 1
+            for child in sorted(h3.cell_to_children(coarse, child_resolution)):
+                working.add(str(child))
+            refined_cells += 1
+            refined = True
+            break
+
+        if iterations % max(1, progress_every) == 0:
+            elapsed = time.perf_counter() - started
+            print(
+                f"[progress] smoothing: iter={iterations} refined_cells={refined_cells} "
+                f"candidate_count={len(coarse_candidates)} elapsed={elapsed:.1f}s"
+            )
+
+        if not refined:
+            break
+
+    violations_after = count_neighbor_delta_violations(working, max_neighbor_delta)
+    return working, {
+        "enabled": 1,
+        "iterations": iterations,
+        "refined_cells": refined_cells,
+        "violations_after": int(violations_after),
+    }
 
 
 def build_features(leaves: set[str], country_code: str) -> list[dict]:
@@ -290,6 +452,19 @@ def main() -> None:
         )
         current_resolution = next_resolution
 
+    max_refine_resolution = max(refine_levels)
+    print("[phase] smooth_neighbor_deltas")
+    leaves, smoothing = smooth_neighbor_deltas(
+        leaves=leaves,
+        max_neighbor_delta=int(args.max_neighbor_delta),
+        max_resolution=max_refine_resolution,
+        progress_every=max(1, int(args.smoothing_progress_every)),
+    )
+    print(
+        f"[info] smoothing enabled={smoothing['enabled']} iterations={smoothing['iterations']} "
+        f"refined_cells={smoothing['refined_cells']} violations_after={smoothing['violations_after']}"
+    )
+
     print("[phase] build_features")
     features = build_features(leaves=leaves, country_code=args.country_code)
     counts_by_resolution = {
@@ -302,6 +477,8 @@ def main() -> None:
         cell = str(feature["properties"]["h3"])
         resolution = int(feature["properties"]["resolution"])
         leaves_by_resolution.setdefault(resolution, set()).add(cell)
+    max_output_resolution = max(refine_levels)
+    expanded_to_max = expand_leaves_to_resolution(leaves=leaves, target_resolution=max_output_resolution)
 
     print("[phase] qa_sampling")
     # Deterministic sample-based uncovered estimate for quick QA.
@@ -311,7 +488,8 @@ def main() -> None:
     minx, miny, maxx, maxy = country_geom.bounds
     sample_target = 10000
     inside = 0
-    uncovered = 0
+    uncovered_mixed_lookup = 0
+    uncovered_maxres_lookup = 0
     while inside < sample_target:
         lon = minx + (maxx - minx) * random.random()
         lat = miny + (maxy - miny) * random.random()
@@ -320,7 +498,9 @@ def main() -> None:
             continue
         inside += 1
         if not leaf_covers_point(lon, lat, leaves_by_resolution):
-            uncovered += 1
+            uncovered_mixed_lookup += 1
+        if h3.latlng_to_cell(lat, lon, max_output_resolution) not in expanded_to_max:
+            uncovered_maxres_lookup += 1
 
     print("[phase] write_outputs")
     payload = {
@@ -340,10 +520,14 @@ def main() -> None:
                 if args.selection_mode == "intersects"
                 else "keep child when overlap_ratio > t"
             ),
+            "max_neighbor_delta": int(args.max_neighbor_delta),
+            "neighbor_smoothing": smoothing,
             "coverage_fallback": "keep_parent_if_no_children_selected",
             "cell_count_total": len(features),
             "counts_by_resolution": counts_by_resolution,
-            "qa_uncovered_sample_ratio": uncovered / inside if inside else 0.0,
+            "qa_uncovered_sample_ratio_mixed_lookup": uncovered_mixed_lookup / inside if inside else 0.0,
+            "qa_uncovered_sample_ratio_maxres_lookup": uncovered_maxres_lookup / inside if inside else 0.0,
+            "qa_max_lookup_resolution": int(max_output_resolution),
             "qa_sample_size": inside,
         },
         "features": features,
@@ -366,7 +550,8 @@ def main() -> None:
     print(f"png={out_png}")
     print(f"total_cells={len(features)}")
     print(f"counts_by_resolution={counts_by_resolution}")
-    print(f"qa_uncovered_sample_ratio={payload['metadata']['qa_uncovered_sample_ratio']}")
+    print(f"qa_uncovered_sample_ratio_mixed={payload['metadata']['qa_uncovered_sample_ratio_mixed_lookup']}")
+    print(f"qa_uncovered_sample_ratio_maxres={payload['metadata']['qa_uncovered_sample_ratio_maxres_lookup']}")
     print(f"elapsed_total_s={time.perf_counter() - total_started:.1f}")
 
 
