@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Any
+import warnings
 
 import h3
 import pandas as pd
@@ -12,6 +13,7 @@ from shapely.geometry import shape
 @dataclass
 class CountryMaskLayer:
     version: str
+    legacy_world_dataset_path: str = "data/reference/natural_earth_admin0_subset.geojson"
     color_palette: tuple[str, ...] = (
         "#1d4ed8",
         "#dc2626",
@@ -39,6 +41,17 @@ class CountryMaskLayer:
         rule = str(params["membership_rule"])
         dataset = str(params["polygon_dataset"])
         exclude_iso = {str(code).upper() for code in params.get("exclude_iso_a2", [])}
+        dataset_is_legacy_world = dataset == self.legacy_world_dataset_path
+        if dataset_is_legacy_world:
+            warnings.warn(
+                (
+                    "country_mask polygon_dataset is using deprecated legacy world file "
+                    f"'{self.legacy_world_dataset_path}'. Migrate to per-country dataset selection "
+                    "(e.g., files under data/countries with explicit ISO selection per run)."
+                ),
+                UserWarning,
+                stacklevel=2,
+            )
 
         polygons = self._load_polygons(dataset, exclude_iso=exclude_iso)
         # Deterministic rule: first country in sorted ISO order claims each cell.
@@ -80,6 +93,12 @@ class CountryMaskLayer:
                 "exclude_iso_a2": sorted(exclude_iso),
             },
             "polygon_dataset_source": "Natural Earth admin-0 subset",
+            "polygon_dataset_deprecated": dataset_is_legacy_world,
+            "polygon_dataset_deprecation_notice": (
+                "legacy_world_dataset_deprecated_use_country_selection"
+                if dataset_is_legacy_world
+                else None
+            ),
             "distance_semantics": "centroid_in_polygon",
             "country_color_palette": list(self.color_palette),
             "country_color_map": {iso: idx for iso, idx in sorted(country_colors.items())},

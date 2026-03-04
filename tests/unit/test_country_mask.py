@@ -1,5 +1,6 @@
 import pandas as pd
 import h3
+import pytest
 
 from inframap.layers.country_mask import CountryMaskLayer
 
@@ -46,3 +47,23 @@ def test_country_mask_centroid_assignment_rule() -> None:
             if other_iso is None or other_iso == iso:
                 continue
             assert country_color[iso] != country_color[other_iso]
+
+
+def test_country_mask_warns_on_legacy_world_dataset_path() -> None:
+    facilities = pd.DataFrame([{"facility_id": "a", "asof_date": "2026-02-28"}])
+    layer = CountryMaskLayer(version="v1")
+
+    with pytest.warns(UserWarning, match="deprecated legacy world file"):
+        metadata, _ = layer.compute(
+            canonical_store={"facilities": facilities},
+            layer_store={},
+            params={
+                "resolution": 4,
+                "membership_rule": "centroid_in_polygon",
+                "polygon_dataset": "data/reference/natural_earth_admin0_subset.geojson",
+                "exclude_iso_a2": ["AQ"],
+            },
+        )
+
+    assert metadata["polygon_dataset_deprecated"] is True
+    assert metadata["polygon_dataset_deprecation_notice"] == "legacy_world_dataset_deprecated_use_country_selection"
