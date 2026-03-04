@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--selection-mode",
-        choices=["overlap_threshold", "intersects"],
+        choices=["overlap_threshold", "intersects", "classify_split"],
         default="overlap_threshold",
         help="Child inclusion rule for boundary refinement.",
     )
@@ -49,6 +49,18 @@ def parse_args() -> argparse.Namespace:
             "Containment mode for initial base-resolution cells. "
             "Uses h3shape_to_cells_experimental unless mode is center."
         ),
+    )
+    parser.add_argument(
+        "--inside-epsilon",
+        type=float,
+        default=1e-6,
+        help="For classify_split mode: ratio >= 1 - epsilon is considered fully inside.",
+    )
+    parser.add_argument(
+        "--outside-epsilon",
+        type=float,
+        default=1e-9,
+        help="For classify_split mode: ratio <= epsilon is considered fully outside.",
     )
     parser.add_argument(
         "--progress-every",
@@ -171,6 +183,66 @@ def refine_with_threshold(
                 f"elapsed={elapsed:.1f}s eta={eta:.1f}s"
             )
     return next_leaves
+
+
+def classify_split_refine(
+    *,
+    base_cells: set[str],
+    refine_levels: list[int],
+    geom,
+    inside_epsilon: float,
+    outside_epsilon: float,
+    progress_every: int,
+) -> set[str]:
+    leaves: set[str] = set()
+    current_cells = sorted(base_cells)
+    current_resolution = h3.get_resolution(current_cells[0]) if current_cells else None
+    started = time.perf_counter()
+
+    for next_resolution in refine_levels:
+        if current_resolution is None:
+            break
+        total = len(current_cells)
+        next_cells: list[str] = []
+        for index, cell in enumerate(current_cells, start=1):
+            ratio = overlap_ratio(cell, geom)
+            if ratio >= (1.0 - inside_epsilon):
+                leaves.add(cell)
+            elif ratio <= outside_epsilon:
+                pass
+            else:
+                for child in sorted(h3.cell_to_children(cell, next_resolution)):
+                    next_cells.append(str(child))
+            if index % progress_every == 0 or index == total:
+                elapsed = time.perf_counter() - started
+                rate = index / elapsed if elapsed > 0 else 0.0
+                remaining = total - index
+                eta = remaining / rate if rate > 0 else 0.0
+                print(
+                    f"[progress] classify r{current_resolution}->r{next_resolution}: "
+                    f"{index}/{total} ({(index/total)*100:.1f}%) elapsed={elapsed:.1f}s eta={eta:.1f}s"
+                )
+        current_cells = next_cells
+        current_resolution = next_resolution
+
+    # Final frontier at max depth: keep cells that are not fully outside.
+    if current_cells:
+        total = len(current_cells)
+        frontier_resolution = h3.get_resolution(current_cells[0])
+        for index, cell in enumerate(current_cells, start=1):
+            ratio = overlap_ratio(cell, geom)
+            if ratio > outside_epsilon:
+                leaves.add(cell)
+            if index % progress_every == 0 or index == total:
+                elapsed = time.perf_counter() - started
+                rate = index / elapsed if elapsed > 0 else 0.0
+                remaining = total - index
+                eta = remaining / rate if rate > 0 else 0.0
+                print(
+                    f"[progress] classify frontier r{frontier_resolution}: "
+                    f"{index}/{total} ({(index/total)*100:.1f}%) elapsed={elapsed:.1f}s eta={eta:.1f}s"
+                )
+    return leaves
 
 
 def leaf_covers_point(point_lon: float, point_lat: float, leaves_by_res: dict[int, set[str]]) -> bool:
@@ -435,22 +507,33 @@ def main() -> None:
     leaves = set(base_cells)
     print(f"[info] base_cells={len(base_cells)}")
 
-    current_resolution = int(args.base_resolution)
-    for next_resolution in refine_levels:
-        print(f"[phase] refine_r{current_resolution}_boundary_to_r{next_resolution}")
-        candidates = {cell for cell in leaves if h3.get_resolution(cell) == current_resolution}
-        boundary = boundary_cells(candidates)
-        leaves = refine_with_threshold(
-            leaves=leaves,
-            cells_to_refine=boundary,
-            next_resolution=next_resolution,
+    if args.selection_mode == "classify_split":
+        print("[phase] classify_split_refine")
+        leaves = classify_split_refine(
+            base_cells=base_cells,
+            refine_levels=refine_levels,
             geom=country_geom,
-            threshold=args.overlap_threshold,
-            selection_mode=args.selection_mode,
-            phase_name=f"r{current_resolution}->r{next_resolution}",
+            inside_epsilon=float(args.inside_epsilon),
+            outside_epsilon=float(args.outside_epsilon),
             progress_every=max(1, args.progress_every),
         )
-        current_resolution = next_resolution
+    else:
+        current_resolution = int(args.base_resolution)
+        for next_resolution in refine_levels:
+            print(f"[phase] refine_r{current_resolution}_boundary_to_r{next_resolution}")
+            candidates = {cell for cell in leaves if h3.get_resolution(cell) == current_resolution}
+            boundary = boundary_cells(candidates)
+            leaves = refine_with_threshold(
+                leaves=leaves,
+                cells_to_refine=boundary,
+                next_resolution=next_resolution,
+                geom=country_geom,
+                threshold=args.overlap_threshold,
+                selection_mode=args.selection_mode,
+                phase_name=f"r{current_resolution}->r{next_resolution}",
+                progress_every=max(1, args.progress_every),
+            )
+            current_resolution = next_resolution
 
     max_refine_resolution = max(refine_levels)
     print("[phase] smooth_neighbor_deltas")
@@ -516,10 +599,16 @@ def main() -> None:
             "overlap_threshold_t": args.overlap_threshold,
             "selection_mode": args.selection_mode,
             "selection_rule": (
-                "keep child when child_polygon intersects country_polygon"
-                if args.selection_mode == "intersects"
-                else "keep child when overlap_ratio > t"
+                "split partial cells by overlap ratio; keep full-inside, drop full-outside"
+                if args.selection_mode == "classify_split"
+                else (
+                    "keep child when child_polygon intersects country_polygon"
+                    if args.selection_mode == "intersects"
+                    else "keep child when overlap_ratio > t"
+                )
             ),
+            "inside_epsilon": float(args.inside_epsilon),
+            "outside_epsilon": float(args.outside_epsilon),
             "max_neighbor_delta": int(args.max_neighbor_delta),
             "neighbor_smoothing": smoothing,
             "coverage_fallback": "keep_parent_if_no_children_selected",
@@ -535,9 +624,13 @@ def main() -> None:
     out_geojson.write_text(json.dumps(payload), encoding="utf-8")
 
     mode_label = (
-        "intersects"
-        if args.selection_mode == "intersects"
-        else f"overlap-threshold t={args.overlap_threshold}"
+        "classify-split"
+        if args.selection_mode == "classify_split"
+        else (
+            "intersects"
+            if args.selection_mode == "intersects"
+            else f"overlap-threshold t={args.overlap_threshold}"
+        )
     )
     levels_label = "/".join([f"r{args.base_resolution}"] + [f"r{level}" for level in refine_levels])
     title = (
