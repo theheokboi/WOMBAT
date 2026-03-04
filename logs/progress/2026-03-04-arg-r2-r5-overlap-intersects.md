@@ -31,3 +31,10 @@
 - Update: Mistake replay check complete with no repeated ledger issues; docs check complete with no README/AGENTS changes required because this task updates a utility script and generated artifacts only.
 - Evidence: /Users/hyes92121/Desktop/h3-experiment/logs/mistakes.md
 - Next: Commit and handoff.
+
+## 2026-03-04T18:31:01Z
+- Status: complete
+- Checklist item: Record mistake replay/docs check and finalize
+- Update: Recorded required git checkpoint commit hash for r2-r5 overlap+intersects run.
+- Evidence: commit a9866b7
+- Next: Handoff complete.
