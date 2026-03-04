@@ -76,7 +76,17 @@ class FacilityDensityAdaptiveLayer:
         if not isinstance(country_cells, pd.DataFrame) or "h3" not in country_cells.columns:
             raise ValueError("country_mask artifacts must provide a cells dataframe with h3 column")
 
-        domain_r4 = sorted({str(cell) for cell in country_cells["h3"].astype(str).tolist()})
+        domain_r4_set: set[str] = set()
+        for raw_cell in country_cells["h3"].astype(str).tolist():
+            cell = str(raw_cell)
+            resolution = h3.get_resolution(cell)
+            if resolution == base_resolution:
+                domain_r4_set.add(cell)
+            elif resolution < base_resolution:
+                domain_r4_set.update(str(child) for child in h3.cell_to_children(cell, base_resolution))
+            else:
+                domain_r4_set.add(h3.cell_to_parent(cell, base_resolution))
+        domain_r4 = sorted(domain_r4_set)
         if not domain_r4:
             empty = pd.DataFrame(columns=["h3", "resolution", "layer_value", "layer_id", "asof_date"])
             metadata = self._metadata(

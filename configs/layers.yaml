@@ -12,8 +12,13 @@ layers:
     plugin: inframap.layers.country_mask:CountryMaskLayer
     version: v1
     params:
-      resolution: 4
+      mode: quadtree_classify_split
       membership_rule: centroid_in_polygon
+      base_resolution: 2
+      max_resolution: 6
+      base_contain: overlap
+      inside_epsilon: 0.000001
+      outside_epsilon: 0.000000001
       polygon_dataset_dir: data/countries
       include_iso_a2: ["AR", "GB", "JP", "TW", "US"]
       exclude_iso_a2: []

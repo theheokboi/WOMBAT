@@ -92,6 +92,8 @@ def run_pipeline(
             "ts_utc": payload["ts_utc"],
             "expected_runtime_seconds": expected_runtime_seconds,
         }
+        if note:
+            active_payload["note"] = note
         if layer_name:
             active_payload["layer_name"] = layer_name
         active_status_path.write_text(json.dumps(active_payload, sort_keys=True, indent=2), encoding="utf-8")
@@ -135,10 +137,16 @@ def run_pipeline(
             mark_stage_start(stage_name)
             plugin = registry[layer_cfg.name]
             layer_started = perf_counter()
+            layer_params = dict(layer_cfg.params)
+
+            def layer_progress(note: str, *, _stage: str = stage_name, _layer: str = layer_cfg.name) -> None:
+                heartbeat(_stage, "in_progress", note=note, layer_name=_layer)
+
+            layer_params["_progress_cb"] = layer_progress
             metadata, cells = plugin.compute(
                 canonical_store={"facilities": facilities, "organizations": organizations},
                 layer_store=layer_artifacts,
-                params=layer_cfg.params,
+                params=layer_params,
             )
             plugin.validate({"metadata": metadata, "cells": cells})
 

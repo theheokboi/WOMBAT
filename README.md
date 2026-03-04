@@ -15,7 +15,7 @@ Strict reproducibility/promotion guardrails are deferred and tracked as future h
 ## Commands
 
 ```bash
-make run-dev COUNTRY=AR
+COUNTRIES=AR make run-dev
 make serve-dev
 make ui-dev
 make verify-dev
@@ -31,7 +31,7 @@ Compatibility aliases are preserved:
 
 ```bash
 # 1) Run a scoped dev pipeline
-make run-dev COUNTRY=AR
+COUNTRIES=AR,JP,US make run-dev
 
 # 2) Serve dev data
 make serve-dev
@@ -42,6 +42,12 @@ make ui-dev
 # 4) Validate quickly
 make verify-dev
 ```
+
+Country selection for each run is controlled by `COUNTRIES` (comma-separated ISO-2 codes).  
+Example: `COUNTRIES=AR,JP,US make run-dev` uses `data/countries/AR.geojson`, `JP.geojson`, `US.geojson` via the `country_mask` layer.
+
+`make run-dev` now prints live stage progress while the pipeline runs.  
+Set `RUN_DEV_PROGRESS=0` to disable stream output for a quiet run.
 
 Screenshot path convention:
 

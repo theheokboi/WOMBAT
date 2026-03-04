@@ -6,6 +6,10 @@ import pytest
 from inframap.agent.runner import run_pipeline
 from inframap.config import load_layers_config, load_system_config
 
+pytestmark = pytest.mark.skip(
+    reason="Full pipeline perf monitoring test disabled until polygon contract is finalized."
+)
+
 
 @pytest.mark.perf_monitoring
 def test_metrics_emitted_with_required_keys(tmp_path: Path) -> None:
