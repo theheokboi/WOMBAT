@@ -38,3 +38,10 @@
 - Update: Fixed plot title labeling to reflect selection mode accurately and regenerated intersects artifact.
 - Evidence: /Users/hyes92121/Desktop/h3-experiment/artifacts/screenshots/2026-03-04-arg-country-plus-multilevel-h3-intersects.png
 - Next: Commit outputs and handoff.
+
+## 2026-03-04T18:23:05Z
+- Status: complete
+- Checklist item: Record mistake replay/docs check and finalize
+- Update: Recorded required git checkpoint hash for intersects-mode experiment.
+- Evidence: commit 19505fc
+- Next: Handoff complete.
