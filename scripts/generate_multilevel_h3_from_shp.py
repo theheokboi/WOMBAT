@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
         help="Include child when overlap_ratio = area(cell ∩ geometry) / area(cell) is strictly greater than t",
     )
     parser.add_argument(
+        "--selection-mode",
+        choices=["overlap_threshold", "intersects"],
+        default="overlap_threshold",
+        help="Child inclusion rule for boundary refinement.",
+    )
+    parser.add_argument(
         "--progress-every",
         type=int,
         default=25,
@@ -89,12 +95,20 @@ def overlap_ratio(cell: str, geom) -> float:
     return float(inter_area / poly.area)
 
 
+def intersects_geom(cell: str, geom) -> bool:
+    poly = cell_polygon(cell)
+    if poly.is_empty:
+        return False
+    return bool(poly.intersects(geom))
+
+
 def refine_with_threshold(
     leaves: set[str],
     cells_to_refine: set[str],
     next_resolution: int,
     geom,
     threshold: float,
+    selection_mode: str,
     phase_name: str,
     progress_every: int,
 ) -> set[str]:
@@ -109,9 +123,13 @@ def refine_with_threshold(
         kept_children: list[str] = []
         for child in sorted(h3.cell_to_children(parent, next_resolution)):
             child_str = str(child)
-            ratio = overlap_ratio(child_str, geom)
-            if ratio > threshold:
-                kept_children.append(child_str)
+            if selection_mode == "intersects":
+                if intersects_geom(child_str, geom):
+                    kept_children.append(child_str)
+            else:
+                ratio = overlap_ratio(child_str, geom)
+                if ratio > threshold:
+                    kept_children.append(child_str)
         # Coverage-preserving fallback: if threshold drops all children, keep parent.
         if not kept_children:
             next_leaves.add(parent)
@@ -228,6 +246,7 @@ def main() -> None:
         next_resolution=args.refine_1,
         geom=country_geom,
         threshold=args.overlap_threshold,
+        selection_mode=args.selection_mode,
         phase_name="r4->r5",
         progress_every=max(1, args.progress_every),
     )
@@ -241,6 +260,7 @@ def main() -> None:
         next_resolution=args.refine_2,
         geom=country_geom,
         threshold=args.overlap_threshold,
+        selection_mode=args.selection_mode,
         phase_name="r5->r6",
         progress_every=max(1, args.progress_every),
     )
@@ -288,7 +308,12 @@ def main() -> None:
             "refined_resolutions": [args.refine_1, args.refine_2],
             "algorithm": "boundary_refine_with_overlap_threshold_and_parent_fallback",
             "overlap_threshold_t": args.overlap_threshold,
-            "selection_rule": "keep child when overlap_ratio > t",
+            "selection_mode": args.selection_mode,
+            "selection_rule": (
+                "keep child when child_polygon intersects country_polygon"
+                if args.selection_mode == "intersects"
+                else "keep child when overlap_ratio > t"
+            ),
             "coverage_fallback": "keep_parent_if_no_children_selected",
             "cell_count_total": len(features),
             "counts_by_resolution": counts_by_resolution,
@@ -299,9 +324,14 @@ def main() -> None:
     }
     out_geojson.write_text(json.dumps(payload), encoding="utf-8")
 
+    mode_label = (
+        "intersects"
+        if args.selection_mode == "intersects"
+        else f"overlap-threshold t={args.overlap_threshold}"
+    )
     title = (
-        f"{args.country_code} geometry + overlap-threshold multi-level H3 "
-        f"(r{args.base_resolution}/r{args.refine_1}/r{args.refine_2}, t={args.overlap_threshold})"
+        f"{args.country_code} geometry + {mode_label} multi-level H3 "
+        f"(r{args.base_resolution}/r{args.refine_1}/r{args.refine_2})"
     )
     render_png(country_geom=country_geom, features=features, out_png=out_png, title=title)
 
