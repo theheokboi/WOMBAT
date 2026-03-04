@@ -2,7 +2,7 @@
 - [x] Identify authoritative contract and algorithm entry points
 - [x] Trace implementation path for country-to-multi-level-polygon mapping
 - [x] Cross-check behavior with tests and config
-- [~] Explain algorithm to user with file references
+- [x] Explain algorithm to user with file references
 - [x] Mistake replay check and docs check recorded
 
 ## 2026-03-04T17:22:50Z
