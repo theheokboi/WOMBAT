@@ -31,3 +31,10 @@
 - Update: Mistake replay check complete with no repeated ledger issues; docs check complete with no README/AGENTS changes required because this task updates generator behavior and artifacts only.
 - Evidence: /Users/hyes92121/Desktop/h3-experiment/logs/mistakes.md
 - Next: Commit and handoff.
+
+## 2026-03-04T18:49:11Z
+- Status: complete
+- Checklist item: Record mistake replay/docs check and finalize
+- Update: Recorded required git checkpoint hash for classify-split run.
+- Evidence: commit 8e6b927
+- Next: Handoff complete.
