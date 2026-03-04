@@ -12,7 +12,7 @@ async function tryLoadJson(path) {
   }
 }
 
-const GB_COUNTRY_CODE = 'GB';
+const DEFAULT_COUNTRY_CODE = 'GB';
 const ADAPTIVE_MIN_RESOLUTION = 5;
 const ADAPTIVE_MAX_RESOLUTION = 9;
 
@@ -84,52 +84,114 @@ function getFeatureH3Candidates(properties) {
   return out;
 }
 
-function isGbCountryFeature(feature) {
-  const code = normalizeCountryCode(feature?.properties?.layer_value);
-  return code === GB_COUNTRY_CODE;
+function getRequestedCountryCode() {
+  const params = new URLSearchParams(window.location.search);
+  return normalizeCountryCode(params.get('country')) || DEFAULT_COUNTRY_CODE;
 }
 
-function buildCountryCellSet(features) {
-  const cells = new Set();
-  for (const feature of features || []) {
-    const cell = feature?.properties?.h3;
-    if (cell) cells.add(String(cell));
+function buildAvailableCountries(countryFeatures) {
+  const countries = new Set();
+  for (const feature of countryFeatures || []) {
+    const code = normalizeCountryCode(feature?.properties?.layer_value);
+    if (code) countries.add(code);
   }
-  return cells;
+  return Array.from(countries).sort();
 }
 
-function cellInCountryMask(cell, countryCellSet) {
-  if (!cell || !countryCellSet || countryCellSet.size === 0 || !window.h3) return false;
-  const value = String(cell);
-  if (countryCellSet.has(value)) return true;
+function buildCountryCellIndex(countryFeatures) {
+  const countryByMaskCell = new Map();
+  for (const feature of countryFeatures || []) {
+    const code = normalizeCountryCode(feature?.properties?.layer_value);
+    const cell = feature?.properties?.h3;
+    if (code && cell) {
+      countryByMaskCell.set(String(cell), code);
+    }
+  }
+  return countryByMaskCell;
+}
+
+function inferCountryCodeFromCell(cell, countryByMaskCell) {
+  if (!cell || !countryByMaskCell || countryByMaskCell.size === 0 || !window.h3) return '';
+  let cursor = String(cell);
   try {
-    const resolution = h3.getResolution(value);
-    for (let res = resolution - 1; res >= 0; res -= 1) {
-      const parent = h3.cellToParent(value, res);
-      if (countryCellSet.has(parent)) return true;
+    let resolution = h3.getResolution(cursor);
+    while (resolution >= 0) {
+      const code = countryByMaskCell.get(cursor);
+      if (code) return code;
+      if (resolution === 0) break;
+      resolution -= 1;
+      cursor = h3.cellToParent(cursor, resolution);
     }
   } catch (_error) {
-    return false;
+    return '';
   }
-  return false;
+  return '';
 }
 
-function featureIsGbScoped(feature, countryCellSet) {
+function getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet) {
   const properties = feature?.properties || {};
-  const countryCodeCandidates = [
+  const out = new Set();
+
+  for (const rawCountry of [
     properties.layer_value,
     properties.country_code,
     properties.country,
     properties.country_iso,
     properties.country_iso2,
-  ].map(normalizeCountryCode).filter(Boolean);
-
-  if (countryCodeCandidates.length > 0) {
-    return countryCodeCandidates.some((code) => code === GB_COUNTRY_CODE);
+  ]) {
+    const code = normalizeCountryCode(rawCountry);
+    if (code && (!availableCountriesSet || availableCountriesSet.has(code))) out.add(code);
   }
 
-  const cells = getFeatureH3Candidates(properties);
-  return cells.some((cell) => cellInCountryMask(cell, countryCellSet));
+  for (const cell of getFeatureH3Candidates(properties)) {
+    const inferred = inferCountryCodeFromCell(cell, countryByMaskCell);
+    if (inferred && (!availableCountriesSet || availableCountriesSet.has(inferred))) out.add(inferred);
+  }
+
+  return out;
+}
+
+function countFeaturesByCountry(features, countryByMaskCell, availableCountriesSet, predicate = null) {
+  const counts = new Map();
+  for (const feature of features || []) {
+    if (predicate && !predicate(feature)) continue;
+    const candidates = getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet);
+    for (const code of candidates) {
+      counts.set(code, (counts.get(code) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function filterFeaturesByCountry(features, countryCode, countryByMaskCell, availableCountriesSet, predicate = null) {
+  return (features || []).filter((feature) => {
+    if (predicate && !predicate(feature)) return false;
+    return getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet).has(countryCode);
+  });
+}
+
+function setupCountrySelector(availableCountries, requestedCountry, effectiveCountry) {
+  const selector = document.getElementById('country-selector');
+  if (!selector) return;
+  const countryOptions = Array.from(new Set([...(availableCountries || []), requestedCountry].filter(Boolean))).sort();
+  selector.innerHTML = '';
+  for (const code of countryOptions) {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = code;
+    if (code === effectiveCountry) option.selected = true;
+    selector.appendChild(option);
+  }
+
+  selector.disabled = countryOptions.length === 0;
+  selector.title = `Requested: ${requestedCountry}; Effective: ${effectiveCountry}`;
+  selector.addEventListener('change', () => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('country', selector.value);
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
+    window.location.assign(nextUrl);
+  });
 }
 
 async function init() {
@@ -144,26 +206,78 @@ async function init() {
     tryLoadJson('/v1/calibration/latest'),
   ]);
   const countryFeatures = featureCollectionFeatures(countryCells);
-  const gbCountryFeatures = countryFeatures.filter((feature) => isGbCountryFeature(feature));
-  const gbCountryCellSet = buildCountryCellSet(gbCountryFeatures);
+  const requestedCountry = getRequestedCountryCode();
+  const availableCountries = buildAvailableCountries(countryFeatures);
+  const availableCountriesSet = new Set(availableCountries);
+  const countryByMaskCell = buildCountryCellIndex(countryFeatures);
+
+  const countryCountsByCode = new Map();
+  for (const code of availableCountries) {
+    countryCountsByCode.set(code, 0);
+  }
+  for (const feature of countryFeatures) {
+    const code = normalizeCountryCode(feature?.properties?.layer_value);
+    if (code) countryCountsByCode.set(code, (countryCountsByCode.get(code) || 0) + 1);
+  }
 
   const facilitiesFeatures = featureCollectionFeatures(facilities);
-  const gbFacilitiesFeatures = facilitiesFeatures.filter((feature) => featureIsGbScoped(feature, gbCountryCellSet));
-  const gbFacilities = { ...facilities, features: gbFacilitiesFeatures };
-
   const adaptiveFeatures = featureCollectionFeatures(adaptiveCells);
-  const gbAdaptiveFeatures = adaptiveFeatures.filter((feature) => (
-    featureIsGbScoped(feature, gbCountryCellSet) &&
-    isAdaptiveResolutionAllowed(feature?.properties || {})
-  ));
-  const gbCountryCells = { ...countryCells, features: gbCountryFeatures };
+  const facilityCountsByCode = countFeaturesByCountry(facilitiesFeatures, countryByMaskCell, availableCountriesSet);
+  const adaptiveCountsByCode = countFeaturesByCountry(
+    adaptiveFeatures,
+    countryByMaskCell,
+    availableCountriesSet,
+    (feature) => isAdaptiveResolutionAllowed(feature?.properties || {})
+  );
+
+  function totalCountryDataCount(code) {
+    return (
+      (facilityCountsByCode.get(code) || 0) +
+      (countryCountsByCode.get(code) || 0) +
+      (adaptiveCountsByCode.get(code) || 0)
+    );
+  }
+
+  let effectiveCountry = requestedCountry;
+  let fallbackNotice = '';
+  if (totalCountryDataCount(effectiveCountry) === 0) {
+    const fallbackCandidate = availableCountries.find((code) => totalCountryDataCount(code) > 0)
+      || availableCountries[0]
+      || requestedCountry;
+    if (fallbackCandidate !== requestedCountry) {
+      fallbackNotice =
+        `Fallback applied: requested ${requestedCountry} has zero data across facilities/country/adaptive; using ${fallbackCandidate}.`;
+    }
+    effectiveCountry = fallbackCandidate;
+  }
+
+  const effectiveCountryFeatures = countryFeatures.filter(
+    (feature) => normalizeCountryCode(feature?.properties?.layer_value) === effectiveCountry
+  );
+  const effectiveFacilitiesFeatures = filterFeaturesByCountry(
+    facilitiesFeatures,
+    effectiveCountry,
+    countryByMaskCell,
+    availableCountriesSet
+  );
+  const effectiveAdaptiveFeatures = filterFeaturesByCountry(
+    adaptiveFeatures,
+    effectiveCountry,
+    countryByMaskCell,
+    availableCountriesSet,
+    (feature) => isAdaptiveResolutionAllowed(feature?.properties || {})
+  );
+  const scopedFacilities = { ...facilities, features: effectiveFacilitiesFeatures };
+  const scopedCountryCells = { ...countryCells, features: effectiveCountryFeatures };
+  setupCountrySelector(availableCountries, requestedCountry, effectiveCountry);
 
   const adaptivePolicyName = adaptiveMetadata?.policy_name || adaptiveMetadata?.policy?.name || null;
   const policyVersion = adaptiveMetadata?.layer_version || latestStatus?.adaptive_policy?.layer_version || '--';
 
   const [lon, lat] = ui.center;
-  document.getElementById('facility-count').textContent = `GB facilities loaded: ${gbFacilities.features.length.toLocaleString()}`;
-  document.getElementById('location-count').textContent = `GB unique locations: ${new Set((gbFacilities.features || []).map((f) => f.geometry.coordinates.join(','))).size.toLocaleString()}`;
+  document.getElementById('facility-count').textContent = `${effectiveCountry} facilities loaded: ${scopedFacilities.features.length.toLocaleString()}`;
+  document.getElementById('location-count').textContent =
+    `${effectiveCountry} unique locations: ${new Set((scopedFacilities.features || []).map((f) => f.geometry.coordinates.join(','))).size.toLocaleString()}`;
   const displayScopeNode = document.getElementById('display-scope');
   const latestAdaptiveVersionNode = document.getElementById('latest-adaptive-version');
   const adaptivePolicyNode = document.getElementById('adaptive-policy');
@@ -171,7 +285,13 @@ async function init() {
   const latestRunRuntimeNode = document.getElementById('latest-run-runtime');
   const activeRunStatusNode = document.getElementById('active-run-status');
   const calibrationBasisNode = document.getElementById('calibration-basis');
-  displayScopeNode.textContent = `Display scope: GB only (country_mask=GB, filtered in UI; ${gbCountryFeatures.length.toLocaleString()} country cells, ${gbAdaptiveFeatures.length.toLocaleString()} adaptive cells)`;
+  const availableCountriesPreview = availableCountries.slice(0, 12).join(', ');
+  const availableCountriesLabel =
+    availableCountries.length > 12 ? `${availableCountriesPreview}, ...` : (availableCountriesPreview || '--');
+  const fallbackSuffix = fallbackNotice ? ` ${fallbackNotice}` : '';
+  displayScopeNode.textContent =
+    `Display scope: requested=${requestedCountry}, effective=${effectiveCountry}; available countries (${availableCountries.length}): ${availableCountriesLabel}; ` +
+    `${effectiveCountryFeatures.length.toLocaleString()} country cells, ${effectiveAdaptiveFeatures.length.toLocaleString()} adaptive cells.${fallbackSuffix}`;
 
   const latestRunId = latestStatus?.run_id || '--';
   const latestPolicyName = latestStatus?.adaptive_policy?.policy_name || adaptivePolicyName || '--';
@@ -254,12 +374,12 @@ async function init() {
   function renderFacilities() {
     clearLayer(facilityLayer);
     if (!document.getElementById('toggle-facilities').checked) return;
-    facilityLayer.addData(gbFacilities);
+    facilityLayer.addData(scopedFacilities);
   }
 
   renderFacilities();
 
-  const countryLayer = L.geoJSON(gbCountryCells, {
+  const countryLayer = L.geoJSON(scopedCountryCells, {
     style: (feature) => {
       const p = feature.properties || {};
       const color = p.country_color_hex || '#1d4ed8';
@@ -310,7 +430,7 @@ async function init() {
   function renderAdaptiveCells() {
     clearLayer(adaptiveLayer);
     if (!adaptiveToggle.checked) return;
-    adaptiveLayer.addData(gbAdaptiveFeatures);
+    adaptiveLayer.addData(effectiveAdaptiveFeatures);
   }
   renderAdaptiveCells();
 
@@ -328,7 +448,7 @@ async function init() {
   });
   document.getElementById('toggle-country').addEventListener('change', (e) => {
     clearLayer(countryLayer);
-    if (e.target.checked) countryLayer.addData(gbCountryCells);
+    if (e.target.checked) countryLayer.addData(scopedCountryCells);
   });
 
   adaptiveToggle.addEventListener('change', () => {

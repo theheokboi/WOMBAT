@@ -17,10 +17,12 @@ def test_ui_static_smoke() -> None:
     )
     client = TestClient(app)
 
-    response = client.get("/ui/")
+    response = client.get("/ui/index.html")
     assert response.status_code == 200
-    assert "Infrastructure Layers (GB Only)" in response.text
+    assert "Infrastructure Layers" in response.text
+    assert "Display scope: loading..." in response.text
     assert "display-scope" in response.text
+    assert "country-selector" in response.text
     assert "toggle-facilities" in response.text
     assert "toggle-adaptive" in response.text
     assert "toggle-country" in response.text
@@ -39,6 +41,11 @@ def test_ui_static_smoke() -> None:
     script_response = client.get("/ui/main.js")
     assert script_response.status_code == 200
     assert "Leaf facility count" in script_response.text
+    assert "getRequestedCountryCode" in script_response.text
+    assert "buildAvailableCountries" in script_response.text
+    assert "new URLSearchParams(window.location.search)" in script_response.text
+    assert "Display scope: requested=" in script_response.text
+    assert "country-selector" in script_response.text
     assert "/v1/layers/facility_density_adaptive/metadata" in script_response.text
     assert "/v1/runs/latest/status" in script_response.text
     assert "/v1/runs/active/status" in script_response.text
