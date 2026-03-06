@@ -1,6 +1,11 @@
+import json
+from pathlib import Path
+from typing import Any
+
 import h3
 import pandas as pd
 import pytest
+from shapely.geometry import Polygon, shape
 
 from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
 
@@ -28,7 +33,7 @@ def _country_mask_store(
     if radius > 0:
         cells_set = {str(cell) for cell in h3.grid_disk(base_cell, radius)}
     cells = pd.DataFrame(
-        [{"h3": cell, "resolution": base_resolution, "layer_value": "land", "country_name": "US"} for cell in sorted(cells_set)]
+        [{"h3": cell, "resolution": base_resolution, "layer_value": "land", "country_name": "TW"} for cell in sorted(cells_set)]
     )
     return {
         "country_mask": {
@@ -103,6 +108,25 @@ def _max_neighbor_resolution_delta(cells: pd.DataFrame) -> int:
     return max_delta
 
 
+def _cell_overlap_ratio(cell: str, polygon: Any) -> float:
+    ring = []
+    prev_lon: float | None = None
+    for lat, lon in h3.cell_to_boundary(cell):
+        adj_lon = float(lon)
+        if prev_lon is not None:
+            while adj_lon - prev_lon > 180:
+                adj_lon -= 360
+            while adj_lon - prev_lon < -180:
+                adj_lon += 360
+        ring.append((adj_lon, float(lat)))
+        prev_lon = adj_lon
+    ring.append(ring[0])
+    poly = Polygon(ring)
+    if poly.is_empty or poly.area == 0:
+        return 0.0
+    return float(poly.intersection(polygon).area / poly.area)
+
+
 def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
     params = _v3_params()
@@ -121,6 +145,118 @@ def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     assert int(cells["resolution"].min()) >= int(params["min_output_resolution"])
     assert int(cells["resolution"].max()) <= int(params["facility_floor_resolution"]) - 1
     assert (cells["resolution"] == int(params["min_output_resolution"])).any()
+
+
+def test_adaptive_v3_accepts_configurable_min_output_resolution_below_r5() -> None:
+    facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
+    params = _v3_params()
+    params["min_output_resolution"] = 3
+
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=1),
+        params=params,
+    )
+
+    assert int(metadata["params"]["min_output_resolution"]) == 3
+    assert int(cells["resolution"].min()) >= 3
+    assert int(cells["resolution"].min()) < 5
+
+
+def test_adaptive_v3_filters_non_intersecting_cells_from_country_polygon(tmp_path: Path) -> None:
+    polygon_dataset = tmp_path / "tiny_tw.geojson"
+    polygon_dataset.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {"iso_a2": "TW", "name": "TW"},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [
+                                [
+                                    [121.50, 25.00],
+                                    [121.51, 25.00],
+                                    [121.51, 25.01],
+                                    [121.50, 25.01],
+                                    [121.50, 25.00],
+                                ]
+                            ],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    polygon_payload = json.loads(polygon_dataset.read_text(encoding="utf-8"))
+    polygon = shape(polygon_payload["features"][0]["geometry"])
+    anchor_cell = str(h3.latlng_to_cell(25.005, 121.505, 2))
+    params = _v3_params()
+    params["base_resolution"] = 2
+    params["min_output_resolution"] = 3
+    params["facility_floor_resolution"] = 7
+    params["facility_max_resolution"] = 7
+    params["empty_interior_max_resolution"] = 3
+    facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
+    layer_store = {
+        "country_mask": {
+            "metadata": {
+                "layer_name": "country_mask",
+                "layer_version": "v1",
+                "params": {
+                    "mode": "fixed_resolution",
+                    "resolution": 2,
+                    "membership_rule": "overlap_ratio",
+                    "polygon_dataset": str(polygon_dataset),
+                    "exclude_iso_a2": [],
+                },
+            },
+            "cells": pd.DataFrame([{"h3": anchor_cell, "resolution": 2, "layer_value": "TW", "country_name": "TW"}]),
+        }
+    }
+
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=layer_store,
+        params=params,
+    )
+
+    assert metadata["country_intersection_filter_applied"] is True
+    assert int(metadata["country_intersection_cells_dropped"]) > 0
+    assert not cells.empty
+    assert all(_cell_overlap_ratio(str(cell), polygon) > 0.0 for cell in cells["h3"].astype(str).tolist())
+
+
+def test_adaptive_v3_uses_fixed_country_mask_resolution_as_base() -> None:
+    facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
+    params = _v3_params()
+    fixed_base_resolution = 2
+    layer_store = _country_mask_store(base_resolution=fixed_base_resolution, radius=1)
+    layer_store["country_mask"]["metadata"] = {
+        "layer_name": "country_mask",
+        "layer_version": "v1",
+        "params": {
+            "mode": "fixed_resolution",
+            "resolution": fixed_base_resolution,
+        },
+    }
+
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    metadata, _ = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=layer_store,
+        params=params,
+    )
+
+    assert metadata["coverage_domain"] == "country_mask_r2"
+    assert int(metadata["params"]["base_resolution"]) == 2
+    assert int(metadata["params"]["configured_base_resolution"]) == 4
 
 
 def test_adaptive_v3_enforces_occupied_floor_r9() -> None:

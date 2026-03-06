@@ -15,7 +15,7 @@ Strict reproducibility/promotion guardrails are deferred and tracked as future h
 ## Commands
 
 ```bash
-COUNTRIES=AR make run-dev
+COUNTRIES=TW make run-dev
 make serve-dev
 make ui-dev
 make verify-dev
@@ -31,7 +31,7 @@ Compatibility aliases are preserved:
 
 ```bash
 # 1) Run a scoped dev pipeline
-COUNTRIES=AR,JP,US make run-dev
+COUNTRIES=TW make run-dev
 
 # 2) Serve dev data
 make serve-dev
@@ -44,7 +44,22 @@ make verify-dev
 ```
 
 Country selection for each run is controlled by `COUNTRIES` (comma-separated ISO-2 codes).  
-Example: `COUNTRIES=AR,JP,US make run-dev` uses `data/countries/AR.geojson`, `JP.geojson`, `US.geojson` via the `country_mask` layer.
+Example: `COUNTRIES=TW make run-dev` uses `data/countries/TW.geojson` via the `country_mask` layer.
+When multiple runs exist, UI run selector (`Run / r-level`) can switch between published runs (and their effective r-level) without rerunning.
+For each selected run, the UI now renders all countries included in that run scope (no per-country selector).
+
+Canonical ingest now supports a landing-points TSV schema (`city_name`, `state_province`, `country`, `latitude`, `longitude`, `asof_date`, ...). Landing points are normalized into canonical facilities using `latitude/longitude` (not `standard_latitude/standard_longitude`), so they participate in adaptive H3 partitioning the same way as facilities.
+In the UI, landing points are rendered with a distinct point color from regular facility points.
+
+Default country-mask policy in `configs/layers.yaml` is:
+
+- `mode: fixed_resolution`
+- `membership_rule: overlap_ratio`
+- `resolution: 2`
+- fixed inclusion criterion: include cell when `overlap_ratio > 0`
+
+Adaptive facility partitioning derives its effective base resolution from country-mask metadata when fixed mode is active, so `coverage_domain` follows the active mask resolution (for example, `country_mask_r2`).
+Adaptive output bounds are config-driven: set `facility_density_adaptive.params.min_output_resolution` (and `facility_max_resolution`) in `configs/layers.yaml`; UI filtering reads these bounds from published adaptive metadata.
 
 `make run-dev` now prints live stage progress while the pipeline runs.  
 Set `RUN_DEV_PROGRESS=0` to disable stream output for a quiet run.
@@ -72,6 +87,8 @@ Screenshot path convention:
 
 Read endpoints remain under `/v1`.
 Run-oriented responses now include pointer/lane context for dev visibility.
+OSM transport overlay data is available from the run-agnostic endpoint `/v1/osm/transport` (no `run_id` coupling).
+Frontend exposes an `OSM transport overlay` toggle and legend entries for `rail`, `motorway`, and `trunk`.
 
 ## Deferred Hardening (For Engineering)
 

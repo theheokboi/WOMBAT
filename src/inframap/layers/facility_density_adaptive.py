@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import h3
 import pandas as pd
+from shapely.geometry import Polygon, shape
+from shapely.ops import unary_union
 
 
 @dataclass
@@ -17,7 +21,7 @@ class FacilityDensityAdaptiveLayer:
             "version": self.version,
             "distance_semantics": "hierarchical_partition_over_country_mask",
             "policy_name": "facility_hierarchical_partition_v3",
-            "coverage_domain": "country_mask_r4",
+            "coverage_domain": "country_mask_dynamic_base_resolution",
             "params": [
                 "base_resolution",
                 "min_output_resolution",
@@ -37,7 +41,8 @@ class FacilityDensityAdaptiveLayer:
     ) -> tuple[dict[str, Any], pd.DataFrame]:
         facilities = canonical_store["facilities"]
 
-        base_resolution = int(params["base_resolution"])
+        configured_base_resolution = int(params["base_resolution"])
+        base_resolution = configured_base_resolution
         min_output_resolution = int(params.get("min_output_resolution", 5))
         empty_compact_min_resolution = int(params["empty_compact_min_resolution"])
         facility_floor_resolution = int(params["facility_floor_resolution"])
@@ -48,20 +53,14 @@ class FacilityDensityAdaptiveLayer:
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
 
-        if not (5 <= min_output_resolution <= 9):
-            raise ValueError("min_output_resolution must satisfy 5 <= value <= 9")
-        if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
-            raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
+        if not (0 <= min_output_resolution <= 9):
+            raise ValueError("min_output_resolution must satisfy 0 <= value <= 9")
         if not (0 <= facility_floor_resolution <= facility_max_resolution <= 9):
             raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 9")
         if min_output_resolution > facility_max_resolution:
             raise ValueError("min_output_resolution must be <= facility_max_resolution")
         if target_facilities_per_leaf < 1:
             raise ValueError("target_facilities_per_leaf must be >= 1")
-        if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
-            raise ValueError(
-                "empty_interior_max_resolution must satisfy base_resolution <= value <= facility_floor_resolution - 1"
-            )
         if empty_refine_boundary_band_k < 0:
             raise ValueError("empty_refine_boundary_band_k must be >= 0")
         if empty_refine_near_occupied_k < 0:
@@ -72,6 +71,21 @@ class FacilityDensityAdaptiveLayer:
         country_artifacts = layer_store.get("country_mask")
         if not isinstance(country_artifacts, dict) or "cells" not in country_artifacts:
             raise ValueError("facility_density_adaptive requires country_mask layer artifacts")
+        country_metadata = country_artifacts.get("metadata", {})
+        if isinstance(country_metadata, dict):
+            country_params = country_metadata.get("params", {})
+            if isinstance(country_params, dict):
+                country_mode = str(country_params.get("mode", ""))
+                country_resolution = country_params.get("resolution")
+                if country_mode == "fixed_resolution" and country_resolution is not None:
+                    base_resolution = int(country_resolution)
+        if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
+            raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
+        if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
+            raise ValueError(
+                "empty_interior_max_resolution must satisfy base_resolution <= value <= facility_floor_resolution - 1"
+            )
+        coverage_domain = f"country_mask_r{base_resolution}"
         country_cells = country_artifacts["cells"]
         if not isinstance(country_cells, pd.DataFrame) or "h3" not in country_cells.columns:
             raise ValueError("country_mask artifacts must provide a cells dataframe with h3 column")
@@ -92,6 +106,7 @@ class FacilityDensityAdaptiveLayer:
             metadata = self._metadata(
                 params={
                     "base_resolution": base_resolution,
+                    "configured_base_resolution": configured_base_resolution,
                     "min_output_resolution": min_output_resolution,
                     "empty_compact_min_resolution": empty_compact_min_resolution,
                     "facility_floor_resolution": facility_floor_resolution,
@@ -108,6 +123,7 @@ class FacilityDensityAdaptiveLayer:
                     "max_neighbor_delta_observed": 0,
                     "smoothing_iterations": 0,
                 },
+                coverage_domain=coverage_domain,
             )
             return metadata, empty
 
@@ -370,10 +386,16 @@ class FacilityDensityAdaptiveLayer:
         )
         output["asof_date"] = max_asof
         output = output[["h3", "resolution", "layer_value", "layer_id", "asof_date"]]
+        output, country_intersection_filter_applied = self._filter_to_country_intersection(
+            output=output,
+            country_metadata=country_metadata,
+        )
+        country_intersection_cells_dropped = int(len(leaves) - len(output))
 
         metadata = self._metadata(
             params={
                 "base_resolution": base_resolution,
+                "configured_base_resolution": configured_base_resolution,
                 "min_output_resolution": min_output_resolution,
                 "empty_compact_min_resolution": empty_compact_min_resolution,
                 "facility_floor_resolution": facility_floor_resolution,
@@ -385,8 +407,115 @@ class FacilityDensityAdaptiveLayer:
                 "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
             },
             counters=adjacency_counters,
+            coverage_domain=coverage_domain,
         )
+        metadata["country_intersection_filter_applied"] = bool(country_intersection_filter_applied)
+        metadata["country_intersection_cells_dropped"] = country_intersection_cells_dropped
         return metadata, output
+
+    def _filter_to_country_intersection(
+        self,
+        output: pd.DataFrame,
+        country_metadata: dict[str, Any] | Any,
+    ) -> tuple[pd.DataFrame, bool]:
+        if output.empty:
+            return output, False
+        polygons = self._load_country_polygons_from_metadata(country_metadata)
+        if not polygons:
+            return output, False
+        country_union = unary_union(polygons)
+        if country_union.is_empty:
+            return output.iloc[0:0].copy(), True
+
+        keep = [
+            self._overlap_ratio_with_geometry(str(cell), country_union) > 0.0
+            for cell in output["h3"].astype(str).tolist()
+        ]
+        filtered = output.loc[keep].copy()
+        if not filtered.empty:
+            filtered = filtered.sort_values(by=["resolution", "h3"]).reset_index(drop=True)
+        return filtered, True
+
+    def _load_country_polygons_from_metadata(self, country_metadata: dict[str, Any] | Any) -> list[Any]:
+        if not isinstance(country_metadata, dict):
+            return []
+        country_params = country_metadata.get("params", {})
+        if not isinstance(country_params, dict):
+            return []
+        exclude_iso = {
+            str(code).upper()
+            for code in country_params.get("exclude_iso_a2", [])
+            if str(code).strip()
+        }
+        polygons: list[Any] = []
+        dataset_dir = country_params.get("polygon_dataset_dir")
+        dataset = country_params.get("polygon_dataset")
+
+        if isinstance(dataset_dir, str):
+            include_iso = {
+                str(code).upper()
+                for code in country_params.get("include_iso_a2", [])
+                if str(code).strip()
+            }
+            if not include_iso:
+                return []
+            for iso in sorted(include_iso - exclude_iso):
+                path = Path(dataset_dir) / f"{iso}.geojson"
+                if not path.exists():
+                    raise ValueError(f"country_mask missing dataset for ISO '{iso}' at {path}")
+                with path.open("r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+                for feature in payload.get("features", []):
+                    feature_iso = self._feature_country_iso(feature, fallback_iso=iso)
+                    if feature_iso in exclude_iso:
+                        continue
+                    polygons.append(shape(feature["geometry"]))
+            return polygons
+
+        if isinstance(dataset, str):
+            path = Path(dataset)
+            if not path.exists():
+                raise ValueError(f"country_mask polygon_dataset does not exist: {path}")
+            with path.open("r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+            fallback_iso = path.stem.upper()
+            for feature in payload.get("features", []):
+                feature_iso = self._feature_country_iso(feature, fallback_iso=fallback_iso)
+                if feature_iso in exclude_iso:
+                    continue
+                polygons.append(shape(feature["geometry"]))
+            return polygons
+
+        return []
+
+    def _feature_country_iso(self, feature: dict[str, Any], fallback_iso: str) -> str:
+        properties = feature.get("properties", {})
+        for key in ("iso_a2", "ISO_A2", "GID_0"):
+            value = properties.get(key)
+            if value:
+                return str(value).upper()[:2]
+        return fallback_iso
+
+    def _cell_polygon(self, cell: str) -> Polygon:
+        ring = []
+        prev_lon: float | None = None
+        for lat, lon in h3.cell_to_boundary(cell):
+            adj_lon = float(lon)
+            if prev_lon is not None:
+                while adj_lon - prev_lon > 180:
+                    adj_lon -= 360
+                while adj_lon - prev_lon < -180:
+                    adj_lon += 360
+            ring.append((adj_lon, float(lat)))
+            prev_lon = adj_lon
+        ring.append(ring[0])
+        return Polygon(ring)
+
+    def _overlap_ratio_with_geometry(self, cell: str, geometry: Any) -> float:
+        cell_poly = self._cell_polygon(cell)
+        if cell_poly.is_empty or cell_poly.area == 0:
+            return 0.0
+        return float(cell_poly.intersection(geometry).area / cell_poly.area)
 
     def _adjacency_counters(self, leaves: dict[str, int], max_neighbor_resolution_delta: int) -> dict[str, int]:
         if not leaves:
@@ -446,7 +575,12 @@ class FacilityDensityAdaptiveLayer:
             "max_neighbor_delta_observed": max_neighbor_delta_observed,
         }
 
-    def _metadata(self, params: dict[str, Any], counters: dict[str, int] | None = None) -> dict[str, Any]:
+    def _metadata(
+        self,
+        params: dict[str, Any],
+        counters: dict[str, int] | None = None,
+        coverage_domain: str = "country_mask_dynamic_base_resolution",
+    ) -> dict[str, Any]:
         if counters is None:
             counters = {
                 "adjacency_checks": 0,
@@ -458,7 +592,7 @@ class FacilityDensityAdaptiveLayer:
             "layer_name": "facility_density_adaptive",
             "layer_version": self.version,
             "policy_name": "facility_hierarchical_partition_v3",
-            "coverage_domain": "country_mask_r4",
+            "coverage_domain": coverage_domain,
             "adjacency_checks": int(counters["adjacency_checks"]),
             "violating_neighbor_pairs": int(counters["violating_neighbor_pairs"]),
             "max_neighbor_delta_observed": int(counters["max_neighbor_delta_observed"]),

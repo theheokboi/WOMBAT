@@ -1,7 +1,7 @@
 config_version: 1
-allowed_h3_resolutions: [4, 5, 6, 7, 8, 9]
+allowed_h3_resolutions: [2, 4, 5, 6, 7, 8, 9]
 canonical_h3_resolutions: [4, 5, 7]
-country_mask_resolution: 4
+country_mask_resolution: 2
 zoom_to_h3_resolution:
   0: 4
   3: 5
@@ -16,6 +16,8 @@ ui:
 inputs:
   - path: data/facilities/peeringdb_facility.tsv
     source_name: PeeringDB
+  - path: data/landing_points/std_landing_points.tsv
+    source_name: LandingPoints
 paths:
   runs_root: data/runs
   staging_root: data/staging

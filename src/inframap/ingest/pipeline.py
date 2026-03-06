@@ -62,6 +62,12 @@ def _looks_like_peeringdb_facility_schema(columns: Iterable[str]) -> bool:
     return required.issubset(cols)
 
 
+def _looks_like_landing_points_schema(columns: Iterable[str]) -> bool:
+    cols = set(columns)
+    required = {"city_name", "country", "latitude", "longitude", "asof_date"}
+    return required.issubset(cols)
+
+
 def _normalize_peeringdb_facility_row(
     row: dict[str, str | None], source_name: str
 ) -> dict[str, str | None]:
@@ -88,6 +94,24 @@ def _normalize_peeringdb_facility_row(
     return normalized
 
 
+def _normalize_landing_point_row(
+    row: dict[str, str | None], source_name: str
+) -> dict[str, str | None]:
+    node_name = _clean(row.get("city_name")) or _clean(row.get("standard_city")) or "landing_point"
+    normalized: dict[str, str | None] = {
+        "ORGANIZATION": "landing_points",
+        "NODE_NAME": node_name,
+        "LATITUDE": _clean(row.get("latitude")),
+        "LONGITUDE": _clean(row.get("longitude")),
+        "CITY": _clean(row.get("city_name")),
+        "STATE": _clean(row.get("state_province")),
+        "COUNTRY": _clean(row.get("country")),
+        "SOURCE": _clean(row.get("source")) or source_name,
+        "ASOF_DATE": _extract_asof_date(row.get("asof_date")),
+    }
+    return normalized
+
+
 def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
     delimiter = _detect_delimiter(path)
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -95,10 +119,13 @@ def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
         if reader.fieldnames is None:
             raise ValueError(f"Input file has no header: {path}")
         use_peeringdb_adapter = False
+        use_landing_points_adapter = False
         if REQUIRED_INPUT_COLUMNS.issubset(set(reader.fieldnames)):
             _validate_required_columns(reader.fieldnames)
         elif _looks_like_peeringdb_facility_schema(reader.fieldnames):
             use_peeringdb_adapter = True
+        elif _looks_like_landing_points_schema(reader.fieldnames):
+            use_landing_points_adapter = True
         else:
             _validate_required_columns(reader.fieldnames)
         rows: list[dict[str, str | None]] = []
@@ -106,6 +133,9 @@ def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
             row = dict(row)
             if use_peeringdb_adapter:
                 rows.append(_normalize_peeringdb_facility_row(row, source_name))
+                continue
+            if use_landing_points_adapter:
+                rows.append(_normalize_landing_point_row(row, source_name))
                 continue
             if not _clean(row.get("SOURCE")):
                 row["SOURCE"] = source_name

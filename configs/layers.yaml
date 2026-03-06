@@ -12,26 +12,23 @@ layers:
     plugin: inframap.layers.country_mask:CountryMaskLayer
     version: v1
     params:
-      mode: quadtree_classify_split
-      membership_rule: centroid_in_polygon
-      base_resolution: 2
-      max_resolution: 6
-      base_contain: overlap
-      inside_epsilon: 0.000001
-      outside_epsilon: 0.000000001
+      mode: fixed_resolution
+      membership_rule: overlap_ratio
+      resolution: 2
       polygon_dataset_dir: data/countries
-      include_iso_a2: ["AR", "GB", "JP", "TW", "US"]
+      include_iso_a2: ["AR", "GB", "JP", "TW", "ZA"]
       exclude_iso_a2: []
   - name: facility_density_adaptive
     plugin: inframap.layers.facility_density_adaptive:FacilityDensityAdaptiveLayer
     version: v3
     params:
-      base_resolution: 4
+      base_resolution: 3
       empty_compact_min_resolution: 0
-      facility_floor_resolution: 9
-      facility_max_resolution: 9
+      facility_floor_resolution: 5
+      facility_max_resolution: 5
       target_facilities_per_leaf: 1
-      empty_interior_max_resolution: 5
+      empty_interior_max_resolution: 2
+      min_output_resolution: 2
       empty_refine_boundary_band_k: 1
       empty_refine_near_occupied_k: 1
       max_neighbor_resolution_delta: 1

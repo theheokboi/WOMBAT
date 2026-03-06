@@ -77,7 +77,7 @@ def test_inputs_hash_includes_layer_polygon_dataset(tmp_path: Path) -> None:
     local_layers = LayersConfig(layers_version=layers.layers_version, layers=rewritten_layers)
 
     hash_a = compute_inputs_hash(system, local_layers)
-    dataset.write_text('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"iso_a2":"US","name":"US"},"geometry":{"type":"Polygon","coordinates":[[[-1,0],[1,0],[1,1],[-1,1],[-1,0]]]}}]}', encoding="utf-8")
+    dataset.write_text('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"iso_a2":"TW","name":"TW"},"geometry":{"type":"Polygon","coordinates":[[[-1,0],[1,0],[1,1],[-1,1],[-1,0]]]}}]}', encoding="utf-8")
     hash_b = compute_inputs_hash(system, local_layers)
 
     assert hash_a != hash_b

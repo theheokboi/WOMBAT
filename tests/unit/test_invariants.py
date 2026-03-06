@@ -29,7 +29,7 @@ def _country_mask_store(
     if radius > 0:
         cells_set = {str(cell) for cell in h3.grid_disk(base_cell, radius)}
     cells = pd.DataFrame(
-        [{"h3": cell, "resolution": base_resolution, "layer_value": "land", "country_name": "US"} for cell in sorted(cells_set)]
+        [{"h3": cell, "resolution": base_resolution, "layer_value": "land", "country_name": "TW"} for cell in sorted(cells_set)]
     )
     return {
         "country_mask": {

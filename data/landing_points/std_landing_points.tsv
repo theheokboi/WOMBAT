@@ -1,0 +1,1378 @@
+city_name	state_province	country	latitude	longitude	standard_city	standard_state	standard_country	standard_latitude	standard_longitude	asof_date
+Changi South	""	Singapore	1.3890448	103.987015	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Batam	""	Indonesia	1.066798	104.01664	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Tanah Merah	""	Singapore	1.327258	103.94658	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Singapore	""	Singapore	1.2936609	103.85303	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Changi North	""	Singapore	1.3890448	103.987015	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Karimun	""	Indonesia	0.76981	103.404884	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Katong	""	Singapore	1.3092818	103.904686	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Sakra Island	""	Singapore	1.258916	103.7042	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Tanjung Pinggir	""	Indonesia	1.1334789	103.959724	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Tanjung Bemban	""	Indonesia	1.1732055	104.1331	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Petit Perello	""	France	47.697433	-3.445566	Lorient	Bretagne	FR	47.750404	-3.3665752	2022-09-14
+Port Nâl	""	France	47.650238	-3.4822724	Lorient	Bretagne	FR	47.750404	-3.3665752	2022-09-14
+Tanjung Pakis	""	Indonesia	-5.981255	107.120895	Bekasi	Jakarta Raya	ID	-6.2172575	106.97232	2022-09-14
+Agat	""	Guam	13.38531	144.65753	Agana	""	GU	13.4700165	144.75002	2022-09-14
+Piti	""	Guam	13.464655	144.69475	Agana	""	GU	13.4700165	144.75002	2022-09-14
+Sasanlagu	Rota	Northern Mariana Islands	14.144932	145.13435	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Rota	""	Northern Mariana Islands	14.151845	145.21248	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Tanguisson Point	""	Guam	13.549098	144.80934	Agana	""	GU	13.4700165	144.75002	2022-09-14
+Tumon Bay	""	Guam	13.513588	144.80055	Agana	""	GU	13.4700165	144.75002	2022-09-14
+Dingwall	NS	Canada	46.89666	-60.46931	Baddeck	Nova Scotia	CA	46.099987	-60.753975	2022-09-14
+Codroy	NL	Canada	47.88157	-59.39193	Channel-Port aux Basques	Newfoundland and Labrador	CA	47.567005	-59.150043	2022-09-14
+Cape Ray	NL	Canada	47.636673	-59.284725	Channel-Port aux Basques	Newfoundland and Labrador	CA	47.567005	-59.150043	2022-09-14
+Rose Blanche	NL	Canada	47.61769	-58.686604	Channel-Port aux Basques	Newfoundland and Labrador	CA	47.567005	-59.150043	2022-09-14
+Saint John	NB	Canada	45.27343	-66.064125	Saint John	New Brunswick	CA	45.26704	-66.076675	2022-09-14
+Aylesford	NS	Canada	45.08946	-64.94828	Windsor	Nova Scotia	CA	44.9806	-64.12912	2022-09-14
+Sydney Mines	NS	Canada	46.229282	-60.224125	Sydney	Nova Scotia	CA	46.066116	-60.17998	2022-09-14
+New Victoria	NS	Canada	46.252907	-60.12957	Sydney	Nova Scotia	CA	46.066116	-60.17998	2022-09-14
+Cabinda	""	Angola	-5.556549	12.18984	Cabinda	Cabinda	AO	-5.5596232	12.189995	2022-09-14
+Cacongo	""	Angola	-5.23097	12.14088	Cabinda	Cabinda	AO	-5.5596232	12.189995	2022-09-14
+Soyo	""	Angola	-6.141026	12.352115	Soyo	Zaire	AO	-6.1296144	12.369984	2022-09-14
+N''zeto	""	Angola	-7.233333	12.866667	Nzeto	Zaire	AO	-7.229599	12.860031	2022-09-14
+Iqaluit	NU	Canada	63.74861	-68.51972	Iqaluit	Nunavut	CA	63.750458	-68.50019	2022-09-14
+Milton	NL	Canada	48.207554	-53.960274	Argentia	Newfoundland and Labrador	CA	47.30043	-53.989998	2022-09-14
+Fortune	NL	Canada	47.071983	-55.827286	Argentia	Newfoundland and Labrador	CA	47.30043	-53.989998	2022-09-14
+Lamaline	NL	Canada	46.868954	-55.803276	Argentia	Newfoundland and Labrador	CA	47.30043	-53.989998	2022-09-14
+Berbera	""	Somalia	10.43513	45.0109	Garoowe	Nugaal	SO	8.39999	48.500027	2022-09-14
+Sagunto	""	Spain	39.662556	-0.210386	Valencia	Comunidad Valenciana	ES	39.485016	-0.40001205	2022-09-14
+Valencia	""	Spain	39.468742	-0.376943	Valencia	Comunidad Valenciana	ES	39.485016	-0.40001205	2022-09-14
+Santa Ponsa	""	Spain	39.499954	2.462768	Palma	Islas Baleares	ES	39.574265	2.6542459	2022-09-14
+Mallorca	""	Spain	39.613537	2.91156	Palma	Islas Baleares	ES	39.574265	2.6542459	2022-09-14
+Ibiza	""	Spain	38.906116	1.41889	Palma	Islas Baleares	ES	39.574265	2.6542459	2022-09-14
+Palma	""	Spain	39.552326	2.6052482	Palma	Islas Baleares	ES	39.574265	2.6542459	2022-09-14
+Ses Covetes	""	Spain	39.35454	2.9709706	Palma	Islas Baleares	ES	39.574265	2.6542459	2022-09-14
+Macao Beach	""	Dominican Republic	18.649122	-68.35808	Bávaro	La Altagracia	DO	18.717009	-68.44997	2022-09-14
+Punta Cana	""	Dominican Republic	18.621279	-68.438255	Bávaro	La Altagracia	DO	18.717009	-68.44997	2022-09-14
+Aguadilla	PR	United States	18.427498	-67.15486	Mayagüez	""	PR	18.201511	-67.13971	2022-09-14
+Ponce	PR	United States	17.982655	-66.62661	Ponce	""	PR	18.000385	-66.616646	2022-09-14
+Humacao	PR	United States	18.117764	-65.781265	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+Punta Salina	PR	United States	18.472994	-66.18575	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+Condado Beach	PR	United States	18.4599	-66.07796	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+San Juan	PR	United States	18.46584	-66.10667	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+Miramar	PR	United States	18.453415	-66.082886	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+Isla Verde	PR	United States	18.44165	-66.01687	San Juan	""	PR	18.440023	-66.12998	2022-09-14
+Frederiksted	""	Virgin Islands (U.S.)	17.712477	-64.88153	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Vila Olga	""	Virgin Islands (U.S.)	18.335728	-64.94802	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Banana Bay	""	Virgin Islands (U.S.)	18.32822	-64.94378	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Flamingo Bay	""	Virgin Islands (U.S.)	18.31283	-64.95779	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Tortola	""	Virgin Islands (U.K.)	18.414782	-64.597244	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Great Bay	""	Virgin Islands (U.S.)	18.322472	-64.84319	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Brewer''s Bay	""	Virgin Islands (U.S.)	18.342403	-64.97532	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+St. Croix	""	Virgin Islands (U.S.)	17.771864	-64.81941	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Christiansted	VI	United States	17.74666	-64.70315	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Magen’s Bay	VI	United States	18.37299	-64.93709	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Nanny Cay	""	Virgin Islands (U.K.)	18.414782	-64.597244	Christiansted	""	VI	17.750376	-64.749985	2022-09-14
+Brisbane	QLD	Australia	-27.46888	153.02283	Brisbane	Queensland	AU	-27.45503	153.0351	2022-09-14
+Sydney	NSW	Australia	-33.869698	151.20705	Sydney	New South Wales	AU	-33.92001	151.18518	2022-09-14
+Alexandria	NSW	Australia	-33.913673	151.19621	Sydney	New South Wales	AU	-33.92001	151.18518	2022-09-14
+Brookvale	NSW	Australia	-33.761158	151.27399	Sydney	New South Wales	AU	-33.92001	151.18518	2022-09-14
+Paddington	NSW	Australia	-33.882122	151.22868	Sydney	New South Wales	AU	-33.92001	151.18518	2022-09-14
+Oxford Falls	NSW	Australia	-33.737385	151.24509	Sydney	New South Wales	AU	-33.92001	151.18518	2022-09-14
+Melbourne	VIC	Australia	-37.81753	144.96715	Melbourne	Victoria	AU	-37.82003	144.97502	2022-09-14
+San Foca	""	Italy	40.302006	18.405157	Lecce	Apulia	IT	40.36039	18.149992	2022-09-14
+Otranto	""	Italy	40.148052	18.485706	Lecce	Apulia	IT	40.36039	18.149992	2022-09-14
+Seman	""	Albania	40.786713	19.376194	Fier	Fier	AL	40.730003	19.573002	2022-09-14
+Sines	""	Portugal	37.95719	-8.869599	Setúbal	Lisboa	PT	38.52996	-8.90001	2022-09-14
+Sesimbra	""	Portugal	38.44269	-9.102752	Setúbal	Lisboa	PT	38.52996	-8.90001	2022-09-14
+Carcavelos	""	Portugal	38.690163	-9.33156	Lisbon	Lisboa	PT	38.72272	-9.144866	2022-09-14
+Seixal	""	Portugal	38.642277	-9.10739	Lisbon	Lisboa	PT	38.72272	-9.144866	2022-09-14
+Boracay	""	Philippines	11.949245	121.94481	Roxas	Capiz	PH	11.585274	122.7511	2022-09-14
+Caticlan	""	Philippines	11.930929	121.950775	Roxas	Capiz	PH	11.585274	122.7511	2022-09-14
+Roxas City	""	Philippines	11.58333	122.749985	Roxas	Capiz	PH	11.585274	122.7511	2022-09-14
+Vancouver	BC	Canada	49.26044	-123.11404	Vancouver	British Columbia	CA	49.27342	-123.12164	2022-09-14
+Ancon	""	Ecuador	-2.3298059	-80.85595	Salinas	Guayas	EC	-2.2000349	-80.98	2022-09-14
+Salinas	""	Ecuador	-2.228488	-81.00906	Salinas	Guayas	EC	-2.2000349	-80.98	2022-09-14
+Punta Carnero	""	Ecuador	-2.2729154	-80.91443	Salinas	Guayas	EC	-2.2000349	-80.98	2022-09-14
+Panama City	""	Panama	8.964826	-79.53671	Panama City	Panama	PA	8.968018	-79.533035	2022-09-14
+Cristóbal	""	Ecuador	9.350855	-79.9028	Colón	Colón	PA	9.365022	-79.87498	2022-09-14
+Maria Chiquita	""	Panama	9.437552	-79.75354	Colón	Colón	PA	9.365022	-79.87498	2022-09-14
+Colon	""	Panama	9.35372	-79.900024	Colón	Colón	PA	9.365022	-79.87498	2022-09-14
+Naples	FL	United States	26.139093	-81.79579	Naples	Florida	US	26.14206	-81.79499	2022-09-14
+Barranquilla	""	Colombia	10.940437	-74.779785	Soledad	Atlántico	CO	10.920017	-74.77	2022-09-14
+Parque Isla de Salamanca	""	Colombia	11.012161	-74.611946	Soledad	Atlántico	CO	10.920017	-74.77	2022-09-14
+Chung Hom Kok	""	China	22.2221	114.20308	Shenzhen	Guangdong	CN	22.55237	114.12212	2022-09-14
+Lantau Island	""	China	22.271492	113.94833	Shenzhen	Guangdong	CN	22.55237	114.12212	2022-09-14
+Cape D’Aguilar	""	China	22.208036	114.26025	Shenzhen	Guangdong	CN	22.55237	114.12212	2022-09-14
+Deep Water Bay	""	China	22.24944	114.183975	Shenzhen	Guangdong	CN	22.55237	114.12212	2022-09-14
+Tong Fuk	""	China	22.227385	113.93212	Zhuhai	Guangdong	CN	22.276945	113.56778	2022-09-14
+Tseung Kwan O	""	China	22.318296	114.25868	Shenzhen	Guangdong	CN	22.55237	114.12212	2022-09-14
+La Union	""	Philippines	16.61589	120.32094	Baguio City	Benguet	PH	16.42999	120.56995	2022-09-14
+Kuching	""	Malaysia	1.520195	110.35366	Kuching	Sarawak	MY	1.5299699	110.33	2022-09-14
+Kg Buntai	""	Malaysia	1.6750883	110.29362	Kuching	Sarawak	MY	1.5299699	110.33	2022-09-14
+Tuas	""	Singapore	1.338646	103.64621	Singapore	""	SG	1.2930335	103.85582	2022-09-14
+Songkhla	""	Thailand	7.078559	100.59696	Songkhla	Songkhla (Songkhla Lake)	TH	7.209959	100.56	2022-09-14
+Lingshui	""	China	18.389896	110.04937	Sanya	Hainan	CN	18.259104	109.50403	2022-09-14
+Fano	""	Denmark	55.44848	8.406946	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Houstrup	""	Denmark	55.7646	8.193131	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Blaabjerg	""	Denmark	55.751675	8.329194	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Endrup	""	Denmark	55.523117	8.718389	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Sylt	""	Germany	54.898506	8.383369	Flensburg	Schleswig-Holstein	DE	54.78375	9.433315	2022-09-14
+TotalEnergies Halfdan	""	Denmark	55.32215	5.1805	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+TotalEnergies Tyra	""	Denmark	55.41867	4.51313	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Tyra	""	Denmark	55.715607	4.7485085	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Valdemar	""	Denmark	55.804073	4.5643287	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Kulhudhufushi	""	Maldives	6.622462	73.07152	Malé	""	MV	4.166708	73.49995	2022-09-14
+Hulhumale	""	Maldives	4.211914	73.540276	Malé	""	MV	4.166708	73.49995	2022-09-14
+Thinadhoo	""	Maldives	0.5310928	72.99768	Malé	""	MV	4.166708	73.49995	2022-09-14
+Kolhufushi	""	Maldives	2.7767642	73.42463	Malé	""	MV	4.166708	73.49995	2022-09-14
+Eydhafushi	""	Maldives	5.1032305	73.07082	Malé	""	MV	4.166708	73.49995	2022-09-14
+Dhangethi	""	Maldives	3.6080935	72.95559	Malé	""	MV	4.166708	73.49995	2022-09-14
+Gan	""	Maldives	1.9184117	73.544655	Malé	""	MV	4.166708	73.49995	2022-09-14
+Gahdhoo	""	Maldives	0.288802	73.45549	Malé	""	MV	4.166708	73.49995	2022-09-14
+Hithadhoo	""	Maldives	-0.6060213	73.08918	Malé	""	MV	4.166708	73.49995	2022-09-14
+Fuvahmulah	""	Maldives	-0.29830438	73.42688	Malé	""	MV	4.166708	73.49995	2022-09-14
+Male	""	Maldives	4.166264	73.49992	Malé	""	MV	4.166708	73.49995	2022-09-14
+Nopigeia	""	Greece	35.512333	23.7225	Hania	Kriti	GR	35.51221	24.015577	2022-09-14
+Chania	""	Greece	35.512	24.012217	Hania	Kriti	GR	35.51221	24.015577	2022-09-14
+Neapoli	""	Greece	36.523224	23.035748	Sparti	Peloponnisos	GR	37.07372	22.42968	2022-09-14
+Korakia	""	Greece	35.404686	24.931604	Iraklio	Kriti	GR	35.325012	25.130497	2022-09-14
+Tympaki	""	Greece	35.071407	24.768278	Iraklio	Kriti	GR	35.325012	25.130497	2022-09-14
+Timpaki	""	Greece	35.07163	24.7684	Iraklio	Kriti	GR	35.325012	25.130497	2022-09-14
+Perivolos	""	Greece	36.345425	25.464806	Iraklio	Kriti	GR	35.325012	25.130497	2022-09-14
+Pachi	""	Greece	37.973953	23.36324	Piraeus	Attiki	GR	37.95002	23.69999	2022-09-14
+Marseille	""	France	43.29358	5.372507	Marseille	Provence-Alpes-Côte-d''Azur	FR	43.289978	5.37501	2022-09-14
+Port Said	""	Egypt	31.25928	32.28446	Bur Said	Bur Sa`id	EG	31.25999	32.29001	2022-09-14
+Ras Ghareb	""	Egypt	28.365908	33.08279	El Tur	Janub Sina''	EG	28.23939	33.614796	2022-09-14
+Yanbu	""	Saudi Arabia	24.070618	38.107018	Yanbu al Bahr	Al Madinah	SA	24.094276	38.049294	2022-09-14
+Djibouti City	""	Djibouti	11.598739	43.145832	Djibouti	Djibouti	DJ	11.595015	43.148003	2022-09-14
+Haramous	""	Djibouti	11.573675	43.161667	Djibouti	Djibouti	DJ	11.595015	43.148003	2022-09-14
+Karachi	""	Pakistan	24.889677	67.02854	Karachi	Sind	PK	24.869993	66.990005	2022-09-14
+Mumbai	""	India	19.07608	72.87587	Mumbai	Maharashtra	IN	19.01699	72.85699	2022-09-14
+Matara	""	Sri Lanka	5.940826	80.53991	Matara	Matara	LK	5.9489765	80.54277	2022-09-14
+Cox’s Bazar	""	Bangladesh	21.429245	91.99493	Chittagong	Chittagong	BD	22.329992	91.799965	2022-09-14
+Morib	""	Malaysia	2.7512	101.4436	Kelang	Selangor	MY	3.02037	101.55002	2022-09-14
+Bandar Bukit Tinggi	""	Malaysia	3.0092795	101.43672	Kelang	Selangor	MY	3.02037	101.55002	2022-09-14
+LoughShinny	""	Ireland	53.54969	-6.08547	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Portrane	""	Ireland	53.493202	-6.1146216	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Lusk	""	Ireland	53.526253	-6.1658883	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Dublin	""	Ireland	53.348045	-6.248261	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Sandymount	""	Ireland	53.33142	-6.215449	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Clonshaugh	""	Ireland	53.410057	-6.1979194	Dublin	Dublin	IE	53.33306	-6.2489057	2022-09-14
+Anyer	""	Indonesia	-6.073693	105.88391	Serang	Banten	ID	-6.1099772	106.149635	2022-09-14
+Kalianda	""	Indonesia	-5.769257	105.58492	Bandar Lampung	Lampung	ID	-5.430019	105.27	2022-09-14
+Sungsang	""	Indonesia	-2.295314	104.87449	Palembang	Sumatera Selatan	ID	-2.9800391	104.75003	2022-09-14
+Palembang	""	Indonesia	-2.9909751	104.757324	Palembang	Sumatera Selatan	ID	-2.9800391	104.75003	2022-09-14
+Muntok	""	Indonesia	-2.065165	105.1643	Pangkalpinang	Bangka-Belitung	ID	-2.0800424	106.15005	2022-09-14
+Sungailiat	""	Indonesia	-1.8514979	106.13249	Pangkalpinang	Bangka-Belitung	ID	-2.0800424	106.15005	2022-09-14
+Batu Prahu	""	Indonesia	-3.0799248	106.54746	Pangkalpinang	Bangka-Belitung	ID	-2.0800424	106.15005	2022-09-14
+Pesaren	""	Indonesia	-1.553876	105.58272	Pangkalpinang	Bangka-Belitung	ID	-2.0800424	106.15005	2022-09-14
+Port Alberni	BC	Canada	49.233986	-124.80757	Courtenay	British Columbia	CA	49.683334	-124.99998	2022-09-14
+Shima	""	Japan	34.33689	136.87428	Tsu	Mie	JP	34.717064	136.51666	2022-09-14
+Takahagi	""	Japan	36.71308	140.71828	Iwaki	Fukushima	JP	37.055347	140.89005	2022-09-14
+Kitaibaraki	""	Japan	36.801785	140.75095	Iwaki	Fukushima	JP	37.055347	140.89005	2022-09-14
+Telisai	""	Brunei	4.7037225	114.570595	Bandar Seri Begawan	Brunei and Muara	BN	4.8833313	114.93328	2022-09-14
+Kiamsam	""	Malaysia	5.2553287	115.16894	Kota Kinabalu	Sabah	MY	5.9799824	116.11001	2022-09-14
+Tungku	""	Brunei	4.926371	114.88583	Bandar Seri Begawan	Brunei and Muara	BN	4.8833313	114.93328	2022-09-14
+Perth	WA	Australia	-31.95344	115.857216	Perth	Western Australia	AU	-31.955015	115.84	2022-09-14
+Jakarta	""	Indonesia	-6.171588	106.827866	Jakarta	Jakarta Raya	ID	-6.1744175	106.82944	2022-09-14
+Ancol	""	Indonesia	-6.1290107	106.833374	Jakarta	Jakarta Raya	ID	-6.1744175	106.82944	2022-09-14
+Medan	""	Indonesia	3.752144	98.67606	Medan	Sumatera Utara	ID	3.579974	98.65004	2022-09-14
+Makassar	""	Indonesia	-5.15219	119.4124	Ujungpandang	Sulawesi Selatan	ID	-5.139959	119.43203	2022-09-14
+Aeng Batu Batu	""	Indonesia	-5.343256	119.38464	Ujungpandang	Sulawesi Selatan	ID	-5.139959	119.43203	2022-09-14
+Bulobulo	""	Indonesia	-5.669067	119.80927	Ujungpandang	Sulawesi Selatan	ID	-5.139959	119.43203	2022-09-14
+Dili	""	Timor-Leste	-8.57069	125.58071	Dili	Dili	TL	-8.559388	125.57945	2022-09-14
+Alor	""	Indonesia	-8.320654	124.403755	Kupang	Nusa Tenggara Timur	ID	-10.178669	123.582985	2022-09-14
+Kokar	""	Indonesia	-8.158312	124.45345	Kupang	Nusa Tenggara Timur	ID	-10.178669	123.582985	2022-09-14
+Tiakur	""	Indonesia	-8.1503315	127.78787	Ambon	Maluku	ID	-3.7166865	128.20001	2022-09-14
+Serwaru	""	Indonesia	-8.158118	127.69149	Ambon	Maluku	ID	-3.7166865	128.20001	2022-09-14
+Darwin	NT	Australia	-12.4675	130.84315	Darwin	Northern Territory	AU	-12.425354	130.85004	2022-09-14
+Wurrumiyanga	NT	Australia	-11.762587	130.63211	Darwin	Northern Territory	AU	-12.425354	130.85004	2022-09-14
+Suemlaki	""	Indonesia	-8.052229	131.21304	Darwin	Northern Territory	AU	-12.425354	130.85004	2022-09-14
+Manado	""	Indonesia	1.490818	124.83962	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Ondong Siau	""	Indonesia	2.7545977	125.372955	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Tahuna	""	Indonesia	3.6111147	125.485504	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Tutuyan	""	Indonesia	0.7614367	124.57499	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Kauditan	""	Indonesia	1.378623	125.06561	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Mazara del Vallo	""	Italy	37.65054	12.591318	Marsala	Sicily	IT	37.805405	12.438662	2022-09-14
+Trapani	""	Italy	38.017952	12.513639	Marsala	Sicily	IT	37.805405	12.438662	2022-09-14
+Barcelona	""	Spain	41.385628	2.168764	Barcelona	Cataluña	ES	41.3833	2.1833704	2022-09-14
+Gavá	""	Spain	41.304005	2.0013423	Barcelona	Cataluña	ES	41.3833	2.1833704	2022-09-14
+Zahara de los Atunes	""	Spain	36.134758	-5.843848	Algeciras	Andalucía	ES	36.126713	-5.4665303	2022-09-14
+Tarifa	""	Spain	36.014313	-5.60445	Algeciras	Andalucía	ES	36.126713	-5.4665303	2022-09-14
+Torreguadiaro	""	Spain	36.294006	-5.2751956	Algeciras	Andalucía	ES	36.126713	-5.4665303	2022-09-14
+La Línea	""	Spain	36.210323	-5.3251905	Algeciras	Andalucía	ES	36.126713	-5.4665303	2022-09-14
+Gibraltar	""	Gibraltar	36.155937	-5.347676	Gibraltar	Gibraltar	GI	36.132435	-5.3780746	2022-09-14
+Tétouan	""	Morocco	35.565907	-5.391813	Tangier	Tanger - Tétouan	MA	35.747288	-5.8327036	2022-09-14
+Playa de la Ribera	""	Spain	35.886806	-5.313667	Ceuta	Ceuta	ES	35.888985	-5.306999	2022-09-14
+Playa de Benitez	""	Spain	35.893875	-5.334747	Ceuta	Ceuta	ES	35.888985	-5.306999	2022-09-14
+Nador	""	Morocco	35.17002	-2.933035	Oujda	Oriental	MA	34.690014	-1.9099716	2022-09-14
+Algiers	""	Algeria	36.76573	3.03189	Algiers	Alger	DZ	36.763065	3.0505526	2022-09-14
+El Djamila	""	Algeria	36.80022	2.9014394	Algiers	Alger	DZ	36.763065	3.0505526	2022-09-14
+Collo	""	Algeria	37.002964	6.557242	Skikda	Skikda	DZ	36.88042	6.8999815	2022-09-14
+Schooner Bight	""	Colombia	12.551129	-81.73	San Andrés	""	CO	12.562137	-81.69032	2022-09-14
+San Andres	""	Colombia	12.584696	-81.70056	San Andrés	""	CO	12.562137	-81.69032	2022-09-14
+Jeddah	""	Saudi Arabia	21.481546	39.18286	Jeddah	Makkah	SA	21.51689	39.219196	2022-09-14
+Duba	""	Saudi Arabia	27.35402	35.69653	Tabuk	Tabuk	SA	28.383835	36.554966	2022-09-14
+Haql	""	Saudi Arabia	29.283852	34.95221	Tabuk	Tabuk	SA	28.383835	36.554966	2022-09-14
+Aqaba	""	Jordan	29.58103	35.005096	Al Aqabah	Aqaba	JO	29.526995	35.077694	2022-09-14
+Taba	""	Egypt	29.492579	34.894875	El Tur	Janub Sina''	EG	28.23939	33.614796	2022-09-14
+Portpatrick	""	United Kingdom	54.84372	-5.11556	Ayr	South Ayrshire	GB	55.4504	-4.6166797	2022-09-14
+Girvan	""	United Kingdom	55.240166	-4.854218	Ayr	South Ayrshire	GB	55.4504	-4.6166797	2022-09-14
+Troon	""	United Kingdom	55.54133	-4.659932	Ayr	South Ayrshire	GB	55.4504	-4.6166797	2022-09-14
+Blackwaterfoot	""	United Kingdom	55.501953	-5.3321	Ayr	South Ayrshire	GB	55.4504	-4.6166797	2022-09-14
+Saltcoats	""	United Kingdom	55.63758	-4.783516	Ayr	South Ayrshire	GB	55.4504	-4.6166797	2022-09-14
+Donaghadee	""	United Kingdom	54.642754	-5.538752	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Larne	""	United Kingdom	54.8575	-5.80986	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Whitehead	""	United Kingdom	54.753704	-5.7187204	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Port Askaig	""	United Kingdom	55.847736	-6.106318	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Feolin Ferry	""	United Kingdom	55.84675	-6.0899115	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Lagavulin	""	United Kingdom	55.636112	-6.1254096	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Glenbarr	""	United Kingdom	55.5655	-5.697578	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Carrickfergus	""	United Kingdom	54.71367	-5.8081737	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Ballyhornan	""	United Kingdom	54.302044	-5.5593944	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Ballywater	""	United Kingdom	54.54274	-5.4843946	Belfast	Belfast	GB	54.600014	-5.9600344	2022-09-14
+Invercargill	""	New Zealand	-46.413055	168.3475	Invercargill	Southland	NZ	-46.409435	168.365	2022-09-14
+Dunedin	""	New Zealand	-45.87876	170.50279	Dunedin	Otago	NZ	-45.88542	170.49101	2022-09-14
+Christchurch	""	New Zealand	-43.532055	172.63623	Christchurch	Canterbury	NZ	-43.535023	172.63002	2022-09-14
+Kapolei	HI	United States	21.33539	-158.0569	Wahiawa	Hawaii	US	21.503092	-158.02362	2022-09-14
+Makaha	HI	United States	21.46343	-158.22064	Wahiawa	Hawaii	US	21.503092	-158.02362	2022-09-14
+Ko Olina	HI	United States	21.3397	-158.11949	Wahiawa	Hawaii	US	21.503092	-158.02362	2022-09-14
+Kahe Point	HI	United States	21.353981	-158.13058	Wahiawa	Hawaii	US	21.503092	-158.02362	2022-09-14
+Keawaula	HI	United States	21.548769	-158.24203	Wahiawa	Hawaii	US	21.503092	-158.02362	2022-09-14
+Kawaihae	HI	United States	20.040295	-155.83124	Kailua-Kona	Hawaii	US	19.640556	-155.99556	2022-09-14
+Kiritimati	""	Kiribati	1.8721395	-157.42781	Kailua-Kona	Hawaii	US	19.640556	-155.99556	2022-09-14
+Spencer Beach	HI	United States	20.023106	-155.82208	Kailua-Kona	Hawaii	US	19.640556	-155.99556	2022-09-14
+Los Angeles	CA	United States	34.053482	-118.24534	Los Angeles	California	US	33.98998	-118.17998	2022-09-14
+Tuasivi	""	Samoa	-13.670594	-172.17816	Apia	""	WS	-13.841545	-171.73865	2022-09-14
+El Segundo	CA	United States	33.91992	-118.415955	Los Angeles	California	US	33.98998	-118.17998	2022-09-14
+Genoa	""	Italy	44.41034	8.9389	Genoa	Liguria	IT	44.40999	8.930038	2022-09-14
+Savona	""	Italy	44.30578	8.483793	Genoa	Liguria	IT	44.40999	8.930038	2022-09-14
+Tel Aviv	""	Israel	32.045044	34.76966	Tel Aviv-Yafo	Tel Aviv	IL	32.07999	34.77001	2022-09-14
+Palermo	""	Italy	38.121452	13.358373	Palermo	Sicily	IT	38.125023	13.350027	2022-09-14
+Rome	""	Italy	41.90311	12.49576	Rome	Lazio	IT	41.895954	12.483258	2022-09-14
+Bastia	""	France	42.697285	9.450881	Bastia	Corse	FR	42.703167	9.4500065	2022-09-14
+L’Île-Rousse	""	France	42.63651	8.937079	Bastia	Corse	FR	42.703167	9.4500065	2022-09-14
+Yeroskipos	""	Cyprus	34.76663	32.466686	Paphos	Paphos	CY	34.755917	32.422455	2022-09-14
+Golfo Aranci	""	Italy	41.004776	9.613162	Olbia	Sardegna	IT	40.914284	9.515072	2022-09-14
+Olbia	""	Italy	40.92251	9.486884	Olbia	Sardegna	IT	40.914284	9.515072	2022-09-14
+Barka	""	Oman	23.679615	58.00437	As Sib	Muscat	OM	23.680246	58.182537	2022-09-14
+Al Seeb	""	Oman	23.6847	58.176105	As Sib	Muscat	OM	23.680246	58.182537	2022-09-14
+Salalah	""	Oman	17.095865	54.14804	Salalah	Dhofar	OM	17.025457	54.085217	2022-09-14
+Kingisepp	""	Russia	59.44588	28.669815	Slantsy	Leningrad	RU	59.1116	28.074657	2022-09-14
+Logi	""	Russia	59.799885	28.499859	Slantsy	Leningrad	RU	59.1116	28.074657	2022-09-14
+Kaliningrad	""	Russia	54.708935	20.508045	Kaliningrad	Kaliningrad	RU	54.700005	20.497343	2022-09-14
+Goose Bay	NL	Canada	53.30168	-60.326084	Happy Valley - Goose Bay	Newfoundland and Labrador	CA	53.299988	-60.3	2022-09-14
+Stavanger	""	Norway	58.970833	5.730794	Stavanger	Rogaland	NO	58.970005	5.6800046	2022-09-14
+Cayenne	""	French Guiana	4.92242	-52.313454	Cayenne	Guinaa	GF	4.932992	-52.33002	2022-09-14
+Paramaribo	""	Suriname	5.82403	-55.17385	Paramaribo	Paramaribo	SR	5.83503	-55.16703	2022-09-14
+Georgetown	""	Guyana	6.804503	-58.154835	Georgetown	East Berbice-Corentyne	GY	6.801974	-58.16703	2022-09-14
+Chaguaramas	""	Trinidad and Tobago	10.686137	-61.65081	Port-of-Spain	Port of Spain	TT	10.651998	-61.517033	2022-09-14
+Rockly Bay	""	Trinidad and Tobago	11.182457	-60.73534	Port-of-Spain	Port of Spain	TT	10.651998	-61.517033	2022-09-14
+Toco	""	Trinidad and Tobago	10.831138	-60.949688	Port-of-Spain	Port of Spain	TT	10.651998	-61.517033	2022-09-14
+Pigeon Point	""	Trinidad and Tobago	11.16541	-60.840313	Port-of-Spain	Port of Spain	TT	10.651998	-61.517033	2022-09-14
+Port of Spain	""	Trinidad and Tobago	10.649789	-61.516678	Port-of-Spain	Port of Spain	TT	10.651998	-61.517033	2022-09-14
+Minamiboso	""	Japan	34.97408	139.96098	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Chikura	""	Japan	34.976658	139.95467	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Maruyama	""	Japan	35.005432	139.97546	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Miura	""	Japan	35.144035	139.62068	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Wada	""	Japan	35.03585	140.01677	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Emi	""	Japan	35.06238	140.06111	Yokohama	Kanagawa	JP	35.320026	139.58005	2022-09-14
+Toucheng	""	Taiwan	24.863577	121.80145	Yilan	Yilan	TW	24.75	121.75	2022-09-14
+Davao	""	Philippines	7.07996	125.61277	Davao	Davao Del Sur	PH	7.110017	125.63	2022-09-14
+Baler	""	Philippines	15.76153	121.56019	Cabanatuan	Nueva Ecija	PH	15.502089	120.9617	2022-09-14
+Abu Dhabi	""	United Arab Emirates	24.44396	54.41896	Abu Dhabi	Abu Dhabi	AE	24.466684	54.366592	2022-09-14
+Sir Abu Nu''Ayr Island	""	United Arab Emirates	25.240835	54.22112	Abu Dhabi	Abu Dhabi	AE	24.466684	54.366592	2022-09-14
+Kalba	""	United Arab Emirates	25.051523	56.339977	Al Fujayrah	Fujayrah	AE	25.12344	56.337482	2022-09-14
+Fujairah	""	United Arab Emirates	25.121693	56.333725	Al Fujayrah	Fujayrah	AE	25.12344	56.337482	2022-09-14
+Jask	""	Iran	25.681238	57.797398	Bandar-e-Abbas	Hormozgan	IR	27.20406	56.272137	2022-09-14
+Doha	""	Qatar	25.294537	51.51939	Doha	Ad Dawhah	QA	25.286556	51.532967	2022-09-14
+Halul Island	""	Qatar	25.668566	52.420254	Doha	Ad Dawhah	QA	25.286556	51.532967	2022-09-14
+Das Island	""	United Arab Emirates	25.152636	52.865955	Abu Dhabi	Abu Dhabi	AE	24.466684	54.366592	2022-09-14
+Al-Kheesa	""	Qatar	25.29434	51.519375	Doha	Ad Dawhah	QA	25.286556	51.532967	2022-09-14
+Al Daayen	""	Qatar	25.53859	51.451893	Doha	Ad Dawhah	QA	25.286556	51.532967	2022-09-14
+Manama	""	Bahrain	26.229439	50.575954	Manama	""	BH	26.236135	50.583054	2022-09-14
+Amwaj Island	""	Bahrain	26.228971	50.57582	Manama	""	BH	26.236135	50.583054	2022-09-14
+Al Hidd	""	Bahrain	26.241585	50.65619	Manama	""	BH	26.236135	50.583054	2022-09-14
+Al Faw	""	Iraq	29.923672	48.53178	Az Aubayr	Al-Basrah	IQ	30.389164	47.70798	2022-09-14
+Kuwait City	""	Kuwait	29.374153	47.974735	Kuwait	Al Kuwayt	KW	29.369719	47.978302	2022-09-14
+Al Safat	""	Kuwait	29.369932	47.976505	Kuwait	Al Kuwayt	KW	29.369719	47.978302	2022-09-14
+Al Khobar	""	Saudi Arabia	26.286558	50.21426	Az Zahran	Ash Sharqiyah	SA	26.29143	50.15832	2022-09-14
+Thorlakshofn	""	Iceland	63.85626	-21.37812	Selfoss	Biskupstungnahreppur	IS	63.933422	-20.996946	2022-09-14
+Vestmannaeyjar	""	Iceland	63.437687	-20.267294	Selfoss	Biskupstungnahreppur	IS	63.933422	-20.996946	2022-09-14
+Landeyjar	""	Iceland	63.642166	-20.142294	Selfoss	Biskupstungnahreppur	IS	63.933422	-20.996946	2022-09-14
+Vladivostok	""	Russia	43.154617	131.91075	Vladivostok	Primor''ye	RU	43.130016	131.91002	2022-09-14
+Murmansk	""	Russia	68.97279	33.08685	Murmansk	Murmansk	RU	68.969986	33.100037	2022-09-14
+Okrug	""	Russia	69.7512	61.6637	Amderma	Nenets	RU	69.763016	61.667698	2022-09-14
+Sakha Republic	""	Russia	71.6375	128.8645	Tiksi	Sakha (Yakutia)	RU	71.626884	128.83496	2022-09-14
+Pevek	""	Russia	69.7029	170.307	Pevek	Chukchi Autonomous Okrug	RU	69.70082	170.31331	2022-09-14
+Anadyr	""	Russia	64.72719	177.50215	Anadyr	Chukchi Autonomous Okrug	RU	64.73699	177.47499	2022-09-14
+Petropavlovsk-Kamchatsky	""	Russia	53.016666	158.65	Petropavlovsk Kamchatskiy	Kamchatka	RU	53.061993	158.62302	2022-09-14
+Yuzhno-Sakhalinsk	""	Russia	46.94897	142.7262	Yuzhno Sakhalinsk	Sakhalin	RU	46.964973	142.74	2022-09-14
+Dikson	""	Russia	73.5077	80.531	Dikson	Taymyr	RU	73.50697	80.5451	2022-09-14
+Kaikoura	""	New Zealand	-42.4027	173.683	Kaikoura	Canterbury	NZ	-42.40118	173.68968	2022-09-14
+Oara	""	New Zealand	-42.51606	173.50613	Kaikoura	Canterbury	NZ	-42.40118	173.68968	2022-09-14
+Auckland	""	New Zealand	-36.88421	174.77042	Auckland	Auckland	NZ	-36.848057	174.76303	2022-09-14
+Wellington	""	New Zealand	-41.280514	174.76712	Wellington	Manawatu-Wanganui	NZ	-41.299988	174.78326	2022-09-14
+Oteranga Bay	""	New Zealand	-41.30163	174.61337	Wellington	Manawatu-Wanganui	NZ	-41.299988	174.78326	2022-09-14
+Raglan	""	New Zealand	-37.801407	174.8718	Hamilton	Waikato	NZ	-37.77827	175.28958	2022-09-14
+New Plymouth	""	New Zealand	-39.066666	174.08333	New Plymouth	Taranaki	NZ	-39.05564	174.07481	2022-09-14
+Paraparaumu	""	New Zealand	-40.919117	174.99747	Paraparaumu	Wellington	NZ	-40.903442	174.99893	2022-09-14
+Waikanae	""	New Zealand	-40.86279	175.05196	Paraparaumu	Wellington	NZ	-40.903442	174.99893	2022-09-14
+Whanganui	""	New Zealand	-39.933334	175.05	Wanganui	Manawatu-Wanganui	NZ	-39.932625	175.0393	2022-09-14
+Fighting Bay	""	New Zealand	-41.339024	174.23596	Picton	Malborough	NZ	-41.28052	174.01656	2022-09-14
+Titahi Bay	""	New Zealand	-41.1058	174.838	Porirua	Wellington	NZ	-41.12189	174.85236	2022-09-14
+Gran Canaria	Canary Islands	Spain	27.957735	-15.596565	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Sardina	Canary Islands	Spain	28.149918	-15.694032	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Morrojable	Canary Islands	Spain	28.04872	-14.35842	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Aguimes	Canary Islands	Spain	27.895462	-15.390736	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Tarahales	""	Spain	28.096375	-15.450745	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Tinocas	Canary Islands	Spain	28.13436	-15.487708	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Piedra Santa	""	Spain	28.040623	-15.408802	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Alta Vista	Canary Islands	Spain	27.9995	-15.699964	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+El Goro	Canary Islands	Spain	27.959398	-15.398743	Las Palmas	""	ES	28.099976	-15.429999	2022-09-14
+Carana	""	Seychelles	-4.565749	55.45303	Victoria	""	SC	-4.6166315	55.44999	2022-09-14
+Victoria	""	Seychelles	-4.6176124	55.445053	Victoria	""	SC	-4.6166315	55.44999	2022-09-14
+Mellieha	""	Malta	35.9524	14.3501	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Golden Bay	""	Malta	35.938694	14.344455	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Mgarr ix-Xini	""	Malta	36.020447	14.271323	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Msida	""	Malta	35.89871	14.48815	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Balluta Bay	""	Malta	35.93406	14.380045	Valletta	""	MT	35.89973	14.51471	2022-09-14
+St. Paul''s Bay	""	Malta	35.950504	14.415591	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Bahar ic-Caghaq	""	Malta	35.93406	14.4587555	Valletta	""	MT	35.89973	14.51471	2022-09-14
+Chennai	""	India	13.063918	80.24305	Chennai	Tamil Nadu	IN	13.089988	80.28	2022-09-14
+Satun	""	Thailand	6.613467	100.06612	Satun	Satun	TH	6.616701	100.066696	2022-09-14
+Sidi Kerir	""	Egypt	31.04764	29.672356	Alexandria	Al Iskandariyah	EG	31.20002	29.949995	2022-09-14
+Alexandria	""	Egypt	31.191887	29.8898	Alexandria	Al Iskandariyah	EG	31.20002	29.949995	2022-09-14
+Abu Talat	""	Egypt	31.071848	29.702494	Alexandria	Al Iskandariyah	EG	31.20002	29.949995	2022-09-14
+Zafarana	""	Egypt	29.116661	32.649895	Suez	As Suways	EG	30.004976	32.549942	2022-09-14
+Suez	""	Egypt	29.972553	32.530033	Suez	As Suways	EG	30.004976	32.549942	2022-09-14
+Praia Grande	""	Brazil	-24.008873	-46.412502	Santos	São Paulo	BR	-23.953724	-46.332943	2022-09-14
+Santos	""	Brazil	-23.961845	-46.328068	Santos	São Paulo	BR	-23.953724	-46.332943	2022-09-14
+Punta del Este	""	Uruguay	-34.966667	-54.95	Punta del Este	Maldonado	UY	-34.969975	-54.94999	2022-09-14
+Las Toninas	""	Argentina	-36.472523	-56.69551	Mar de Ajó	Ciudad de Buenos Aires	AR	-36.71622	-56.6766	2022-09-14
+Myrtle Beach	SC	United States	33.69357	-78.882675	Myrtle Beach	South Carolina	US	33.68891	-78.88698	2022-09-14
+Shanghai	""	China	31.247572	121.47259	Shanghai	Shanghai	CN	31.216452	121.43651	2022-09-14
+Chongming	""	China	31.619883	121.3952	Shanghai	Shanghai	CN	31.216452	121.43651	2022-09-14
+Lingang	""	China	30.935673	121.8961	Shanghai	Shanghai	CN	31.216452	121.43651	2022-09-14
+Nanhui	""	China	30.864714	121.92507	Shanghai	Shanghai	CN	31.216452	121.43651	2022-09-14
+Gianyar	""	Indonesia	-8.536715	115.33144	Denpasar	Bali	ID	-8.650029	115.219986	2022-09-14
+Denpasar	""	Indonesia	-8.65666	115.22152	Denpasar	Bali	ID	-8.650029	115.219986	2022-09-14
+Padang Galak	""	Indonesia	-8.6571	115.26057	Denpasar	Bali	ID	-8.650029	115.219986	2022-09-14
+Sanur	""	Indonesia	-8.695054	115.25961	Denpasar	Bali	ID	-8.650029	115.219986	2022-09-14
+Bali	""	Indonesia	-8.464413	115.59696	Denpasar	Bali	ID	-8.650029	115.219986	2022-09-14
+Pringgabaya	""	Indonesia	-8.537099	116.65492	Praya	Nusa Tenggara Barat	ID	-8.722324	116.29232	2022-09-14
+Arica	""	Chile	-18.473381	-70.30675	Arica	Arica y Parinacota	CL	-18.500023	-70.289986	2022-09-14
+Iquique	""	Chile	-20.2167	-70.14222	Iquique	Tarapacá	CL	-20.249992	-70.12997	2022-09-14
+Antofagasta	""	Chile	-23.65	-70.4	Antofagasta	Antofagasta	CL	-23.649992	-70.4	2022-09-14
+La Serena	""	Chile	-29.906301	-71.250206	La Serena	Coquimbo	CL	-29.899998	-71.24998	2022-09-14
+Valparaíso	""	Chile	-33.04552	-71.62031	Valparaíso	Valparaíso	CL	-33.047764	-71.62101	2022-09-14
+Puerto Montt	""	Chile	-41.46038	-72.95342	Puerto Montt	Los Lagos	CL	-41.46999	-72.92998	2022-09-14
+Talcahuano	""	Chile	-36.724785	-73.11698	Talcahuano	Bío-Bío	CL	-36.716686	-73.11666	2022-09-14
+San Antonio	""	Chile	-33.58365	-71.61307	San Antonio	Valparaíso	CL	-33.599514	-71.60998	2022-09-14
+Tocopilla	""	Chile	-22.088379	-70.197655	Tocopilla	Antofagasta	CL	-22.090034	-70.18999	2022-09-14
+Puerto Saavedra	""	Chile	-38.78713	-73.39677	Carahue	La Araucanía	CL	-38.709488	-73.16999	2022-09-14
+Caldera	""	Chile	-27.061993	-70.812355	Caldera	Atacama	CL	-27.069628	-70.830025	2022-09-14
+Constitución	""	Chile	-35.31837	-72.41607	Constitución	Maule	CL	-35.32959	-72.41998	2022-09-14
+Jdaide	""	Lebanon	33.8919	35.56304	Beirut	Beirut	LB	33.871975	35.50971	2022-09-14
+Beirut	""	Lebanon	33.892475	35.485207	Beirut	Beirut	LB	33.871975	35.50971	2022-09-14
+Playa Blanca	Canary Islands	Spain	28.86342	-13.82732	Arrecife	""	ES	28.96905	-13.537833	2022-09-14
+Arrecife	Canary Islands	Spain	28.959501	-13.547597	Arrecife	""	ES	28.96905	-13.537833	2022-09-14
+Puerto del Rosario	Canary Islands	Spain	28.496502	-13.862208	Arrecife	""	ES	28.96905	-13.537833	2022-09-14
+Rock Sound	""	Bahamas	24.424988	-76.57445	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Fresh Creek	""	Bahamas	24.689806	-77.84461	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+George Town	""	Bahamas	23.516552	-75.78801	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Cockburn Town	""	Bahamas	24.052532	-74.53024	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Governors Harbor	""	Bahamas	25.19612	-76.24065	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Nassau	""	Bahamas	25.067038	-77.34025	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Cat Island	""	Bahamas	24.403328	-75.525894	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Caves Point	""	Bahamas	25.068453	-77.452995	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Current	""	Bahamas	25.407833	-76.78767	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Sandy Point	""	Bahamas	26.02521	-77.39953	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+West Island	""	Cocos (Keeling) Islands	-12.193114	96.83231	Bengkulu	Bengkulu	ID	-3.8000407	102.26997	2022-09-14
+Sitia	""	Greece	35.206955	26.10717	Sitia	Kriti	GR	35.20042	26.09855	2022-09-14
+Plimmiri	""	Greece	35.927853	27.85109	Rodos	Notio Aigaio	GR	36.441223	28.222504	2022-09-14
+Kremasti	""	Greece	36.41158	28.120056	Rodos	Notio Aigaio	GR	36.441223	28.222504	2022-09-14
+Kardamena	""	Greece	36.7829	27.143446	Kos	Notio Aigaio	GR	36.89373	27.288815	2022-09-14
+Kochilari	""	Greece	36.771576	26.995073	Kos	Notio Aigaio	GR	36.89373	27.288815	2022-09-14
+Baxedes	""	Greece	36.477425	25.402342	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Pirgaki	""	Greece	36.97726	25.403637	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Naxos	""	Greece	37.10184	25.375975	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Naousa	""	Greece	37.122234	25.238146	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Kalafati	""	Greece	37.439068	25.419567	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Mykonos	""	Greece	37.44688	25.32858	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Agios Sostis	""	Greece	37.531338	25.207102	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Tinos	""	Greece	37.538715	25.160526	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Ermoupoli	""	Greece	37.439465	24.93929	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Filizi	""	Greece	37.12525	25.289696	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Syros	""	Greece	37.44158	24.936037	Ermoupoli	Notio Aigaio	GR	37.450413	24.9333	2022-09-14
+Kavos	""	Greece	39.38537	20.112871	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Kontokali	""	Greece	39.64154	19.858511	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Plataria	""	Greece	39.44999	20.27741	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Aetos	""	Greece	39.683033	20.020998	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Aethos	""	Greece	39.683617	20.01545	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Corfu	""	Greece	39.619297	19.919495	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Kokkini	""	Greece	39.75383	19.923986	Kerkira	Ionioi Nisoi	GR	39.61542	19.914743	2022-09-14
+Preveza	""	Greece	38.959267	20.751715	Ioanina	Ipeiros	GR	39.6679	20.85086	2022-09-14
+Crotone	""	Italy	39.08067	17.12715	Crotone	Calabria	IT	39.083336	17.123337	2022-09-14
+Dakhla	""	Morocco	23.72108	-15.934426	Ad Dakhla	Oued el Dahab	MA	23.714056	-15.9368105	2022-09-14
+Waingapu	""	Indonesia	-9.646108	120.252914	Waingapu	Nusa Tenggara Timur	ID	-9.6582365	120.25301	2022-09-14
+Sumbawa Besar	""	Indonesia	-8.84115	118.082214	Raba	Nusa Tenggara Barat	ID	-8.449989	118.76664	2022-09-14
+Kawinda Nae	""	Indonesia	-8.108065	117.861565	Raba	Nusa Tenggara Barat	ID	-8.449989	118.76664	2022-09-14
+Sape	""	Indonesia	-8.5056	118.9762	Raba	Nusa Tenggara Barat	ID	-8.449989	118.76664	2022-09-14
+Bima	""	Indonesia	-8.464266	118.7449	Raba	Nusa Tenggara Barat	ID	-8.449989	118.76664	2022-09-14
+Saraemee	""	Indonesia	-8.796931	118.71181	Raba	Nusa Tenggara Barat	ID	-8.449989	118.76664	2022-09-14
+Lombok	""	Indonesia	-8.56143	116.07252	Mataram	Nusa Tenggara Barat	ID	-8.579542	116.13502	2022-09-14
+Senggigi	""	Indonesia	-8.485456	116.04728	Mataram	Nusa Tenggara Barat	ID	-8.579542	116.13502	2022-09-14
+Seraya	""	Indonesia	-8.386261	115.74667	Mataram	Nusa Tenggara Barat	ID	-8.579542	116.13502	2022-09-14
+Mataram	""	Indonesia	-8.58639	116.081535	Mataram	Nusa Tenggara Barat	ID	-8.579542	116.13502	2022-09-14
+Eureka	CA	United States	40.803253	-124.15955	Eureka	California	US	40.802223	-124.1475	2022-09-14
+Montego Bay	""	Jamaica	18.46936	-77.92138	Montego Bay	Saint James	JM	18.466688	-77.91668	2022-09-14
+Ocho Rios	""	Jamaica	18.398554	-77.103195	Saint Ann''s Bay	Saint Ann	JM	18.43264	-77.199524	2022-09-14
+Puerto General Villamil	""	Ecuador	-0.961038	-90.96211	Puerto Villamil	Gal	EC	-0.9333423	-91.016655	2022-09-14
+Puerto Ayora	""	Ecuador	-0.742407	-90.311295	Santa Cruz	Gal	EC	-0.533315	-90.35	2022-09-14
+Tebingtinggi Island	""	Indonesia	0.93256	102.66702	Pekanbaru	Riau	ID	0.56496423	101.42501	2022-09-14
+Rengit	""	Malaysia	1.6771369	103.14766	Batu Pahat	Johor	MY	1.8503637	102.93334	2022-09-14
+Wall Township	NJ	United States	40.152885	-74.062874	Newark	New Jersey	US	40.70042	-74.170006	2022-09-14
+Manasquan	NJ	United States	40.12334	-74.04704	Newark	New Jersey	US	40.70042	-74.170006	2022-09-14
+Virginia Beach	VA	United States	36.755016	-76.0592	Virginia Beach	Virginia	US	36.853214	-75.97832	2022-09-14
+Jacksonville	FL	United States	30.332035	-81.65572	Jacksonville	Florida	US	30.33002	-81.66999	2022-09-14
+Sunny Isles	FL	United States	25.938488	-80.12157	Miami Beach	Florida	US	25.80992	-80.13178	2022-09-14
+North Miami Beach	FL	United States	25.932943	-80.162384	Miami Beach	Florida	US	25.80992	-80.13178	2022-09-14
+Igneada	""	Turkey	41.88418	27.985308	Kırklareli	Kirklareli	TR	41.743	27.226	2022-09-14
+Mangalia	""	Romania	43.817204	28.58277	Constanța	Constanta	RO	44.202663	28.609974	2022-09-14
+Varna	""	Bulgaria	43.208378	27.912848	Varna	Varna	BG	43.21564	27.895288	2022-09-14
+Balchik	""	Bulgaria	43.41434	28.167437	Varna	Varna	BG	43.21564	27.895288	2022-09-14
+Istanbul	""	Turkey	41.04061	28.98609	Istanbul	Istanbul	TR	41.104996	29.010002	2022-09-14
+Natuna	""	Indonesia	3.9456637	108.14287	Telukbutun	Kepulauan Riau	ID	4.2169895	108.2	2022-09-14
+Terempa	""	Indonesia	3.207108	106.21108	Telukbutun	Kepulauan Riau	ID	4.2169895	108.2	2022-09-14
+Ranai	""	Indonesia	3.940902	108.37749	Telukbutun	Kepulauan Riau	ID	4.2169895	108.2	2022-09-14
+Penarik	""	Indonesia	3.6667519	108.29023	Telukbutun	Kepulauan Riau	ID	4.2169895	108.2	2022-09-14
+Lingga	""	Indonesia	-0.16275874	104.63545	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Bintan	""	Indonesia	1.1366963	104.425804	Tanjungpinang	Kepulauan Riau	ID	0.91682905	104.47144	2022-09-14
+Singkawang	""	Indonesia	0.90601355	108.987206	Singkawang	Kalimantan Barat	ID	0.9119809	108.96547	2022-09-14
+Dumai	""	Indonesia	1.6656061	101.44763	Pekanbaru	Riau	ID	0.56496423	101.42501	2022-09-14
+Melaka	""	Malaysia	2.2731783	102.2209	Malacca	Melaka	MY	2.2064145	102.24646	2022-09-14
+Bengkalis	""	Indonesia	1.4891962	102.0801	Pekanbaru	Riau	ID	0.56496423	101.42501	2022-09-14
+Kuala Tungkal	""	Indonesia	-0.8234479	103.46319	Jambi	Jambi	ID	-1.5899947	103.61005	2022-09-14
+Jambi	""	Indonesia	-1.5900074	103.60996	Jambi	Jambi	ID	-1.5899947	103.61005	2022-09-14
+Busan	""	South Korea	35.170143	128.9993	Busan	Busan	KR	35.095055	129.01004	2022-09-14
+Shantou	""	China	23.354555	116.675476	Shantou	Guangdong	CN	23.370007	116.67003	2022-09-14
+Kuantan	""	Malaysia	3.8151653	103.32256	Kuantan	Pahang	MY	3.8299587	103.32004	2022-09-14
+Batangas	""	Philippines	13.765553	121.064926	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+Coron	""	Philippines	12.005055	120.2007	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+Roxas	""	Philippines	12.586435	121.52775	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+San Jose	""	Philippines	12.362576	121.05011	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+Nasugbu	""	Philippines	14.088187	120.62301	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+Pinamalayan	""	Philippines	13.045779	121.46454	Batangas	Batangas	PH	13.781677	121.0217	2022-09-14
+Tanshui	""	Taiwan	25.18136	121.462585	New Taipei	New Taipei City	TW	25.012777	121.465	2022-09-14
+Pa Li	""	Taiwan	25.149984	121.383194	New Taipei	New Taipei City	TW	25.012777	121.465	2022-09-14
+Casablanca	""	Morocco	33.60539	-7.6319394	Casablanca	Grand Casablanca	MA	33.599976	-7.6163673	2022-09-14
+Puerto Baquerizo Moreno	""	Ecuador	-0.9092047	-89.61434	Puerto Baquerizo Moreno	Galápagos	EC	-0.90001094	-89.59997	2022-09-14
+Mombasa	""	Kenya	-4.053012	39.672848	Mombasa	Coast	KE	-4.040026	39.68992	2022-09-14
+Nyali	""	Kenya	-4.0505037	39.700047	Mombasa	Coast	KE	-4.040026	39.68992	2022-09-14
+Mocha	""	Yemen	13.320294	43.247334	Taizz	Ta`izz	YE	13.604452	44.03942	2022-09-14
+Zeebrugge	""	Belgium	51.33072	3.2070055	Brugge	Brugge	BE	51.220375	3.2300248	2022-09-14
+Ostend	""	Belgium	51.23112	2.91267	Brugge	Brugge	BE	51.220375	3.2300248	2022-09-14
+Bredene	""	Belgium	51.246384	2.9618886	Brugge	Brugge	BE	51.220375	3.2300248	2022-09-14
+Zandvoort	""	Netherlands	52.370407	4.5272193	Haarlem	Noord-Holland	NL	52.380432	4.629991	2022-09-14
+Callantsoog	""	Netherlands	52.836926	4.700759	Haarlem	Noord-Holland	NL	52.380432	4.629991	2022-09-14
+Ijmuiden	""	Netherlands	52.45852	4.613685	Haarlem	Noord-Holland	NL	52.380432	4.629991	2022-09-14
+Beverwijk	""	Netherlands	52.486313	4.656907	Haarlem	Noord-Holland	NL	52.380432	4.629991	2022-09-14
+Sizewell	""	United Kingdom	52.20713	1.6202879	Ipswich	Suffolk	GB	52.070347	1.1699954	2022-09-14
+Thorpeness	""	United Kingdom	52.180843	1.6130614	Ipswich	Suffolk	GB	52.070347	1.1699954	2022-09-14
+Aldeburgh	""	United Kingdom	52.157845	1.5906005	Ipswich	Suffolk	GB	52.070347	1.1699954	2022-09-14
+Winterton-on-Sea	""	United Kingdom	52.71521	1.6935465	Norwich	Norfolk	GB	52.630363	1.3000134	2022-09-14
+Lowestoft	""	United Kingdom	52.471363	1.7291746	Norwich	Norfolk	GB	52.630363	1.3000134	2022-09-14
+Rurutu	""	French Polynesia	-22.45128	-151.34288	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Tubuai	""	French Polynesia	-23.346958	-149.48592	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+To''ahotu	""	French Polynesia	-17.750458	-149.32336	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Vaitape	""	French Polynesia	-16.506277	-151.74953	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Hao	""	French Polynesia	-18.215763	-140.9081	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Takaroa	""	French Polynesia	-14.449769	-144.97221	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Manihi	""	French Polynesia	-14.402894	-145.95815	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Rangiroa	""	French Polynesia	-15.116219	-147.6513	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Arutua	""	French Polynesia	-15.2899	-146.78615	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Kaukura	""	French Polynesia	-15.741389	-146.67384	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Fakarava	""	French Polynesia	-16.310314	-145.62456	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Makemo	""	French Polynesia	-16.53956	-143.86719	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Hitia''a	""	French Polynesia	-17.723318	-149.30812	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Hiva Oa	""	French Polynesia	-9.754676	-139.02112	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Nuku Hiva	""	French Polynesia	-8.860488	-140.14209	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Huahine	""	French Polynesia	-16.730057	-151.00008	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Moorea	""	French Polynesia	-17.538774	-149.82956	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Uturoa	""	French Polynesia	-16.73091	-151.44304	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Papenoo	""	French Polynesia	-17.51234	-149.44109	Papeete	""	PF	-17.533363	-149.56667	2022-09-14
+Les Îles-de-la-Madeleine	QC	Canada	47.382587	-61.9557	Charlottetown	Prince Edward Island	CA	46.249283	-63.131325	2022-09-14
+L''Anse-à-Beaufils	QC	Canada	48.47177	-64.30897	Gaspé	Québec	CA	48.837315	-64.49336	2022-09-14
+Letkokkon	""	Myanmar	16.340399	96.162	Rangoon	Yangon	MM	16.783354	96.16668	2022-09-14
+Thanlyin	""	Myanmar	16.758743	96.24822	Rangoon	Yangon	MM	16.783354	96.16668	2022-09-14
+False Pass	AK	United States	54.85093	-163.415	False Pass	Alaska	US	54.85121	-163.41502	2022-09-14
+Akutan	AK	United States	54.135647	-165.77306	Unalaska	Alaska	US	53.868584	-166.5316	2022-09-14
+Unalaska	AK	United States	53.88453	-166.53325	Unalaska	Alaska	US	53.868584	-166.5316	2022-09-14
+Kodiak	AK	United States	57.79443	-152.39514	Kodiak	Alaska	US	57.789997	-152.40698	2022-09-14
+Narrow Cape	AK	United States	57.426838	-152.32916	Kodiak	Alaska	US	57.789997	-152.40698	2022-09-14
+King Cove	AK	United States	55.049225	-162.30441	Cold Bay	Alaska	US	55.2	-162.71509	2022-09-14
+Cold Bay	AK	United States	55.204144	-162.70403	Cold Bay	Alaska	US	55.2	-162.71509	2022-09-14
+Sand Point	AK	United States	55.341545	-160.4963	Sand Point	Alaska	US	55.33971	-160.4972	2022-09-14
+Perryville	AK	United States	55.917507	-159.14479	Perryville	Alaska	US	55.918613	-159.15115	2022-09-14
+Chignik Bay	AK	United States	56.29453	-158.40881	Chignik	Alaska	US	56.29567	-158.40222	2022-09-14
+Chignik Lagoon	AK	United States	56.32135	-158.50723	Chignik	Alaska	US	56.29567	-158.40222	2022-09-14
+Chignik Lake	AK	United States	56.254982	-158.7721	Chignik	Alaska	US	56.29567	-158.40222	2022-09-14
+Larsen Bay	AK	United States	57.537327	-153.98598	Karluk	Alaska	US	57.572285	-154.45503	2022-09-14
+Coffman Cove	AK	United States	56.015205	-132.82951	Wrangell	Alaska	US	56.471268	-132.3716	2022-09-14
+Wrangell	AK	United States	56.4708	-132.38382	Wrangell	Alaska	US	56.471268	-132.3716	2022-09-14
+Petersburg	AK	United States	56.807613	-132.97005	Wrangell	Alaska	US	56.471268	-132.3716	2022-09-14
+Tolu	""	Colombia	9.496685	-75.558685	Tolú	Sucre	CO	9.535838	-75.57204	2022-09-14
+Cartagena	""	Colombia	10.387019	-75.505684	Cartagena	Bolívar	CO	10.399738	-75.5144	2022-09-14
+Santa Marta	""	Colombia	11.24195	-74.205284	Santa Marta	Magdalena	CO	11.247207	-74.20166	2022-09-14
+Puerto Colombia	""	Colombia	11.005176	-74.95278	Barranquilla	Atlántico	CO	10.959989	-74.799965	2022-09-14
+Galway	""	Ireland	53.273888	-9.048345	Galway	Galway	IE	53.272392	-9.048812	2022-09-14
+Lecanvey	""	Ireland	53.770824	-9.696505	Galway	Galway	IE	53.272392	-9.048812	2022-09-14
+Pagudpud	""	Philippines	18.624237	120.85799	Laoag	Ilocos Norte	PH	18.198849	120.59361	2022-09-14
+Le Porge	""	France	44.89383	-1.211874	Bordeaux	Aquitaine	FR	44.850014	-0.5950131	2022-09-14
+Pascagoula	MS	United States	30.365757	-88.55612	Biloxi	Mississippi	US	30.395805	-88.88531	2022-09-14
+Freeport	TX	United States	28.94957	-95.34437	Freeport	Texas	US	28.959484	-95.35688	2022-09-14
+Sriracha	""	Thailand	13.17444	100.93054	Si Racha	Chon Buri	TH	13.159027	100.92866	2022-09-14
+Quy Nhon	""	Vietnam	13.782958	109.21965	Qui Nhon	Bình Ð?nh	VN	13.779971	109.180046	2022-09-14
+Chisasibi	QC	Canada	53.773605	-78.893456	Radisson	Québec	CA	53.783627	-77.61656	2022-09-14
+Akulivik	QC	Canada	60.81768	-78.14424	Ivugivik	Québec	CA	62.41664	-77.89999	2022-09-14
+Ivujivik	QC	Canada	62.416668	-77.916664	Ivugivik	Québec	CA	62.41664	-77.89999	2022-09-14
+Kangiqsujuaq	QC	Canada	61.59626	-71.95389	Kimmirut	Nunavut	CA	62.850025	-69.883316	2022-09-14
+Salluit	QC	Canada	62.201286	-75.64686	Salluit	Québec	CA	62.1826	-75.6595	2022-09-14
+Puvirnituq	QC	Canada	60.037113	-77.26923	Inukjuak	Québec	CA	58.47001	-78.135994	2022-09-14
+Inukjuak	QC	Canada	58.45512	-78.1051	Inukjuak	Québec	CA	58.47001	-78.135994	2022-09-14
+Umiujaq	QC	Canada	56.551556	-76.54711	Kuujjuarapik	Québec	CA	55.281494	-77.76583	2022-09-14
+Kuujjuarapik	QC	Canada	55.274567	-77.76377	Kuujjuarapik	Québec	CA	55.281494	-77.76583	2022-09-14
+Bude	""	United Kingdom	50.828205	-4.544405	Plymouth	Plymouth	GB	50.385387	-4.1599894	2022-09-14
+Port Sudan	""	Sudan	19.615553	37.2197	Port Sudan	Red Sea	SD	19.615791	37.216427	2022-09-14
+Mogadishu	""	Somalia	2.0411656	45.34416	Mogadishu	Banaadir	SO	2.0666814	45.366676	2022-09-14
+Dar Es Salaam	""	Tanzania	-6.8229866	39.2697	Dar es Salaam	Dar-Es-Salaam	TZ	-6.8000126	39.26834	2022-09-14
+Maputo	""	Mozambique	-25.96817	32.580643	Maputo	Maputo	MZ	-25.955278	32.589165	2022-09-14
+Nacala	""	Mozambique	-14.565606	40.685448	Nacala	Nampula	MZ	-14.518611	40.715023	2022-09-14
+Mahajanga	""	Madagascar	-15.71373	46.31552	Mahajanga	Mahajanga	MG	-15.670013	46.345016	2022-09-14
+Mtunzini	""	South Africa	-28.950438	31.757864	Ulundi	KwaZulu-Natal	ZA	-28.329603	31.41001	2022-09-14
+Cape Town	""	South Africa	-33.919094	18.421986	Cape Town	Western Cape	ZA	-33.92001	18.434988	2022-09-14
+Duynefontein	""	South Africa	-33.69332	18.449915	Cape Town	Western Cape	ZA	-33.92001	18.434988	2022-09-14
+Melkbosstrand	""	South Africa	-33.727215	18.445765	Cape Town	Western Cape	ZA	-33.92001	18.434988	2022-09-14
+Port Elizabeth	""	South Africa	-33.962498	25.623274	Port Elizabeth	Eastern Cape	ZA	-33.970036	25.600029	2022-09-14
+Muanda	Congo	Dem. Rep.	-5.933359	12.349895	Moanda	Bas-Congo	CD	-5.9229083	12.354998	2022-09-14
+Pointe-Noire	Congo	Rep.	-4.778824	11.863616	Pointe-Noire	Kouilou	CG	-4.770007	11.880039	2022-09-14
+Libreville	""	Gabon	0.39451292	9.45434	Libreville	Estuaire	GA	0.3853886	9.457965	2022-09-14
+Lagos	""	Nigeria	6.439093	3.4235094	Lagos	Lagos	NG	6.4432616	3.391531	2022-09-14
+Accra	""	Ghana	5.558502	-0.2009144	Accra	Greater Accra	GH	5.5500345	-0.21671574	2022-09-14
+Abidjan	""	Côte d''Ivoire	5.3234944	-4.0262537	Abidjan	Lagunes	CI	5.319997	-4.040048	2022-09-14
+Dakar	""	Senegal	14.686668	-17.451927	Dakar	Dakar	SN	14.715832	-17.47313	2022-09-14
+Sharjah	""	United Arab Emirates	25.352333	55.392193	Sharjah	Sharjah	AE	25.371384	55.40648	2022-09-14
+Bunkum Bay	""	Montserrat	16.772303	-62.22017	Saint John''s	""	AG	17.118036	-61.850033	2022-09-14
+St. John’s	""	Antigua and Barbuda	17.051483	-61.857937	Saint John''s	""	AG	17.118036	-61.850033	2022-09-14
+Dickenson Bay	""	Antigua and Barbuda	17.159563	-61.84685	Saint John''s	""	AG	17.118036	-61.850033	2022-09-14
+Noumea	""	New Caledonia	-22.303032	166.43912	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Quanono	""	New Caledonia	-20.937042	167.26045	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Tadine	""	New Caledonia	-21.548052	167.87952	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Vao	""	New Caledonia	-22.671928	167.49425	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Yate	""	New Caledonia	-22.158962	166.94505	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Mont-Dore	""	New Caledonia	-22.265408	166.56363	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Mouly	""	New Caledonia	-20.705938	166.48901	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Xepenehe	""	New Caledonia	-20.780916	167.15132	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Poindimie	""	New Caledonia	-20.945879	165.34155	Nouméa	Sud	NC	-22.262527	166.44429	2022-09-14
+Suva	""	Fiji	-18.123638	178.43745	Suva	Central	FJ	-18.133017	178.44171	2022-09-14
+Isla de Cozumel	""	Mexico	20.428644	-86.879166	Cozumel	Quintana Roo	MX	20.51	-86.95	2022-09-14
+Playa del Carmen	""	Mexico	20.629671	-87.07022	Cozumel	Quintana Roo	MX	20.51	-86.95	2022-09-14
+Tulum	""	Mexico	20.212553	-87.4636	Cozumel	Quintana Roo	MX	20.51	-86.95	2022-09-14
+Hanstholm	""	Denmark	57.11164	8.616177	Viborg	Midtjylland	DK	56.43334	9.399984	2022-09-14
+Tjele	""	Denmark	56.5108	9.611689	Viborg	Midtjylland	DK	56.43334	9.399984	2022-09-14
+Ålesund	""	Norway	62.47149	6.1743865	Ålesund	MOre og Romsdal	NO	62.545418	6.3880234	2022-09-14
+Herlandsvika	""	Norway	62.614445	6.4657555	Ålesund	MOre og Romsdal	NO	62.545418	6.3880234	2022-09-14
+Åheim	""	Norway	62.03599	5.522348	Ålesund	MOre og Romsdal	NO	62.545418	6.3880234	2022-09-14
+Lefdal	""	Norway	61.93554	5.49852	Ålesund	MOre og Romsdal	NO	62.545418	6.3880234	2022-09-14
+Molde	""	Norway	62.737236	7.160738	Molde	Møre og Romsdal	NO	62.7483	7.1833234	2022-09-14
+Andalsnes	""	Norway	62.565823	7.681587	Molde	Møre og Romsdal	NO	62.7483	7.1833234	2022-09-14
+Kristiansund	""	Norway	63.110783	7.729683	Molde	Møre og Romsdal	NO	62.7483	7.1833234	2022-09-14
+Equinor Tjeldbergodden	""	Norway	63.387566	7.906062	Molde	Møre og Romsdal	NO	62.7483	7.1833234	2022-09-14
+Trondheim	""	Norway	63.43101	10.392083	Trondheim	Sør-Trøndelag	NO	63.416656	10.416666	2022-09-14
+Brekstad	""	Norway	63.688408	9.663116	Trondheim	Sør-Trøndelag	NO	63.416656	10.416666	2022-09-14
+Øysanden	""	Norway	63.333492	10.216425	Trondheim	Sør-Trøndelag	NO	63.416656	10.416666	2022-09-14
+Sture	""	Norway	60.62198	4.8554907	Bergen	Hordaland	NO	60.391003	5.324522	2022-09-14
+Hyllestad	""	Norway	61.17225	5.293393	Bergen	Hordaland	NO	60.391003	5.324522	2022-09-14
+Bergen	""	Norway	60.3907	5.332761	Bergen	Hordaland	NO	60.391003	5.324522	2022-09-14
+Florø	""	Norway	61.596306	4.975852	Bergen	Hordaland	NO	60.391003	5.324522	2022-09-14
+Øygarden	""	Norway	60.587345	4.8302464	Bergen	Hordaland	NO	60.391003	5.324522	2022-09-14
+Veules-les-Roses	""	France	49.877296	0.7978041	Dieppe	Haute-Normandie	FR	49.933735	1.0833341	2022-09-14
+Cayeux-sur-Mer	""	France	50.17881	1.4934325	Dieppe	Haute-Normandie	FR	49.933735	1.0833341	2022-09-14
+Brighton	""	United Kingdom	50.828476	-0.13443477	Brighton	Brighton and Hove	GB	50.830345	-0.1699744	2022-09-14
+Pevensey Bay	""	United Kingdom	50.81902	0.36667553	Brighton	Brighton and Hove	GB	50.830345	-0.1699744	2022-09-14
+Manta	""	Ecuador	-0.95001954	-80.71619	Manta	Manabi	EC	-0.9800061	-80.729965	2022-09-14
+Cancún	""	Mexico	21.095667	-86.76756	Cancún	Quintana Roo	MX	21.16996	-86.83001	2022-09-14
+Ixtapa	""	Mexico	17.66414	-101.610504	Petatlán	Guerrero	MX	17.520414	-101.27003	2022-09-14
+Atafu	""	Tokelau	-8.55909	-172.51088	Atafu	Tokelau aggregation	NZ	-8.548618	-172.49767	2022-09-14
+Fakaofa	""	Tokelau	-9.383816	-171.26147	Atafu	Tokelau aggregation	NZ	-8.548618	-172.49767	2022-09-14
+Nukunonu	""	Tokelau	-9.174597	-171.81151	Atafu	Tokelau aggregation	NZ	-8.548618	-172.49767	2022-09-14
+Umbogintwini	""	South Africa	-30.02165	30.901573	Durban	KwaZulu-Natal	ZA	-29.865013	30.980011	2022-09-14
+Tagbilaran	""	Philippines	9.675425	123.878174	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Baclayon	""	Philippines	9.622559	123.91354	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Naga	""	Philippines	10.238242	123.691444	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Toledo	""	Philippines	10.376249	123.63524	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Dumaguete	""	Philippines	9.295563	123.28148	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Cebu	""	Philippines	10.310034	123.894615	Cebu	Cebu	PH	10.319976	123.90008	2022-09-14
+Bacong	""	Philippines	9.246331	123.29495	Ozamis	Misamis Occidental	PH	8.146207	123.84442	2022-09-14
+Ozamiz City	""	Philippines	8.150029	123.84998	Ozamis	Misamis Occidental	PH	8.146207	123.84442	2022-09-14
+Valverde	Canary Islands	Spain	27.82022	-17.890888	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+San Sebastian de la Gomera	Canary Islands	Spain	28.087965	-17.108173	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Los Realejos	Canary Islands	Spain	28.397552	-16.58644	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Candelaria	Canary Islands	Spain	28.355537	-16.37174	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Güimar	Canary Islands	Spain	28.310583	-16.412561	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Las Caletillas	""	Spain	28.37728	-16.362366	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Santa Cruz de La Palma	Canary Islands	Spain	28.663181	-17.765245	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Granadilla	Canary Islands	Spain	28.059116	-16.518053	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+El Médano	Canary Islands	Spain	28.046656	-16.538586	Santa Cruz de Tenerife	""	ES	28.469978	-16.25	2022-09-14
+Taytay	""	Philippines	10.819712	119.50033	Puerto Princesa	Palawan	PH	9.754268	118.744385	2022-09-14
+Pasacao	""	Philippines	13.547781	122.950645	Naga	Camarines Sur	PH	13.619155	123.18136	2022-09-14
+Daet	""	Philippines	14.116616	122.94989	Naga	Camarines Sur	PH	13.619155	123.18136	2022-09-14
+Masbate City	""	Philippines	12.366677	123.61666	Legazpi	Albay	PH	13.169983	123.75001	2022-09-14
+Milagros	""	Philippines	12.218124	123.509094	Legazpi	Albay	PH	13.169983	123.75001	2022-09-14
+Santa Magdalena	""	Philippines	12.645301	124.10709	Legazpi	Albay	PH	13.169983	123.75001	2022-09-14
+Legazpi City	""	Philippines	13.13909	123.74374	Legazpi	Albay	PH	13.169983	123.75001	2022-09-14
+Bogo	""	Philippines	11.045877	124.00765	Ormac	Leyte	PH	11.064298	124.60753	2022-09-14
+Ormoc	""	Philippines	11.006888	124.61278	Ormac	Leyte	PH	11.064298	124.60753	2022-09-14
+Cagayan de Oro	""	Philippines	8.454228	124.6319	Cagayan de Oro	Misamis Oriental	PH	8.450839	124.685295	2022-09-14
+Buenavista	""	Philippines	8.968922	125.42074	Butuan	Agusan del Norte	PH	8.949543	125.543594	2022-09-14
+Butuan City	""	Philippines	8.947616	125.54061	Butuan	Agusan del Norte	PH	8.949543	125.543594	2022-09-14
+San Carlos	""	Philippines	10.483745	123.41288	San Carlos	Negros Occidental	PH	10.550375	123.380005	2022-09-14
+San Remigio	""	Philippines	11.083327	123.93634	Cadiz	Negros Occidental	PH	10.958749	123.308586	2022-09-14
+Cadiz City	""	Philippines	10.9500265	123.29999	Cadiz	Negros Occidental	PH	10.958749	123.308586	2022-09-14
+Talisay	""	Philippines	10.739404	122.96776	Bacolod	Negros Occidental	PH	10.631688	122.98168	2022-09-14
+Leganes	""	Philippines	10.786581	122.58944	Iloilo	Iloilo	PH	10.705043	122.54501	2022-09-14
+Iloilo City	""	Philippines	10.72015	122.5621	Iloilo	Iloilo	PH	10.705043	122.54501	2022-09-14
+San Jose de Buenavista	""	Philippines	10.748806	121.9413	Iloilo	Iloilo	PH	10.705043	122.54501	2022-09-14
+San Juan	""	Philippines	13.809928	121.44887	San Pablo	Laguna	PH	14.069567	121.32261	2022-09-14
+Lucena	""	Philippines	13.935264	121.61229	San Pablo	Laguna	PH	14.069567	121.32261	2022-09-14
+Saint-François	""	Guadeloupe	16.251099	-61.274456	Basse-terre	Guadeloupe	GP	16.23039	-61.43998	2022-09-14
+Beausejour	""	Guadeloupe	16.303572	-61.073868	Basse-terre	Guadeloupe	GP	16.23039	-61.43998	2022-09-14
+Saint-Louis	""	Guadeloupe	15.953417	-61.319096	Basse-terre	Guadeloupe	GP	16.23039	-61.43998	2022-09-14
+Capesterre-Belle-Eau	""	Guadeloupe	16.042421	-61.56469	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Terre-de-Haut	""	Guadeloupe	15.873014	-61.57884	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Baie-Mahault	""	Guadeloupe	16.24448	-61.571724	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Pointe-a-Pitre	""	Guadeloupe	16.241043	-61.533085	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Jarry	""	Guadeloupe	16.243013	-61.554863	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Baillif	""	Guadeloupe	16.02894	-61.713943	Pointe-à-Pitre	Guadeloupe	GP	16.241474	-61.532997	2022-09-14
+Zhuhai	""	China	22.270712	113.57673	Zhuhai	Guangdong	CN	22.276945	113.56778	2022-09-14
+Wenchang	""	China	20.045319	110.76181	Haikou	Hainan	CN	20.050003	110.32002	2022-09-14
+Prince Rupert	BC	Canada	54.313076	-130.32632	Prince Rupert	British Columbia	CA	54.31667	-130.32999	2022-09-14
+Ketchikan	AK	United States	55.342102	-131.64781	Ketchikan	Alaska	US	55.35622	-131.66399	2022-09-14
+Newcastle	""	United Kingdom	54.97825	-1.6177783	Newcastle	Tyne and Wear	GB	55.000374	-1.5999905	2022-09-14
+Komesu	""	Japan	26.087759	127.7008	Naha	Okinawa	JP	26.207172	127.67297	2022-09-14
+Nago	""	Japan	26.591537	127.977325	Naha	Okinawa	JP	26.207172	127.67297	2022-09-14
+Okinawa	""	Japan	26.21237	127.68079	Naha	Okinawa	JP	26.207172	127.67297	2022-09-14
+Cabo San Juan	""	Equatorial Guinea	1.1752609	9.341401	Calatrava	Litoral	GQ	1.1164035	9.418588	2022-09-14
+Corisco	""	Equatorial Guinea	0.9348555	9.3195915	Calatrava	Litoral	GQ	1.1164035	9.418588	2022-09-14
+Great Bay Beach	""	Sint Maarten	18.024471	-63.055058	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Basseterre	""	Saint Kitts and Nevis	17.29864	-62.731216	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Gustavia	""	Saint Barthélemy	17.897911	-62.850563	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Great Level Bay	Bonaire	Sint Eustatius and Saba	17.61512	-63.244217	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Gallows Bay	Bonaire	Sint Eustatius and Saba	17.475918	-62.985527	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+St. Louis	""	Saint Martin	18.08993	-63.078144	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Baie Longue	""	Saint Martin	18.05965	-63.145706	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Philipsburg	""	Sint Maarten	18.030205	-63.04583	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+The Valley	""	Anguilla	18.217405	-63.057205	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Saint Maarten	""	Sint Maarten	18.03104	-63.073708	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Saint Martin	""	Saint Martin	18.092783	-63.050076	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Saint Barthelemy	""	Saint Barthélemy	17.900059	-62.833378	Basseterre	""	KN	17.30203	-62.71701	2022-09-14
+Kagoshima	""	Japan	31.59655	130.55711	Kagoshima	Kagoshima	JP	31.585964	130.56107	2022-09-14
+Praia	""	Cape Verde	14.923187	-23.52121	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Sal Rei	""	Cape Verde	16.177172	-22.919039	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Murdeira	""	Cape Verde	16.677109	-22.93531	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Tarrafal—Santiago	""	Cape Verde	15.276848	-23.751068	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Nova Sintra	""	Cape Verde	14.8729925	-24.695404	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Sao Filipe	""	Cape Verde	14.897142	-24.500921	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Vila do Maio	""	Cape Verde	15.138355	-23.209785	Praia	""	CV	14.916698	-23.51669	2022-09-14
+Tarrafal—Sao Nicolau	""	Cape Verde	16.565884	-24.357159	Mindelo	""	CV	16.883762	-25.00001	2022-09-14
+Sao Pedro	""	Cape Verde	16.823421	-25.060808	Mindelo	""	CV	16.883762	-25.00001	2022-09-14
+Porto Novo—Santo Antao	""	Cape Verde	17.019201	-25.059443	Mindelo	""	CV	16.883762	-25.00001	2022-09-14
+Miyazaki	""	Japan	32.09766	131.29462	Miyazaki	Miyazaki	JP	31.918243	131.41838	2022-09-14
+Akita	""	Japan	39.69202	140.34363	Akita	Akita	JP	39.70999	140.09	2022-09-14
+Ishikari	""	Japan	43.17139	141.31552	Sapporo	Hokkaido	JP	43.074978	141.34004	2022-09-14
+Sapporo	""	Japan	43.062096	141.35437	Sapporo	Hokkaido	JP	43.074978	141.34004	2022-09-14
+Sendai	""	Japan	38.314358	140.75821	Sendai	Miyagi	JP	38.287106	141.02171	2022-09-14
+Ibaraki	""	Japan	36.342186	140.26994	Mito	Ibaraki	JP	36.370426	140.48004	2022-09-14
+Ajigaura	""	Japan	36.38356	140.61227	Mito	Ibaraki	JP	36.370426	140.48004	2022-09-14
+Ciudad Lázaro Cárdenas	""	Mexico	17.95677	-102.19434	Lázaro Cárdenas	Michoacán	MX	17.958708	-102.199974	2022-09-14
+Manzanillo	""	Mexico	19.085821	-104.308174	Manzanillo	Colima	MX	19.049587	-104.32308	2022-09-14
+Lurin	""	Peru	-12.278527	-76.87428	Chilca	Lima	PE	-12.519611	-76.739975	2022-09-14
+Ilo	""	Peru	-17.64117	-71.32371	Ilo	Moquegua	PE	-17.640022	-71.34002	2022-09-14
+Iskele	""	Cyprus	35.28439	33.919476	Larnaka	Larnaca	CY	34.917004	33.635998	2022-09-14
+Hanko	""	Finland	59.82321	22.968222	Turku	Finland Proper	FI	60.453865	22.254961	2022-09-14
+Turku	""	Finland	60.44931	22.259237	Turku	Finland Proper	FI	60.453865	22.254961	2022-09-14
+Haradsholm	""	Finland	60.30097	22.302109	Turku	Finland Proper	FI	60.453865	22.254961	2022-09-14
+Helsinki	""	Finland	60.171074	24.932478	Helsinki	Southern Finland	FI	60.175564	24.934126	2022-09-14
+Stockholm	""	Sweden	59.33221	18.062855	Stockholm	Stockholm	SE	59.35076	18.097334	2022-09-14
+Nynashamn	""	Sweden	58.902924	17.946547	Stockholm	Stockholm	SE	59.35076	18.097334	2022-09-14
+Väddö	""	Sweden	59.98338	18.816565	Stockholm	Stockholm	SE	59.35076	18.097334	2022-09-14
+Norrtalge	""	Sweden	59.759663	18.70133	Stockholm	Stockholm	SE	59.35076	18.097334	2022-09-14
+Stavsnas	""	Sweden	59.292778	18.688335	Stockholm	Stockholm	SE	59.35076	18.097334	2022-09-14
+Kotka	""	Finland	60.50104	26.88355	Kouvola	Southern Finland	FI	60.876	26.709003	2022-09-14
+Allen	""	Philippines	12.50138	124.28235	Calbayog	Samar	PH	12.067182	124.604164	2022-09-14
+Calbayog	""	Philippines	12.069906	124.60028	Calbayog	Samar	PH	12.067182	124.604164	2022-09-14
+Apia	""	Samoa	-13.833403	-171.76668	Apia	""	WS	-13.841545	-171.73865	2022-09-14
+Mata-Utu	""	Wallis and Futuna	-13.282001	-176.175	Apia	""	WS	-13.841545	-171.73865	2022-09-14
+Rarotonga	""	Cook Islands	-21.22437	-159.76971	Avarua	""	CK	-21.250034	-159.75	2022-09-14
+Aitutaki	""	Cook Islands	-18.825718	-159.7749	Avarua	""	CK	-21.250034	-159.75	2022-09-14
+Alofi	""	Niue	-19.0167	-169.9167	Alofi	Niue aggregation	NZ	-19.065989	-169.91362	2022-09-14
+Marina di Ragusa	""	Italy	36.784805	14.550292	Ragusa	Sicily	IT	36.93003	14.729995	2022-09-14
+Pozzallo	""	Italy	36.733723	14.853872	Ragusa	Sicily	IT	36.93003	14.729995	2022-09-14
+Point Salines	""	Grenada	12.008822	-61.790577	Saint George''s	""	GD	12.052633	-61.741642	2022-09-14
+Conference	""	Grenada	12.16121	-61.606388	Saint George''s	""	GD	12.052633	-61.741642	2022-09-14
+Carriacou	""	Grenada	12.473707	-61.47862	Saint George''s	""	GD	12.052633	-61.741642	2022-09-14
+Kingstown	""	Saint Vincent and the Grenadines	13.145437	-61.208256	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Chateaubelair	""	Saint Vincent and the Grenadines	13.290916	-61.240837	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Owia	""	Saint Vincent and the Grenadines	13.3731	-61.142776	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Bequia	""	Saint Vincent and the Grenadines	12.997564	-61.244705	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Mustique	""	Saint Vincent and the Grenadines	12.877712	-61.187126	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Canouan	""	Saint Vincent and the Grenadines	12.699637	-61.33896	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Union Island	""	Saint Vincent and the Grenadines	12.611405	-61.44318	Kingstown	""	VC	13.148279	-61.212063	2022-09-14
+Varberg	""	Sweden	57.10531	12.251277	Göteborg	Västra Götaland	SE	57.75	12.000032	2022-09-14
+Kungsbacka	""	Sweden	57.48748	12.076238	Göteborg	Västra Götaland	SE	57.75	12.000032	2022-09-14
+Laeso	""	Denmark	57.256996	10.8871355	Frederikshavn	Nordjylland	DK	57.43369	10.5333	2022-09-14
+Osterby	""	Denmark	57.313457	11.1992855	Frederikshavn	Nordjylland	DK	57.43369	10.5333	2022-09-14
+Saeby	""	Denmark	57.33083	10.516571	Frederikshavn	Nordjylland	DK	57.43369	10.5333	2022-09-14
+Vestero	""	Denmark	57.27225	10.966961	Frederikshavn	Nordjylland	DK	57.43369	10.5333	2022-09-14
+Lyngsa	""	Denmark	57.244804	10.514618	Frederikshavn	Nordjylland	DK	57.43369	10.5333	2022-09-14
+Saint-Hilaire-de-Riez	""	France	46.693996	-1.9683119	Nantes	Pays de la Loire	FR	47.210384	-1.590017	2022-09-14
+Hirtshals	""	Denmark	57.588192	9.959261	Aalborg	Nordjylland	DK	57.033714	9.916594	2022-09-14
+Larvik	""	Norway	59.081112	10.01639	Skien	Telemark	NO	59.19999	9.600023	2022-09-14
+Port Erin	""	Isle of Man	54.0872	-4.760451	Douglas	""	IM	54.15043	-4.4800215	2022-09-14
+Douglas	""	Isle of Man	54.150276	-4.48088	Douglas	""	IM	54.15043	-4.4800215	2022-09-14
+Groudle Bay	""	Isle of Man	54.16698	-4.4238973	Douglas	""	IM	54.15043	-4.4800215	2022-09-14
+Peel	""	Isle of Man	54.222446	-4.6914263	Douglas	""	IM	54.15043	-4.4800215	2022-09-14
+Port Grenaugh	""	Isle of Man	54.099995	-4.5666704	Douglas	""	IM	54.15043	-4.4800215	2022-09-14
+Holyhead	""	United Kingdom	53.306038	-4.630391	Liverpool	Merseyside	GB	53.416	-2.9179978	2022-09-14
+Hobyo	""	Somalia	5.3501563	48.522038	Gaalkacyo	Mudug	SO	6.76996	47.430016	2022-09-14
+Kismayo	""	Somalia	-0.36271214	42.545162	Kismaayo	Jubbada Hoose	SO	-0.35663328	42.518326	2022-09-14
+Sangatta	""	Indonesia	0.32451925	117.53549	Bontang	Kalimantan Timur	ID	0.1332593	117.5	2022-09-14
+Sangata	""	Indonesia	0.32688737	117.550964	Bontang	Kalimantan Timur	ID	0.1332593	117.5	2022-09-14
+Towale	""	Indonesia	-0.71193457	119.66608	Palu	Sulawesi Tengah	ID	-0.907039	119.83304	2022-09-14
+Toweli	""	Indonesia	-1.1424677	119.38837	Palu	Sulawesi Tengah	ID	-0.907039	119.83304	2022-09-14
+Puger	""	Indonesia	-8.374136	113.4568	Jember	Jawa Timur	ID	-8.172693	113.68732	2022-09-14
+Jimbaran	""	Indonesia	-8.784071	115.159805	Kuta	Bali	ID	-8.715113	115.18412	2022-09-14
+Mentigi	""	Indonesia	-3.1959858	107.69636	Tanjungpandan	Bangka-Belitung	ID	-2.7500272	107.65001	2022-09-14
+Tanjung Pandan	""	Indonesia	-2.7674422	107.66289	Tanjungpandan	Bangka-Belitung	ID	-2.7500272	107.65001	2022-09-14
+Takesung	""	Indonesia	-3.8828278	114.66682	Martapura	Kalimantan Selatan	ID	-3.413501	114.836494	2022-09-14
+Ujung Pankah	""	Indonesia	-6.9533377	112.598236	Surabaya	Jawa Timur	ID	-7.2492356	112.75083	2022-09-14
+Banyu Urip	""	Indonesia	-7.271904	112.71968	Surabaya	Jawa Timur	ID	-7.2492356	112.75083	2022-09-14
+Surabaya	""	Indonesia	-7.2585797	112.74667	Surabaya	Jawa Timur	ID	-7.2492356	112.75083	2022-09-14
+Bawean	""	Indonesia	-5.793491	112.58562	Tuban	Jawa Timur	ID	-6.8995414	112.049995	2022-09-14
+Rupert''s Bay	Saint Helena	Ascension and Tristan da Cunha	-15.918594	-5.7114854	Tômbua	Namibe	AO	-15.800032	11.859989	2022-09-14
+Sao Tome	""	Sao Tome and Principe	0.33329135	6.7332973	São Tomé	""	ST	0.33340213	6.733325	2022-09-14
+Annobon	""	Equatorial Guinea	-1.4351345	5.6368504	São Tomé	""	ST	0.33340213	6.733325	2022-09-14
+Maroochydore	QLD	Australia	-26.651844	153.08945	Sunshine Coast	Queensland	AU	-26.679987	153.05003	2022-09-14
+Bodø	""	Norway	67.286	14.400076	Bodø	Nordland	NO	67.24677	14.399012	2022-09-14
+Røst	""	Norway	67.50256	12.070117	Bodø	Nordland	NO	67.24677	14.399012	2022-09-14
+Narvik	""	Norway	68.420555	17.559998	Narvik	Nordland	NO	68.38315	17.289993	2022-09-14
+Nesna	""	Norway	66.198074	13.018192	Mo i Rana	Nordland	NO	66.31661	14.16667	2022-09-14
+Sandnessjøen	""	Norway	66.021545	12.631462	Mo i Rana	Nordland	NO	66.31661	14.16667	2022-09-14
+Utskarpen	""	Norway	66.29296	13.563626	Mo i Rana	Nordland	NO	66.31661	14.16667	2022-09-14
+Hemnesberget	""	Norway	66.22416	13.6244545	Mo i Rana	Nordland	NO	66.31661	14.16667	2022-09-14
+Mo I Rana	""	Norway	66.31371	14.141983	Mo i Rana	Nordland	NO	66.31661	14.16667	2022-09-14
+Brønnøysund	""	Norway	65.473564	12.207744	Rørvik	Nord-Trøndelag	NO	64.86802	11.2053	2022-09-14
+Rørvik	""	Norway	64.862076	11.237347	Rørvik	Nord-Trøndelag	NO	64.86802	11.2053	2022-09-14
+Rødvig	""	Denmark	55.25614	12.371851	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Brondby	""	Denmark	55.647247	12.414909	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Dragor	""	Denmark	55.593536	12.670182	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Tuborg	""	Denmark	55.721954	12.545573	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Rønne	""	Denmark	55.101017	14.7083235	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Ystad	""	Sweden	55.43133	13.828287	Kristianstad	Skåne	SE	56.033672	14.133286	2022-09-14
+Great Nicobar	""	India	7.0313306	93.92741	Banda Aceh	Aceh	ID	5.549983	95.32001	2022-09-14
+Kamorta	""	India	8.172232	93.48141	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Car Nicobar	""	India	9.177491	92.816444	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Little Andaman	""	India	10.709053	92.59716	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Port Blair	""	India	11.623382	92.72648	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Havelock	""	India	11.976058	92.987564	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Long Island	""	India	12.396491	92.935074	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Rangat	""	India	12.5069475	92.91386	Port Blair	Andaman and Nicobar	IN	11.667026	92.735985	2022-09-14
+Cloverdale	OR	United States	45.231052	-123.95637	Tillamook	Oregon	US	45.455246	-123.84251	2022-09-14
+Pacific City	OR	United States	45.201923	-123.96263	Tillamook	Oregon	US	45.455246	-123.84251	2022-09-14
+Nedonna Beach	OR	United States	45.643734	-123.94007	Tillamook	Oregon	US	45.455246	-123.84251	2022-09-14
+Topolobampo	""	Mexico	25.600695	-109.05037	Los Mochis	Sinaloa	MX	25.789988	-109	2022-09-14
+La Paz	""	Mexico	24.102573	-110.30548	La Paz	Baja California Sur	MX	24.13996	-110.31999	2022-09-14
+Mahuma	""	Curaçao	12.168898	-68.95694	Willemstad	""	CW	12.20043	-69.01998	2022-09-14
+Kralendijk	Bonaire	Netherlands	12.150684	-68.27669	Willemstad	""	CW	12.20043	-69.01998	2022-09-14
+North Salina	Bonaire	Sint Eustatius and Saba	12.163816	-68.28415	Willemstad	""	CW	12.20043	-69.01998	2022-09-14
+Willemstad	""	Curaçao	12.095319	-68.89661	Willemstad	""	CW	12.20043	-69.01998	2022-09-14
+Honiara	""	Solomon Islands	-9.429092	159.94978	Honiara	Guadalcanal	SB	-9.437994	159.94977	2022-09-14
+Auki	""	Solomon Islands	-8.77465	160.70132	Honiara	Guadalcanal	SB	-9.437994	159.94977	2022-09-14
+Port Moresby	""	Papua New Guinea	-9.479606	147.18852	Port Moresby	Central	PG	-9.464707	147.1925	2022-09-14
+Noro	""	Solomon Islands	-8.242078	157.19066	Gizo	Choiseul	SB	-8.099623	156.83502	2022-09-14
+Taro	""	Solomon Islands	-6.7089915	156.3959	Gizo	Choiseul	SB	-8.099623	156.83502	2022-09-14
+Saint-Pierre	""	Saint Pierre and Miquelon	46.775845	-56.18063	Buchans	Newfoundland and Labrador	CA	48.81703	-56.866592	2022-09-14
+Miquelon-Langlade	""	Saint Pierre and Miquelon	47.083668	-56.349922	Buchans	Newfoundland and Labrador	CA	48.81703	-56.866592	2022-09-14
+Narragansett	RI	United States	41.441372	-71.44281	Newport	Rhode Island	US	41.4904	-71.313354	2022-09-14
+Crescent Beach	RI	United States	41.19196	-71.59367	Newport	Rhode Island	US	41.4904	-71.313354	2022-09-14
+Charlestown	RI	United States	41.4119	-71.645874	Newport	Rhode Island	US	41.4904	-71.313354	2022-09-14
+Kwa Ibo	""	Nigeria	4.5438037	7.9974346	Opobo	Akwa Ibom	NG	4.5704045	7.5599933	2022-09-14
+Nybro	""	Sweden	56.7438	15.908685	Kalmar	Kalmar	SE	56.66702	16.366587	2022-09-14
+Klaipeda	""	Lithuania	55.695724	21.14999	Klaipėda	Klaipedos	LT	55.72041	21.11994	2022-09-14
+Sventoji	""	Lithuania	56.02829	21.082384	Klaipėda	Klaipedos	LT	55.72041	21.11994	2022-09-14
+Fangshan	""	Taiwan	22.249203	120.66215	Pingtung	Pingtung	TW	22.681702	120.48168	2022-09-14
+Baie du Tombeau	""	Mauritius	-20.12212	57.495125	Port Louis	""	MU	-20.16664	57.499992	2022-09-14
+Terre Rouge	""	Mauritius	-20.077808	57.510094	Port Louis	""	MU	-20.16664	57.499992	2022-09-14
+Le Port	""	Réunion	-20.94439	55.303284	St.-Denis	La Réunion	RE	-20.878895	55.44808	2022-09-14
+Saint Paul	""	Réunion	-21.000248	55.279137	St.-Denis	La Réunion	RE	-20.878895	55.44808	2022-09-14
+Sainte Marie	""	Réunion	-20.897373	55.54994	St.-Denis	La Réunion	RE	-20.878895	55.44808	2022-09-14
+Fort Dauphin	""	Madagascar	-25.022532	46.985374	Tôlanaro	Toliary	MG	-25.026808	46.99004	2022-09-14
+Candi Kusuma	""	Indonesia	-8.29458	114.527245	Banyuwangi	Jawa Timur	ID	-8.195018	114.3696	2022-09-14
+Muncar	""	Indonesia	-8.448019	114.31037	Banyuwangi	Jawa Timur	ID	-8.195018	114.3696	2022-09-14
+Beculuk	""	Indonesia	-8.615634	114.09706	Banyuwangi	Jawa Timur	ID	-8.195018	114.3696	2022-09-14
+Kendal	""	Indonesia	-7.026549	110.187904	Semarang	Jawa Tengah	ID	-6.9666176	110.42002	2022-09-14
+Cirebon	""	Indonesia	-6.7166667	108.566666	Cirebon	Jawa Barat	ID	-6.7332983	108.56664	2022-09-14
+Takapuna	""	New Zealand	-36.787834	174.76791	North Shore	Auckland	NZ	-36.791267	174.77583	2022-09-14
+Savusavu	""	Fiji	-16.808014	179.34975	Labasa	Western	FJ	-16.416584	179.3833	2022-09-14
+Panipahan	""	Indonesia	2.4523516	100.31332	Pematangsiantar	Sumatera Utara	ID	2.961433	99.061485	2022-09-14
+Pangai	""	Tonga	-19.811428	-174.35027	Neiafu	""	TO	-18.649574	-173.98329	2022-09-14
+Neiafu	""	Tonga	-18.647686	-173.98369	Neiafu	""	TO	-18.649574	-173.98329	2022-09-14
+Leava	""	Wallis and Futuna	-14.296838	-178.15811	Neiafu	""	TO	-18.649574	-173.98329	2022-09-14
+Nuku''alofa	""	Tonga	-21.133286	-175.20003	Nukualofa	""	TO	-21.138512	-175.22057	2022-09-14
+Kekaha	HI	United States	21.970304	-159.7242	Lihue	Hawaii	US	21.981512	-159.371	2022-09-14
+Lihue	HI	United States	21.974943	-159.36858	Lihue	Hawaii	US	21.981512	-159.371	2022-09-14
+Makena	HI	United States	20.663599	-156.44	Wailuku	Hawaii	US	20.891476	-156.50471	2022-09-14
+Lahaina	HI	United States	20.900904	-156.6845	Wailuku	Hawaii	US	20.891476	-156.50471	2022-09-14
+Kaunakakai	HI	United States	21.093332	-157.0239	Wailuku	Hawaii	US	20.891476	-156.50471	2022-09-14
+Manele Bay	HI	United States	20.743439	-156.8969	Wailuku	Hawaii	US	20.891476	-156.50471	2022-09-14
+Kihei	HI	United States	20.782154	-156.4631	Wailuku	Hawaii	US	20.891476	-156.50471	2022-09-14
+Hawaii Kai	HI	United States	21.272	-157.6689	Honolulu	Hawaii	US	21.306877	-157.858	2022-09-14
+Koko Head	HI	United States	21.277561	-157.69601	Honolulu	Hawaii	US	21.306877	-157.858	2022-09-14
+Grand Baie (Rodrigues)	""	Mauritius	-19.674345	63.448235	Curepipe	""	MU	-20.31619	57.516632	2022-09-14
+Baie Jacotet	""	Mauritius	-20.473999	57.485386	Curepipe	""	MU	-20.31619	57.516632	2022-09-14
+Melonguane	""	Indonesia	4.0429974	126.71727	Manado	Sulawesi Utara	ID	1.4800247	124.84999	2022-09-14
+Morotai	""	Indonesia	2.3656561	128.40082	Ternate	Maluku Utara	ID	0.79296064	127.363014	2022-09-14
+Tobelo	""	Indonesia	1.7145839	127.96786	Ternate	Maluku Utara	ID	0.79296064	127.363014	2022-09-14
+Terante	""	Indonesia	0.79580855	127.361336	Ternate	Maluku Utara	ID	0.79296064	127.363014	2022-09-14
+Ternate	""	Indonesia	0.7898521	127.375374	Ternate	Maluku Utara	ID	0.79296064	127.363014	2022-09-14
+Sofifi	""	Indonesia	0.73497415	127.56143	Tidore	Maluku Utara	ID	0.6963774	127.43598	2022-09-14
+Tidore	""	Indonesia	0.6740047	127.40408	Tidore	Maluku Utara	ID	0.6963774	127.43598	2022-09-14
+Labuha	""	Indonesia	-0.6267964	127.48045	Tidore	Maluku Utara	ID	0.6963774	127.43598	2022-09-14
+Luwuk	""	Indonesia	-0.9388272	122.792786	Luwuk	Sulawesi Tengah	ID	-0.9395951	122.790016	2022-09-14
+Salakan	""	Indonesia	-1.301013	123.340195	Luwuk	Sulawesi Tengah	ID	-0.9395951	122.790016	2022-09-14
+Bangga	""	Indonesia	-1.6002783	123.527534	Luwuk	Sulawesi Tengah	ID	-0.9395951	122.790016	2022-09-14
+Taliabu	""	Indonesia	-1.8268403	124.774055	Luwuk	Sulawesi Tengah	ID	-0.9395951	122.790016	2022-09-14
+Sanana	""	Indonesia	-2.2014492	125.937	Ambon	Maluku	ID	-3.7166865	128.20001	2022-09-14
+Namlea	""	Indonesia	-3.2334146	127.08582	Ambon	Maluku	ID	-3.7166865	128.20001	2022-09-14
+Ambon	""	Indonesia	-3.6553793	128.1907	Ambon	Maluku	ID	-3.7166865	128.20001	2022-09-14
+Kendari	""	Indonesia	-3.9984472	122.51298	Kendari	Sulawesi Tenggara	ID	-3.9553285	122.59731	2022-09-14
+Wawonii	""	Indonesia	-4.136149	123.123886	Kendari	Sulawesi Tenggara	ID	-3.9553285	122.59731	2022-09-14
+Raha	""	Indonesia	-4.8323827	122.721085	Baubau	Sulawesi Tenggara	ID	-5.469861	122.61633	2022-09-14
+Buranga	""	Indonesia	-4.792267	122.85611	Baubau	Sulawesi Tenggara	ID	-5.469861	122.61633	2022-09-14
+Lakudo	""	Indonesia	-5.3891177	122.5599	Baubau	Sulawesi Tenggara	ID	-5.469861	122.61633	2022-09-14
+Baubau	""	Indonesia	-5.507064	122.596886	Baubau	Sulawesi Tenggara	ID	-5.469861	122.61633	2022-09-14
+Suro	""	Guinea-Bissau	11.774132	-15.791145	Bissau	Bissau	GW	11.865024	-15.598361	2022-09-14
+Punta Arenas	""	Chile	-53.166656	-70.933334	Punta Arenas	Magallanes y Antártica Chilena	CL	-53.164986	-70.939995	2022-09-14
+Puerto Williams	""	Chile	-54.9352	-67.60586	Puerto Williams	Magallanes y Antartica Chilena	CL	-54.933304	-67.61671	2022-09-14
+Tortel	""	Chile	-47.801216	-73.53689	Cochrane	Ais	CL	-47.266277	-72.54995	2022-09-14
+Gwadar	""	Pakistan	25.132263	62.32497	Gwadar	Baluchistan	PK	25.138968	62.328587	2022-09-14
+Westbury	NY	United States	40.757103	-73.58683	Stamford	Connecticut	US	41.053345	-73.53919	2022-09-14
+Northport	NY	United States	40.909454	-73.34411	Stamford	Connecticut	US	41.053345	-73.53919	2022-09-14
+Buffalo	NY	United States	42.885437	-78.87846	Buffalo	New York	US	42.87998	-78.880005	2022-09-14
+Toronto	ON	Canada	43.648556	-79.38532	Toronto	Ontario	CA	43.69998	-79.42002	2022-09-14
+Dania Beach	FL	United States	26.052317	-80.14394	Fort Lauderdale	Florida	US	26.136065	-80.141785	2022-09-14
+Hollywood	FL	United States	26.010202	-80.16023	Fort Lauderdale	Florida	US	26.136065	-80.141785	2022-09-14
+Guantanamo Bay	""	Cuba	19.939615	-75.158165	Guantánamo	Guantánamo	CU	20.145294	-75.20615	2022-09-14
+Eemshaven	""	Netherlands	53.442806	6.8160224	Groningen	Groningen	NL	53.220406	6.5800014	2022-09-14
+Schoelcher	""	Martinique	14.629	-61.112137	Fort-de-France	Martinique	MQ	14.610412	-61.08003	2022-09-14
+Le Lamentin	""	Martinique	14.615537	-61.09427	Fort-de-France	Martinique	MQ	14.610412	-61.08003	2022-09-14
+Pegwell	""	Barbados	13.062606	-59.536335	Bridgetown	Saint Michael	BB	13.102002	-59.616528	2022-09-14
+Bridgetown	""	Barbados	13.098954	-59.61336	Bridgetown	Saint Michael	BB	13.102002	-59.616528	2022-09-14
+Needham’s Point	""	Barbados	13.078789	-59.612724	Bridgetown	Saint Michael	BB	13.102002	-59.616528	2022-09-14
+Mt. Lavinia	""	Sri Lanka	6.833211	79.86679	Moratuwa	Colombo	LK	6.780399	79.88002	2022-09-14
+Ratmalana	""	Sri Lanka	6.820388	79.889275	Moratuwa	Colombo	LK	6.780399	79.88002	2022-09-14
+Kourou	""	French Guiana	5.1682987	-52.645554	Kourou	Guinaa	GF	5.159981	-52.64995	2022-09-14
+Flying Fish Cove	""	Christmas Island	-10.437359	105.69707	Sukabumi	Jawa Barat	ID	-6.9096184	106.89998	2022-09-14
+Nelson	""	New Zealand	-41.272255	173.28395	Nelson	Nelson	NZ	-41.29259	173.24745	2022-09-14
+Levin	""	New Zealand	-40.625282	175.28531	Levin	Manawatu-Wanganui	NZ	-40.612362	175.27725	2022-09-14
+Copa Club	""	Jamaica	17.942953	-76.68936	Kingston	Kingston	JM	17.977077	-76.76743	2022-09-14
+Bull Bay	""	Jamaica	17.949677	-76.66667	Kingston	Kingston	JM	17.977077	-76.76743	2022-09-14
+Harbour View	""	Jamaica	17.949677	-76.716866	Kingston	Kingston	JM	17.977077	-76.76743	2022-09-14
+Weno	Chuuk	Micronesia	7.4399934	151.85849	Palikir	""	FM	6.9166436	158.14998	2022-09-14
+Pohnpei	""	Micronesia	7.7864113	159.07027	Palikir	""	FM	6.9166436	158.14998	2022-09-14
+Magachgil	Yap	Micronesia	9.443923	138.0615	Melekeok	""	PW	7.4873962	134.62654	2022-09-14
+Ngeremlengui	""	Palau	7.5317464	134.56094	Melekeok	""	PW	7.4873962	134.62654	2022-09-14
+Sangano	""	Angola	-9.490068	13.201445	Luanda	Luanda	AO	-8.838286	13.234427	2022-09-14
+Cacuaco	""	Angola	-8.776676	13.372331	Luanda	Luanda	AO	-8.838286	13.234427	2022-09-14
+Luanda	""	Angola	-8.812855	13.235025	Luanda	Luanda	AO	-8.838286	13.234427	2022-09-14
+Aden	""	Yemen	12.800684	45.03354	Aden	`Adan	YE	12.779722	45.00949	2022-09-14
+BP Clair Ridge	""	United Kingdom	60.441048	-2.29493	Lerwick	Aberdeen	GB	60.150036	-1.1499921	2022-09-14
+Sandwick	""	United Kingdom	59.995975	-1.2386944	Lerwick	Aberdeen	GB	60.150036	-1.1499921	2022-09-14
+Maywick	""	United Kingdom	60.003983	-1.3238018	Lerwick	Aberdeen	GB	60.150036	-1.1499921	2022-09-14
+Mamoudzou	""	Mayotte	-12.783309	45.233295	Dzaoudzi	Moyotte	YT	-12.787089	45.275005	2022-09-14
+Mutsamudu	""	Comoros	-12.1666565	44.400043	Moroni	""	KM	-11.704158	43.240246	2022-09-14
+Kaweni	""	Mayotte	-12.817103	45.165863	Dzaoudzi	Moyotte	YT	-12.787089	45.275005	2022-09-14
+Kikori	""	Papua New Guinea	-7.413514	144.2402	Mendi	Southern Highlands	PG	-6.144394	143.64523	2022-09-14
+Sisimiut	""	Greenland	66.93947	-53.673386	Sisimiut	Qeqqata Kommunia	GL	66.950005	-53.666607	2022-09-14
+Maniitsoq	""	Greenland	65.40768	-52.905724	Nuuk	Kommuneqarfik Sermersooq	GL	64.19828	-51.73266	2022-09-14
+Nuuk	""	Greenland	64.18113	-51.72997	Nuuk	Kommuneqarfik Sermersooq	GL	64.19828	-51.73266	2022-09-14
+Aasiaat	""	Greenland	68.70697	-52.859116	Qeqertasuaq	Qaasuitsup Kommunia	GL	69.24416	-53.56524	2022-09-14
+Seba	""	Indonesia	-10.457822	121.8799	Ende	Nusa Tenggara Timur	ID	-8.862315	121.64895	2022-09-14
+Ende	""	Indonesia	-8.845699	121.64274	Ende	Nusa Tenggara Timur	ID	-8.862315	121.64895	2022-09-14
+Baa	""	Indonesia	-10.73334	123.03526	Kupang	Nusa Tenggara Timur	ID	-10.178669	123.582985	2022-09-14
+Kupang	""	Indonesia	-10.183332	123.58331	Kupang	Nusa Tenggara Timur	ID	-10.178669	123.582985	2022-09-14
+Tual	""	Indonesia	-5.626578	132.75208	Nabire	Papua	ID	-3.3515408	135.51343	2022-09-14
+Nabire	""	Indonesia	-3.3722339	135.50163	Nabire	Papua	ID	-3.3515408	135.51343	2022-09-14
+Kaimana	""	Indonesia	-3.6793535	133.79149	Nabire	Papua	ID	-3.3515408	135.51343	2022-09-14
+Kep. Aru	""	Indonesia	-6.194645	134.55017	Timika	Papua	ID	-4.5496073	136.88998	2022-09-14
+Timika	""	Indonesia	-4.550311	136.88957	Timika	Papua	ID	-4.5496073	136.88998	2022-09-14
+Agats	""	Indonesia	-5.5356293	138.12137	Timika	Papua	ID	-4.5496073	136.88998	2022-09-14
+Kota Mappi	""	Indonesia	-7.1024528	139.39651	Merauke	Papua	ID	-8.493191	140.40181	2022-09-14
+Merauke	""	Indonesia	-8.499087	140.40506	Merauke	Papua	ID	-8.493191	140.40181	2022-09-14
+Yapen	""	Indonesia	-1.756123	136.15698	Biak	Papua	ID	-1.1614937	136.04848	2022-09-14
+Supiori	""	Indonesia	-0.7295113	135.63853	Biak	Papua	ID	-1.1614937	136.04848	2022-09-14
+Biak	""	Indonesia	-1.1634717	136.0533	Biak	Papua	ID	-1.1614937	136.04848	2022-09-14
+Manokwari	""	Indonesia	-0.8614687	134.06204	Manokwari	Irian Jaya Barat	ID	-0.87112385	134.06927	2022-09-14
+Teluk	""	Indonesia	-2.2023737	133.48213	Manokwari	Irian Jaya Barat	ID	-0.87112385	134.06927	2022-09-14
+Fakfak	""	Indonesia	-3.09777	133.01941	Manokwari	Irian Jaya Barat	ID	-0.87112385	134.06927	2022-09-14
+Balikpapan	""	Indonesia	-1.2653652	116.83119	Balikpapan	Kalimantan Timur	ID	-1.2500155	116.83002	2022-09-14
+Tarakan	""	Indonesia	3.3273468	117.57851	Tarakan	Kalimantan Timur	ID	3.3000169	117.63302	2022-09-14
+Tanjung Selor	""	Indonesia	2.5720315	117.81943	Tarakan	Kalimantan Timur	ID	3.3000169	117.63302	2022-09-14
+Madura	""	Indonesia	-6.902285	113.28346	Sumenep	Jawa Timur	ID	-7.0049095	113.84963	2022-09-14
+Bomba	""	Belize	17.925613	-88.29446	Orange Walk	Orange Walk	BZ	18.090431	-88.55998	2022-09-14
+San Pedro	""	Belize	17.911037	-87.97834	Belize City	Belize	BZ	17.49871	-88.18838	2022-09-14
+Belize City	""	Belize	17.495546	-88.18161	Belize City	Belize	BZ	17.49871	-88.18838	2022-09-14
+São Mateus	""	Brazil	-18.716705	-39.859127	São Mateus	Espírito Santo	BR	-18.72962	-39.85998	2022-09-14
+Porto Seguro	""	Brazil	-16.451086	-39.064693	Porto Seguro	Bahia	BR	-16.429605	-39.08003	2022-09-14
+Ilhéus	""	Brazil	-14.787976	-39.0477	Ilhéus	Bahia	BR	-14.780043	-39.050003	2022-09-14
+Salvador	""	Brazil	-12.969985	-38.504536	Salvador	Bahia	BR	-12.969972	-38.47999	2022-09-14
+Aracaju	""	Brazil	-10.909604	-37.074802	Aracaju	Sergipe	BR	-10.900021	-37.11997	2022-09-14
+Maceió	""	Brazil	-9.666469	-35.73496	Maceió	Alagoas	BR	-9.619995	-35.729973	2022-09-14
+Recife	""	Brazil	-8.055335	-34.87197	Recife	Pernambuco	BR	-8.075645	-34.915604	2022-09-14
+João Pessoa	""	Brazil	-7.115293	-34.861034	João Pessoa	Paraíba	BR	-7.1011353	-34.876072	2022-09-14
+Natal	""	Brazil	-5.7948303	-35.21118	Natal	Rio Grande do Norte	BR	-5.780023	-35.240005	2022-09-14
+Rio de Janeiro	""	Brazil	-22.903395	-43.209564	Rio de Janeiro	Rio de Janeiro	BR	-22.925024	-43.22502	2022-09-14
+Vitória	""	Brazil	-20.294018	-40.301655	Vitória	Espírito Santo	BR	-20.323994	-40.365997	2022-09-14
+Macaé	""	Brazil	-22.371805	-41.785637	Macaé	Rio de Janeiro	BR	-22.379992	-41.789993	2022-09-14
+Sitio	""	Brazil	-11.846665	-37.570503	Estância	Sergipe	BR	-11.26961	-37.450024	2022-09-14
+Atafona	""	Brazil	-21.63116	-41.02724	Campos	Rio de Janeiro	BR	-21.749952	-41.320023	2022-09-14
+Jayapura	""	Indonesia	-2.5915606	140.66911	Jayapura	Papua	ID	-2.5329862	140.69998	2022-09-14
+Sarmi	""	Indonesia	-2.1752353	139.3533	Jayapura	Papua	ID	-2.5329862	140.69998	2022-09-14
+Sorong	""	Indonesia	-0.88207173	131.2954	Sorong	Irian Jaya Barat	ID	-0.8554142	131.285	2022-09-14
+Waisai	""	Indonesia	-0.3833614	130.8576	Sorong	Irian Jaya Barat	ID	-0.8554142	131.285	2022-09-14
+Masohi	""	Indonesia	-3.297836	128.95526	Amahai	Maluku	ID	-3.3281314	128.94049	2022-09-14
+Bandaneria	""	Indonesia	-4.520181	129.87206	Amahai	Maluku	ID	-3.3281314	128.94049	2022-09-14
+Farsund	""	Norway	58.08277	6.752804	Kristiansand	Vest-Agder	NO	58.16664	8.000018	2022-09-14
+Kristiansand	""	Norway	58.150955	7.99626	Kristiansand	Vest-Agder	NO	58.16664	8.000018	2022-09-14
+Tachognya Beach	Tinian	Northern Mariana Islands	14.958771	145.62927	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Sugar Dock	Saipan	Northern Mariana Islands	15.151812	145.69958	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Tinian	""	Northern Mariana Islands	15.011127	145.63747	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Saipan	""	Northern Mariana Islands	15.1777315	145.75095	Capitol Hill	""	MP	15.211254	145.75058	2022-09-14
+Utqiaġvik	AK	United States	71.29055	-156.78864	Utqiaġvik	Alaska	US	71.29057	-156.78857	2022-09-14
+Point Hope	AK	United States	68.34777	-166.80807	Point Hope	Alaska	US	68.347725	-166.80801	2022-09-14
+Wainwright	AK	United States	70.63695	-160.03835	Wainwright	Alaska	US	70.63689	-160.0383	2022-09-14
+Kotzebue	AK	United States	66.898346	-162.59666	Kotzebue	Alaska	US	66.89869	-162.5966	2022-09-14
+Nome	AK	United States	64.501114	-165.4064	Nome	Alaska	US	64.5061	-165.40637	2022-09-14
+Prudhoe Bay	AK	United States	70.25564	-148.33844	Prudhoe Bay	Alaska	US	70.29218	-148.66936	2022-09-14
+Cabo Espiritu Santo 	""	Argentina	-52.658894	-68.60578	Río Gallegos	Santa Cruz	AR	-51.633297	-69.21658	2022-09-14
+Punta Dungeness	""	Argentina	-52.39023	-68.419754	Río Gallegos	Santa Cruz	AR	-51.633297	-69.21658	2022-09-14
+Mangawhai	""	New Zealand	-36.126152	174.57446	Whangarei	Northland	NZ	-35.72557	174.32297	2022-09-14
+Bosaso	""	Somalia	11.275568	49.18793	Boosaaso	Bari	SO	11.280021	49.179985	2022-09-14
+Chipiona	""	Spain	36.731308	-6.4288764	Cádiz	Andalucía	ES	36.534992	-6.225005	2022-09-14
+Rota	""	Spain	36.62627	-6.363007	Cádiz	Andalucía	ES	36.534992	-6.225005	2022-09-14
+Conil	""	Spain	36.27656	-6.087226	Cádiz	Andalucía	ES	36.534992	-6.225005	2022-09-14
+Skagway	AK	United States	59.458344	-135.31389	Skagway	Alaska	US	59.45832	-135.31389	2022-09-14
+Haines	AK	United States	59.235832	-135.44499	Skagway	Alaska	US	59.45832	-135.31389	2022-09-14
+Skaill	""	United Kingdom	59.051456	-3.3549526	Kirkwall	Moray	GB	58.96698	-2.9500115	2022-09-14
+Bay of Tuquoy	""	United Kingdom	59.279766	-2.9395232	Kirkwall	Moray	GB	58.96698	-2.9500115	2022-09-14
+Aikerness Bay	""	United Kingdom	59.118042	-3.095076	Kirkwall	Moray	GB	58.96698	-2.9500115	2022-09-14
+Glen Lyon	""	United Kingdom	60.333073	-4.333419	Kirkwall	Moray	GB	58.96698	-2.9500115	2022-09-14
+Ayre of Cara	""	United Kingdom	58.83327	-2.900119	Kirkwall	Moray	GB	58.96698	-2.9500115	2022-09-14
+Dunnet Head	""	United Kingdom	58.67033	-3.3765836	Wick	Highland	GB	58.433292	-3.0833626	2022-09-14
+Dunnet Bay	""	United Kingdom	58.61531	-3.3462124	Wick	Highland	GB	58.433292	-3.0833626	2022-09-14
+Aberdeen	""	United Kingdom	57.153793	-2.1068091	Aberdeen	Aberdeen	GB	57.1704	-2.079987	2022-09-14
+Banff	""	United Kingdom	57.666866	-2.5236545	Aberdeen	Aberdeen	GB	57.1704	-2.079987	2022-09-14
+Sungai Kakap	""	Indonesia	-0.06705588	109.1832	Pontianak	Kalimantan Barat	ID	-0.029986553	109.319984	2022-09-14
+Pontianak	""	Indonesia	-0.027407486	109.33545	Pontianak	Kalimantan Barat	ID	-0.029986553	109.319984	2022-09-14
+Ketapang	""	Indonesia	-1.8591233	109.97187	Pontianak	Kalimantan Barat	ID	-0.029986553	109.319984	2022-09-14
+Pekanbaru	""	Indonesia	0.5333388	101.450005	Pekanbaru	Riau	ID	0.56496423	101.42501	2022-09-14
+Bandar Lampung	""	Indonesia	-5.4092913	105.254105	Bandar Lampung	Lampung	ID	-5.430019	105.27	2022-09-14
+Padang	""	Indonesia	-0.94386804	100.361626	Padang	Sumatera Barat	ID	-0.9600073	100.360016	2022-09-14
+Baturaja	""	Indonesia	-5.0403237	103.83897	Kotabumi	Lampung	ID	-4.833311	104.899994	2022-09-14
+Teping Tinggi	""	Indonesia	3.3806	99.208206	Tebingtinggi	Sumatera Utara	ID	3.3303769	99.13001	2022-09-14
+Rantu Prapat	""	Indonesia	2.105137	99.827835	Tarutung	Sumatera Utara	ID	2.017072	98.96666	2022-09-14
+Sibolga	""	Indonesia	1.7478085	98.78663	Sibolga	Sumatera Utara	ID	1.7499824	98.8	2022-09-14
+Linao	""	Chile	-41.99113	-73.50446	Ancud	Los Lagos	CL	-41.869965	-73.82997	2022-09-14
+Meimen	""	Chile	-41.806923	-73.1553	Calbuco	Los Lagos	CL	-41.7522	-73.141594	2022-09-14
+Kota Kinabalu	""	Malaysia	5.9813356	116.07431	Kota Kinabalu	Sabah	MY	5.9799824	116.11001	2022-09-14
+Miri	""	Malaysia	4.4252996	114.007416	Miri	Sarawak	MY	4.399924	113.984505	2022-09-14
+Bintulu	""	Malaysia	3.1970043	113.06835	Bintulu	Sarawak	MY	3.1664076	113.03598	2022-09-14
+Largs	""	United Kingdom	55.793343	-4.8673053	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Kilchatten Bay	""	United Kingdom	55.751842	-5.028096	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Otter Ferry	""	United Kingdom	56.008286	-5.321211	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Achnaba	""	United Kingdom	56.01942	-5.3657913	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Ardnacross	""	United Kingdom	55.476547	-5.5334177	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Down Craig	""	United Kingdom	55.780155	-4.9004593	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Corrie	""	United Kingdom	55.64365	-5.141426	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Ardneil Bay	""	United Kingdom	55.693047	-4.889375	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Craighouse	""	United Kingdom	55.83367	-5.953828	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Ormsary	""	United Kingdom	55.89168	-5.61457	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Portachur Point	""	United Kingdom	55.742767	-4.9438677	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Ardbeg Point	""	United Kingdom	55.85859	-5.063594	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Ardyne Point	""	United Kingdom	55.86941	-5.0199904	Greenock	Inverclyde	GB	55.93329	-4.750031	2022-09-14
+Kilchoan Ferry	""	United Kingdom	56.688572	-6.0939646	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Tobermory	""	United Kingdom	56.62185	-6.070283	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Duart Bay	""	United Kingdom	56.455837	-5.6693554	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Ganavan Bay	""	United Kingdom	56.437763	-5.475801	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Corran	""	United Kingdom	56.722527	-5.245381	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Branahuie Bay	""	United Kingdom	58.20906	-6.310761	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Leverburgh	""	United Kingdom	57.769405	-7.008368	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Lochmaddy	""	United Kingdom	57.603695	-7.163348	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Dunvegan	""	United Kingdom	57.43632	-6.5816593	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Sandwick Village	""	United Kingdom	57.366695	-7.2741394	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Ardvasar	""	United Kingdom	57.059372	-5.9064646	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Mallaigvaig	""	United Kingdom	57.008476	-5.8204293	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Calgary	""	United Kingdom	56.582123	-6.2723823	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Ardgour	""	United Kingdom	56.72157	-5.233662	Fort William	Highland	GB	56.81648	-5.112076	2022-09-14
+Ardmair	""	United Kingdom	57.93408	-5.1962113	Inverness	Highland	GB	57.467125	-4.2332664	2022-09-14
+Scarinish	""	United Kingdom	56.503788	-6.8085146	Londonderry	Derry	GB	55.000374	-7.333284	2022-09-14
+Ludag	""	United Kingdom	57.105534	-7.328143	Londonderry	Derry	GB	55.000374	-7.333284	2022-09-14
+Balla	""	United Kingdom	57.081524	-7.312176	Londonderry	Derry	GB	55.000374	-7.333284	2022-09-14
+North Bay	""	United Kingdom	57.02529	-7.449481	Londonderry	Derry	GB	55.000374	-7.333284	2022-09-14
+Coilleag	""	United Kingdom	57.073612	-7.3022156	Londonderry	Derry	GB	55.000374	-7.333284	2022-09-14
+Ola	""	Russia	59.583344	151.28337	Magadan	Maga Buryatdan	RU	59.57498	150.81001	2022-09-14
+Okha	""	Russia	53.57755	142.94246	Okha	Sakhalin	RU	53.5739	142.94786	2022-09-14
+Ust-Bolsheretsk	""	Russia	52.812416	156.28708	Oktyabrskiy	Kamchatka	RU	52.663593	156.23872	2022-09-14
+Porthcressa Beach	""	United Kingdom	49.919907	-6.308173	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Whitesands Bay	""	United Kingdom	50.078518	-5.698457	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Porthcurno	""	United Kingdom	50.04305	-5.6545115	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Goonhilly Downs	""	United Kingdom	50.024803	-5.1745315	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Skewjack	""	United Kingdom	50.06356	-5.6750684	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Sennen Cove	""	United Kingdom	50.076057	-5.69875	Penzance	Cornwall	GB	50.13372	-5.5500336	2022-09-14
+Rayong	""	Thailand	12.670663	101.27734	Rayong	Rayong	TH	12.671848	101.281456	2022-09-14
+Cherating	""	Malaysia	4.1302385	103.393654	Chukai	Trengganu	MY	4.2332416	103.44788	2022-09-14
+Ilyich	""	Russia	45.423607	36.770847	Kerch	Crimea	RU	45.368507	36.4881	2022-09-14
+Kerch	""	Ukraine	45.356983	36.47739	Berdyansk	Zaporizhzhya	UA	46.75682	36.78684	2022-09-14
+Domburg	""	Netherlands	51.563953	3.4961655	Middelburg	Zeeland	NL	51.501995	3.6099997	2022-09-14
+Port Hedland	WA	Australia	-20.313457	118.57724	Port Hedland	Western Australia	AU	-20.310402	118.60603	2022-09-14
+Igiugig	AK	United States	59.3278	-155.89474	King Salmon	Alaska	US	58.6887	-156.66138	2022-09-14
+Port Alsworth	AK	United States	60.20037	-154.33693	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Fish Camp	AK	United States	59.9492	-154.85886	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Nondalton	AK	United States	59.97265	-154.84772	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Newhalen	AK	United States	59.718143	-154.89978	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Kokhanok	AK	United States	59.442158	-154.75275	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Pile Bay	AK	United States	59.776054	-153.8805	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Illiamna	AK	United States	59.754765	-154.90613	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Pedro Bay	AK	United States	59.787212	-154.10612	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+Williamsport	AK	United States	59.682404	-153.63214	Newhalen	Alaska	US	59.720345	-154.8972	2022-09-14
+McHugh Point	AK	United States	61.015713	-149.7322	Anchorage	Alaska	US	61.21997	-149.9002	2022-09-14
+Anchorage	AK	United States	61.21746	-149.85837	Anchorage	Alaska	US	61.21997	-149.9002	2022-09-14
+Portage	AK	United States	60.82829	-148.98982	Whittier	Alaska	US	60.784157	-148.67767	2022-09-14
+Whittier	AK	United States	60.77293	-148.68474	Whittier	Alaska	US	60.784157	-148.67767	2022-09-14
+Kuakata	""	Bangladesh	21.816736	90.116615	Barisal	Barisal	BD	22.700409	90.37499	2022-09-14
+Ngwe Saung	""	Myanmar	16.858028	94.39122	Pathein	Ayeyarwady	MM	16.770409	94.74997	2022-09-14
+Toulon	""	France	43.125294	5.9303436	Toulon	Provence-Alpes-Côte-d''Azur	FR	43.134186	5.9188213	2022-09-14
+La Seyne	""	France	43.10291	5.8780975	Toulon	Provence-Alpes-Côte-d''Azur	FR	43.134186	5.9188213	2022-09-14
+Al Bustan	""	Oman	23.576086	58.606087	Muscat	Muscat	OM	23.613325	58.59331	2022-09-14
+Muscat	""	Oman	23.615093	58.59105	Muscat	Muscat	OM	23.613325	58.59331	2022-09-14
+Qalhat	""	Oman	23.615093	58.59105	Muscat	Muscat	OM	23.613325	58.59331	2022-09-14
+Butterworth	""	Malaysia	5.420857	100.373215	Butterworth	Pulau Pinang	MY	5.4170713	100.40001	2022-09-14
+Buenaventura	""	Colombia	3.8836749	-77.0403	Buenaventura	Valle del Cauca	CO	3.8724024	-77.05045	2022-09-14
+Puerto Chacabuco	""	Chile	-45.4583	-72.8051	Puerto Aisén	Ais	CL	-45.39993	-72.70002	2022-09-14
+Quellon	""	Chile	-43.117474	-73.47946	Quellón	Los Lagos	CL	-43.099606	-73.59999	2022-09-14
+Fomboni Moheli	""	Comoros	-12.288237	43.739594	Moroni	""	KM	-11.704158	43.240246	2022-09-14
+Chindini	""	Comoros	-11.923498	43.489105	Moroni	""	KM	-11.704158	43.240246	2022-09-14
+Moroni	""	Comoros	-11.700694	43.243404	Moroni	""	KM	-11.704158	43.240246	2022-09-14
+Angra do Heroismo	""	Portugal	38.658524	-27.215824	Angra do Heroísmo	Azores	PT	38.65039	-27.21667	2022-09-14
+Graciosa	""	Portugal	39.01103	-27.96348	Angra do Heroísmo	Azores	PT	38.65039	-27.21667	2022-09-14
+Vila do Porto	""	Portugal	36.956764	-25.141266	Ponta Delgada	Azores	PT	37.748302	-25.666584	2022-09-14
+Ponta Delgada	""	Portugal	37.739216	-25.668755	Ponta Delgada	Azores	PT	37.748302	-25.666584	2022-09-14
+Sao Mateus	""	Portugal	38.43229	-28.461233	Horta	Azores	PT	38.534657	-28.644756	2022-09-14
+Velas	""	Portugal	38.683846	-28.213186	Horta	Azores	PT	38.534657	-28.644756	2022-09-14
+Faial	""	Portugal	38.5251	-28.647562	Horta	Azores	PT	38.534657	-28.644756	2022-09-14
+Corvo	""	Portugal	39.671936	-31.110548	Horta	Azores	PT	38.534657	-28.644756	2022-09-14
+Flores	""	Portugal	39.46221	-31.128517	Horta	Azores	PT	38.534657	-28.644756	2022-09-14
+Porto Santo	""	Portugal	33.047318	-16.347668	Funchal	Madeira	PT	32.649982	-16.88004	2022-09-14
+Funchal	""	Portugal	32.646866	-16.908947	Funchal	Madeira	PT	32.649982	-16.88004	2022-09-14
+Kaliko	""	Haiti	18.864588	-72.60871	Port-au-Prince	Ouest	HT	18.541025	-72.33604	2022-09-14
+Port-au-Prince	""	Haiti	18.542692	-72.34314	Port-au-Prince	Ouest	HT	18.541025	-72.33604	2022-09-14
+Santiago de Cuba	""	Cuba	20.028793	-75.82897	Santiago de Cuba	Santiago de Cuba	CU	20.025017	-75.82133	2022-09-14
+Siboney	""	Cuba	19.963638	-75.71237	Santiago de Cuba	Santiago de Cuba	CU	20.025017	-75.82133	2022-09-14
+Killala	""	Ireland	54.20683	-9.232195	Sligo	Sligo	IE	54.26706	-8.483317	2022-09-14
+Cork	""	Ireland	51.898335	-8.472772	Cork	Cork	IE	51.8986	-8.495771	2022-09-14
+Hillsboro	OR	United States	45.5229	-122.9898	Portland	Oregon	US	45.520023	-122.67999	2022-09-14
+Blackpool Sands	""	United Kingdom	50.31883	-3.6109095	Exeter	Devon	GB	50.700405	-3.5299501	2022-09-14
+Dartmouth	""	United Kingdom	50.35174	-3.5783901	Exeter	Devon	GB	50.700405	-3.5299501	2022-09-14
+Labuan Bajo	""	Indonesia	-8.475551	119.90756	Ruteng	Nusa Tenggara Timur	ID	-8.61184	120.46985	2022-09-14
+El-Quawef	""	Libya	31.760813	25.08736	Tubruq	Al Butnan	LY	32.07999	23.960026	2022-09-14
+Sihanoukville	""	Cambodia	10.630006	103.506645	Kampot	Kâmpôt	KH	10.617089	104.18335	2022-09-14
+Pankalan	""	Indonesia	-2.8496673	111.75292	Sampit	Kalimantan Tengah	ID	-2.5329347	112.95004	2022-09-14
+Banjarmasin	""	Indonesia	-3.3279614	114.604	Bandjarmasin	Kalimantan Selatan	ID	-3.3299918	114.58008	2022-09-14
+Klagshamn	""	Sweden	55.533295	12.916667	Malmö	Skåne	SE	55.583336	13.033302	2022-09-14
+Velling	""	Sweden	55.47106	12.963835	Malmö	Skåne	SE	55.583336	13.033302	2022-09-14
+Bunkeflostand	""	Sweden	55.55681	12.918717	Malmö	Skåne	SE	55.583336	13.033302	2022-09-14
+Barsebäck	""	Sweden	55.77038	12.955436	Malmö	Skåne	SE	55.583336	13.033302	2022-09-14
+Nybor	""	Denmark	55.3241	10.79948	Svendborg	Syddanmark	DK	55.070423	10.616654	2022-09-14
+Puttgarden	""	Germany	54.496063	11.212469	Kiel	Schleswig-Holstein	DE	54.33039	10.130017	2022-09-14
+Korsor	""	Denmark	55.325756	11.149383	Sorø	Sjaælland	DK	55.433	11.566702	2022-09-14
+Rodbyhavn	""	Denmark	54.66307	11.35866	Sorø	Sjaælland	DK	55.433	11.566702	2022-09-14
+Rostock	""	Germany	54.07889	12.13239	Rostock	Mecklenburg-Vorpommern	DE	54.07038	12.149997	2022-09-14
+Markgrafenheide	""	Germany	54.191406	12.14948	Rostock	Mecklenburg-Vorpommern	DE	54.07038	12.149997	2022-09-14
+Gedser	""	Denmark	54.57635	11.928972	Sorø	Sjaælland	DK	55.433	11.566702	2022-09-14
+Kristinelund	""	Sweden	56.134735	12.588639	Helsingborg	Skåne	SE	56.05049	12.700041	2022-09-14
+Alsgarde	""	Denmark	56.074883	12.536881	Hillerød	Hovedstaden	DK	55.9333	12.316698	2022-09-14
+Helsingborg	""	Sweden	56.043842	12.695866	Helsingborg	Skåne	SE	56.05049	12.700041	2022-09-14
+Helsingør	""	Denmark	56.030437	12.592155	Hillerød	Hovedstaden	DK	55.9333	12.316698	2022-09-14
+Mosede	""	Denmark	55.57585	12.273015	Roskilde	Sjaælland	DK	55.649975	12.083335	2022-09-14
+Silecroft Beach	""	United Kingdom	54.21063	-3.3571498	Blackpool	Lancashire	GB	53.830395	-3.0500054	2022-09-14
+Southport	""	United Kingdom	53.64793	-3.0063689	Blackpool	Lancashire	GB	53.830395	-3.0500054	2022-09-14
+Blackpool	""	United Kingdom	53.80866	-3.0507536	Blackpool	Lancashire	GB	53.830395	-3.0500054	2022-09-14
+Port Gentil	""	Gabon	-0.7210403	8.781611	Port-Gentil	Ogooué-Maritime	GA	-0.72002196	8.780022	2022-09-14
+Tubruq	""	Libya	32.079605	23.960312	Tubruq	Al Butnan	LY	32.07999	23.960026	2022-09-14
+Al Bayda	""	Libya	32.88173	21.741661	Shahhat	Al Jabal al Akhdar	LY	32.828136	21.86217	2022-09-14
+Tolmeta	""	Libya	32.716732	20.949963	Al Marj	Al Hizam Al Akhdar	LY	32.500458	20.829985	2022-09-14
+Benghazi	""	Libya	32.116585	20.06676	Banghazi	Benghazi	LY	32.116734	20.066723	2022-09-14
+Brega	""	Libya	30.378109	19.576525	El Agheila	Ajdabiya	LY	30.257029	19.200006	2022-09-14
+Ras Lanuf	""	Libya	30.586737	18.411877	As Sidr	Surt	LY	30.670414	18.266626	2022-09-14
+Sirte	""	Libya	31.205252	16.588345	Surt	Surt	LY	31.209993	16.590036	2022-09-14
+Misrata	""	Libya	32.37428	15.09479	Misratah	Misratah	LY	32.379974	15.0999975	2022-09-14
+Al Khums	""	Libya	32.649662	14.26442	Al Khums	Al Marqab	LY	32.66042	14.259997	2022-09-14
+Zawia	""	Libya	32.77472	12.529753	Az Zawiyah	Az Zawiyah	LY	32.760414	12.719988	2022-09-14
+Zuwara	""	Libya	32.93338	12.083366	Zuwarah	An Nuqat al Khams	LY	32.93441	12.079148	2022-09-14
+Hermosa Beach	CA	United States	33.862232	-118.39955	Long Beach	California	US	33.78697	-118.15804	2022-09-14
+Redondo Beach	CA	United States	33.84447	-118.38802	Long Beach	California	US	33.78697	-118.15804	2022-09-14
+Sandy Point	VIC	Australia	-38.820183	146.11969	Wonthaggi	Victoria	AU	-38.609493	145.59001	2022-09-14
+Inverloch	VIC	Australia	-38.633453	145.72946	Wonthaggi	Victoria	AU	-38.609493	145.59001	2022-09-14
+Four Mile Bluff	TAS	Australia	-41.033276	146.85016	Launceston	Tasmania	AU	-41.449837	147.13019	2022-09-14
+McGaurans Beach	VIC	Australia	-38.443615	147.07126	Sale	Victoria	AU	-38.109573	147.06001	2022-09-14
+Stanley	TAS	Australia	-40.760376	145.29411	Smithton	Tasmania	AU	-40.832924	145.11667	2022-09-14
+Boat Harbour	TAS	Australia	-40.950867	145.6238	Burnie	Tasmania	AU	-41.066605	145.91667	2022-09-14
+Balboa	""	Panama	8.950027	-79.56668	Balboa	Panama	PA	8.949982	-79.56665	2022-09-14
+Fort Amador	""	Panama	8.93411	-79.54673	Balboa	Panama	PA	8.949982	-79.56665	2022-09-14
+Hudishibana	""	Aruba	12.616634	-70.04997	Oranjestad	""	AW	12.530384	-70.02899	2022-09-14
+Baby Beach	""	Aruba	12.414142	-69.878685	Oranjestad	""	AW	12.530384	-70.02899	2022-09-14
+South Arne	""	Denmark	56.07829	4.2283916	Esbjerg	Syddanmark	DK	55.46704	8.450016	2022-09-14
+Tjornuvik	""	Faroe Islands	62.28992	-7.147235	Tórshavn	Eysturoyar	FO	62.030025	-6.8200336	2022-09-14
+Funningsfjordur	""	Faroe Islands	62.244106	-6.9281435	Tórshavn	Eysturoyar	FO	62.030025	-6.8200336	2022-09-14
+Torshavn	""	Faroe Islands	62.01746	-6.771845	Tórshavn	Eysturoyar	FO	62.030025	-6.8200336	2022-09-14
+Ajaccio	""	France	41.91933	8.738643	Ajaccio	Corse	FR	41.927063	8.728293	2022-09-14
+Cannes	""	France	43.55293	7.0173545	Nice	Provence-Alpes-Côte-d''Azur	FR	43.71502	7.265024	2022-09-14
+Monte Carlo	""	Monaco	43.73973	7.4272175	Monaco	""	MC	43.739647	7.4069133	2022-09-14
+Monaco	""	Monaco	43.73262	7.417647	Monaco	""	MC	43.739647	7.4069133	2022-09-14
+Umag	""	Croatia	45.43311	13.520182	Pula	Istarska	HR	44.86872	13.848084	2022-09-14
+Mestre	""	Italy	45.495872	12.244108	Venice	Veneto	IT	45.43866	12.334999	2022-09-14
+Vaasa	""	Finland	63.095196	21.616367	Vaasa	Western Finland	FI	63.099983	21.600014	2022-09-14
+Umeå	""	Sweden	63.82587	20.26295	Umeå	Västerbotten	SE	63.82999	20.239994	2022-09-14
+Meremöisa	""	Estonia	59.40085	24.276619	Tallinn	Harju	EE	59.433876	24.72804	2022-09-14
+Tallinn	""	Estonia	59.4362	24.752401	Tallinn	Harju	EE	59.433876	24.72804	2022-09-14
+Mielno	""	Poland	54.25995	16.06227	Koszalin	West Pomeranian	PL	54.2	16.183332	2022-09-14
+Kolobrzeg	""	Poland	54.172344	15.574868	Koszalin	West Pomeranian	PL	54.2	16.183332	2022-09-14
+Gedebak Odde	""	Denmark	55.012592	14.966665	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Pedersker	""	Denmark	55.030926	14.992153	København	Hovedstaden	DK	55.678566	12.563486	2022-09-14
+Santo Domingo	""	Dominican Republic	18.500004	-69.98328	Santo Domingo	Distrito Nacional	DO	18.470074	-69.900085	2022-09-14
+Dubrovnik	""	Croatia	42.64186	18.10641	Dubrovnik	Dubrovacko-Neretvanska	HR	42.660946	18.09139	2022-09-14
+Durres	""	Albania	41.316692	19.45006	Durrës	Durrës	AL	41.3178	19.448208	2022-09-14
+Castries	""	Saint Lucia	13.994222	-61.006817	Castries	""	LC	14.001973	-61.000008	2022-09-14
+Rodney Bay	""	Saint Lucia	14.035627	-60.988556	Castries	""	LC	14.001973	-61.000008	2022-09-14
+Roseau	""	Dominica	15.2518	-61.37073	Roseau	Saint George	DM	15.301016	-61.387012	2022-09-14
+Canefield	""	Dominica	15.303329	-61.384842	Roseau	Saint George	DM	15.301016	-61.387012	2022-09-14
+Cagliari	""	Italy	39.21531	9.109345	Cagliari	Sardegna	IT	39.222397	9.103981	2022-09-14
+Civitavecchia	""	Italy	42.09113	11.796844	Civitavecchia	Lazio	IT	42.100414	11.799993	2022-09-14
+Khark Island	""	Iran	29.245773	50.31205	Bandar-e Bushehr	Bushehr	IR	28.919977	50.830013	2022-09-14
+Soroosh Platform	""	Iran	29.072485	49.478065	Bandar-e Bushehr	Bushehr	IR	28.919977	50.830013	2022-09-14
+Ganaveh	""	Iran	29.57075	50.521133	Bandar-e Bushehr	Bushehr	IR	28.919977	50.830013	2022-09-14
+Bushehr	""	Iran	28.97001	50.842712	Bandar-e Bushehr	Bushehr	IR	28.919977	50.830013	2022-09-14
+Diba	""	Oman	25.616974	56.25804	Suhar	Al Batnah	OM	24.361973	56.73442	2022-09-14
+Khasab	""	Oman	26.181307	56.24681	Suhar	Al Batnah	OM	24.361973	56.73442	2022-09-14
+West Palm Beach	FL	United States	26.715359	-80.053345	West Palm Beach	Florida	US	26.74502	-80.12362	2022-09-14
+Samandag	""	Turkey	36.082336	35.999268	Samandagi	Hatay	TR	36.117058	35.9333	2022-09-14
+Girne	""	Cyprus	35.29912	33.236282	Nicosia	""	CY	35.166676	33.366634	2022-09-14
+Bozyazi	""	Turkey	36.1	32.9667	Karaman	Karaman	TR	37.18154	33.215015	2022-09-14
+St. Ouens Bay	""	Jersey	49.21571	-2.2259007	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Archirondel	""	Jersey	49.225277	-2.021311	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Surville	""	France	49.28329	-1.6500223	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Greve de Lecq	""	Jersey	49.247948	-2.201438	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Havelet Bay	""	Guernsey	49.45099	-2.5295138	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+L''Ancresse Bay	""	Guernsey	49.50339	-2.533469	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Pembroke	""	Guernsey	49.509544	-2.5376194	Cherbourg	Basse-Normandie	FR	49.65039	-1.6499875	2022-09-14
+Saints Bay	""	Guernsey	49.423325	-2.5580294	St.-Brieuc	Bretagne	FR	48.516663	-2.7833033	2022-09-14
+Lannion	""	France	48.730255	-3.459933	St.-Brieuc	Bretagne	FR	48.516663	-2.7833033	2022-09-14
+Plerin	""	France	48.534744	-2.7680879	St.-Brieuc	Bretagne	FR	48.516663	-2.7833033	2022-09-14
+Malabo	""	Equatorial Guinea	3.7497928	8.783369	Malabo	Bioko Norte	GQ	3.7500153	8.7832775	2022-09-14
+Port Nelson	""	Bahamas	23.652143	-74.840546	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Clarence Town	""	Bahamas	23.098343	-74.96618	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Duncan Town	""	Bahamas	22.183262	-75.73347	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Crooked Island	""	Bahamas	22.629711	-74.19499	Nassau	""	BS	25.08339	-77.350044	2022-09-14
+Mayaguana	""	Bahamas	22.401566	-73.06413	Grand Turk	""	TC	21.466427	-71.13598	2022-09-14
+Providenciales	""	Turks and Caicos Islands	21.851091	-72.12024	Grand Turk	""	TC	21.466427	-71.13598	2022-09-14
+Grover Beach	CA	United States	35.120632	-120.62142	San Luis Obispo	California	US	35.28318	-120.65859	2022-09-14
+Morro Bay	CA	United States	35.36668	-120.847206	San Luis Obispo	California	US	35.28318	-120.65859	2022-09-14
+San Luis Obispo	CA	United States	35.285015	-120.66273	San Luis Obispo	California	US	35.28318	-120.65859	2022-09-14
+Brookhaven	NY	United States	40.773148	-72.91228	Bridgeport	Connecticut	US	41.179977	-73.19996	2022-09-14
+Shirley	NY	United States	40.800285	-72.87224	Bridgeport	Connecticut	US	41.179977	-73.19996	2022-09-14
+Bellport	NY	United States	40.755543	-72.93781	Bridgeport	Connecticut	US	41.179977	-73.19996	2022-09-14
+Tijuana	""	Mexico	32.53085	-117.03822	Tijuana	Baja California	MX	32.50002	-117.079994	2022-09-14
+Whenuapai	""	New Zealand	-36.788807	174.62338	Waitakere	Auckland	NZ	-36.852448	174.55428	2022-09-14
+Fortaleza	""	Brazil	-3.718834	-38.542965	Fortaleza	Ceará	BR	-3.750018	-38.579983	2022-09-14
+Maldonado	""	Uruguay	-34.90038	-54.95018	Maldonado	Maldonado	UY	-34.910027	-54.959988	2022-09-14
+Manchester	CA	United States	38.969208	-123.68695	Mendocino	California	US	39.307766	-123.79943	2022-09-14
+Estepona	""	Spain	36.4271	-5.1458693	Marbella	Andalucía	ES	36.51662	-4.8833303	2022-09-14
+Penang	""	Malaysia	5.3536487	100.36299	George Town	Pulau Pinang	MY	5.4136133	100.32937	2022-09-14
+Island Park	NY	United States	40.600304	-73.65593	New York	New York	US	40.74998	-73.98002	2022-09-14
+Taipa	""	China	22.156132	113.56103	Zhuhai	Guangdong	CN	22.276945	113.56778	2022-09-14
+Danang	""	Vietnam	16.05156	108.214745	Da Nang	Ðà N?ng	VN	16.06004	108.24997	2022-09-14
+Mersing	""	Malaysia	2.2955117	103.8499	Keluang	Johor	MY	2.038311	103.31787	2022-09-14
+Tuckerton	NJ	United States	39.603886	-74.33791	Atlantic City	New Jersey	US	39.364635	-74.423325	2022-09-14
+St. David’s	""	Bermuda	32.312233	-64.76951	Hamilton	""	BM	32.29419	-64.783936	2022-09-14
+Paget	""	Bermuda	32.280537	-64.7887	Hamilton	""	BM	32.29419	-64.783936	2022-09-14
+Boca Raton	FL	United States	26.350323	-80.08894	Coral Springs	Florida	US	26.270838	-80.27082	2022-09-14
+Spanish River Park	FL	United States	26.37806	-80.0677	Coral Springs	Florida	US	26.270838	-80.27082	2022-09-14
+Geoje	""	South Korea	34.89432	128.62117	Changwon	Gyeongsangnam-do	KR	35.2191	128.58356	2022-09-14
+Pyapon	""	Myanmar	16.2822	95.68194	Phyarpon	Ayeyarwady	MM	16.293255	95.682884	2022-09-14
+Cochin	""	India	9.938086	76.269554	Kochi	Kerala	IN	10.015008	76.223915	2022-09-14
+Marmaris	""	Turkey	36.85525	28.253668	Muğla	Mugla	TR	37.21637	28.363892	2022-09-14
+Penmarch	""	France	47.811314	-4.338692	Brest	Bretagne	FR	48.39044	-4.4950075	2022-09-14
+Puerto Plata	""	Dominican Republic	19.799343	-70.69123	Puerto Plata	Puerto Plata	DO	19.790216	-70.69025	2022-09-14
+Riohacha	""	Colombia	11.482909	-72.952705	Riohacha	La Guajira	CO	11.54034	-72.90998	2022-09-14
+Bluefields	""	Nicaragua	11.991778	-83.77146	Bluefields	Atlántico Sur	NI	11.999977	-83.764946	2022-09-14
+Puerto Lempira	""	Honduras	15.261221	-83.77676	Puerto Lempira	Gracias a Dios	HN	15.262026	-83.771645	2022-09-14
+Trujillo	""	Honduras	15.915151	-85.95476	Trujillo	Colón	HN	15.910358	-85.96001	2022-09-14
+Puerto Cortes	""	Honduras	15.844798	-87.94607	San Pedro Sula	Cortés	HN	15.500022	-88.02998	2022-09-14
+Puerto Barrios	""	Guatemala	15.727143	-88.59724	Puerto Barrios	Izabal	GT	15.717495	-88.59265	2022-09-14
+Halifax	NS	Canada	44.645798	-63.57395	Halifax	Nova Scotia	CA	44.650024	-63.600006	2022-09-14
+Lynn	MA	United States	42.46367	-70.950264	Salem	Massachusetts	US	42.5225	-70.883095	2022-09-14
+Puerto San Jose	""	Guatemala	13.934611	-90.82222	San Jose	Escuintla	GT	13.93973	-90.82003	2022-09-14
+Puerto Limon	""	Costa Rica	9.9886055	-83.037674	Puerto Limon	Limón	CR	10.000021	-83.03334	2022-09-14
+Vero Beach	FL	United States	27.63839	-80.394264	Vero Beach	Florida	US	27.642252	-80.39112	2022-09-14
+Eight-Mile Rock	""	Bahamas	26.539625	-78.802864	Freeport	""	BS	26.533276	-78.70001	2022-09-14
+Hawksbill	""	Bahamas	26.516909	-78.73685	Freeport	""	BS	26.533276	-78.70001	2022-09-14
+Crown Haven	""	Bahamas	26.912504	-77.82195	Freeport	""	BS	26.533276	-78.70001	2022-09-14
+Riding Point	""	Bahamas	26.703093	-78.151726	Freeport	""	BS	26.533276	-78.70001	2022-09-14
+Mazatlán	""	Mexico	23.199541	-106.42187	Mazatlán	Sinaloa	MX	23.2211	-106.42	2022-09-14
+Puerto Cabezas	""	Nicaragua	14.0216055	-83.39392	Puerto Cabezas	Atlántico Norte	NI	14.033341	-83.38337	2022-09-14
+Bandon	OR	United States	43.118557	-124.40823	Coos Bay	Oregon	US	43.366615	-124.21659	2022-09-14
+Florence	OR	United States	43.982136	-124.09984	Coos Bay	Oregon	US	43.366615	-124.21659	2022-09-14
+Punto Fijo	""	Venezuela	11.708793	-70.20426	Punto Fijo	Falcón	VE	11.719994	-70.210014	2022-09-14
+Coro	""	Venezuela	11.402807	-69.67782	Coro	Falcón	VE	11.420012	-69.67999	2022-09-14
+Puerto Cabello	""	Venezuela	10.4781275	-68.00958	Puerto Cabello	Carabobo	VE	10.470432	-68.17001	2022-09-14
+Chichiriviche	""	Venezuela	10.928573	-68.2845	Puerto Cabello	Carabobo	VE	10.470432	-68.17001	2022-09-14
+Camuri	""	Venezuela	10.606454	-66.8782	Maiquetía	Vargas	VE	10.600398	-66.96998	2022-09-14
+Puerto Viejo	""	Venezuela	10.611205	-67.02995	Maiquetía	Vargas	VE	10.600398	-66.96998	2022-09-14
+Maiquetia	""	Venezuela	10.599399	-66.96033	Maiquetía	Vargas	VE	10.600398	-66.96998	2022-09-14
+La Guaira	""	Venezuela	10.603154	-66.889626	Maiquetía	Vargas	VE	10.600398	-66.96998	2022-09-14
+Puerto La Cruz	""	Venezuela	10.2025385	-64.644875	Puerto la Cruz	Anzoátegui	VE	10.169959	-64.680016	2022-09-14
+Cumaná	""	Venezuela	10.454299	-64.18212	Cumaná	Sucre	VE	10.449994	-64.18002	2022-09-14
+Porlamar	""	Venezuela	10.955252	-63.84761	Porlamar	Nueva Esparta	VE	10.960376	-63.84999	2022-09-14
+Carúpano	""	Venezuela	10.6668	-63.250526	Carúpano	Sucre	VE	10.670007	-63.23	2022-09-14
+Maracaibo	""	Venezuela	10.688212	-71.59839	Maracaibo	Zulia	VE	10.729977	-71.65998	2022-09-14
+Cabimas	""	Venezuela	10.395952	-71.451096	Cabimas	Trujillo	VE	10.429996	-71.44999	2022-09-14
+Higuerote	""	Venezuela	10.480348	-66.09811	Altagracia de Orituco	Guárico	VE	9.850418	-66.37999	2022-09-14
+Catania	""	Italy	37.51159	15.067447	Catania	Sicily	IT	37.49997	15.079999	2022-09-14
+Haifa	""	Israel	32.811417	34.99878	Haifa	Haifa	IL	32.82041	34.980026	2022-09-14
+Sochi	""	Russia	43.615505	39.725826	Sochi	Krasnodar	RU	43.59001	39.72997	2022-09-14
+Poti	""	Georgia	42.150772	41.66762	Poti	Samegrelo-Zemo Svaneti	GE	42.155655	41.671604	2022-09-14
+Valdez	AK	United States	61.130352	-146.35335	Valdez	Alaska	US	61.135994	-146.34828	2022-09-14
+Juneau	AK	United States	58.299507	-134.40686	Juneau	Alaska	US	58.314125	-134.42	2022-09-14
+Lena Point	AK	United States	58.55094	-134.74728	Juneau	Alaska	US	58.314125	-134.42	2022-09-14
+Hawk Inlet	AK	United States	58.12811	-134.74182	Juneau	Alaska	US	58.314125	-134.42	2022-09-14
+Angoon	AK	United States	57.501842	-134.58224	Juneau	Alaska	US	58.314125	-134.42	2022-09-14
+Dubai	""	United Arab Emirates	25.26934	55.308434	Dubai	Dubay	AE	25.229996	55.279976	2022-09-14
+Half Moon Bay	""	Cayman Islands	19.282959	-81.16678	George Town	""	KY	19.280437	-81.32998	2022-09-14
+Cayman Brac	""	Cayman Islands	19.690332	-79.87764	George Town	""	KY	19.280437	-81.32998	2022-09-14
+Kårstø	""	Norway	59.279266	5.524387	Haugesund	Rogaland	NO	59.411915	5.277497	2022-09-14
+Novorossiysk	""	Russia	44.723633	37.7728	Novorossiysk	Krasnodar	RU	44.72997	37.76993	2022-09-14
+Kärdla	""	Estonia	59.00086	22.738047	Haapsalu	Lääne	EE	58.943054	23.54139	2022-09-14
+Cotonou	""	Benin	6.3565784	2.4399164	Cotonou	Ouémé	BJ	6.4000087	2.5199907	2022-09-14
+Douala	""	Cameroon	4.0471497	9.706317	Douala	Littoral	CM	4.0604095	9.709991	2022-09-14
+Kilmore Quay	""	Ireland	52.174583	-6.5841007	Waterford	Kilkenny	IE	52.258293	-7.111928	2022-09-14
+Ballygrangans	""	Ireland	52.184074	-6.558808	Waterford	Kilkenny	IE	52.258293	-7.111928	2022-09-14
+Ballinesker	""	Ireland	52.40146	-6.3648624	Waterford	Kilkenny	IE	52.258293	-7.111928	2022-09-14
+Lynnwood	WA	United States	47.823997	-122.31586	Everett	Washington	US	47.96042	-122.19997	2022-09-14
+Harbour Pointe	WA	United States	47.886215	-122.302185	Everett	Washington	US	47.96042	-122.19997	2022-09-14
+Toyohashi	""	Japan	34.76906	137.39157	Hamamatsu	Shizuoka	JP	34.718075	137.73271	2022-09-14
+Oxwich Bay	""	United Kingdom	51.557785	-4.1696005	Swansea	Swansea	GB	51.629986	-3.9500022	2022-09-14
+Katthammarsvik	""	Sweden	57.431038	18.845276	Visby	Gotland	SE	57.63365	18.300009	2022-09-14
+Farosund	""	Sweden	57.86298	19.055334	Visby	Gotland	SE	57.63365	18.300009	2022-09-14
+Fukuoka	""	Japan	33.590298	130.40164	Fukuoka	Fukuoka	JP	33.595016	130.41002	2022-09-14
+Highbridge	""	United Kingdom	51.222225	-2.9750214	Cardiff	Cardiff	GB	51.499996	-3.2250075	2022-09-14
+Brean	""	United Kingdom	51.293736	-3.01091	Cardiff	Cardiff	GB	51.499996	-3.2250075	2022-09-14
+Bilbao	""	Spain	43.268345	-2.946164	Bilbao	País Vasco	ES	43.24998	-2.9299867	2022-09-14
+Seydisfjordur	""	Iceland	65.25134	-14.018031	Egilsstaðir	Austur-Hérað	IS	65.267426	-14.394998	2022-09-14
+Porto Rafti	""	Greece	37.88818	24.011429	Athens	Attiki	GR	37.983326	23.73332	2022-09-14
+Athens	""	Greece	37.976078	23.736288	Athens	Attiki	GR	37.983326	23.73332	2022-09-14
+Pohang	""	South Korea	36.03074	129.37343	Pohang	Daegu	KR	36.020863	129.37152	2022-09-14
+Kita-kyushu	""	Japan	33.83928	131.03201	Shimonoseki	Yamaguchi	JP	33.96543	130.94543	2022-09-14
+Toliara	""	Madagascar	-23.354761	43.663128	Toliara	Toliary	MG	-23.35683	43.689983	2022-09-14
+Tripoli	""	Libya	32.8773	13.187272	Tripoli	Tajura'' wa an Nawahi al Arba	LY	32.8925	13.180012	2022-09-14
+Pentaskhinos	""	Cyprus	34.82848	33.603565	Larnaka	Larnaca	CY	34.917004	33.635998	2022-09-14
+Tartous	""	Syria	34.891705	35.897804	Tartus	Tartus	SY	34.884636	35.886585	2022-09-14
+Trablous	""	Lebanon	34.43942	35.85913	Ṭarābulus	North Lebanon	LB	34.420002	35.869995	2022-09-14
+Tripoli	""	Lebanon	34.43942	35.85913	Ṭarābulus	North Lebanon	LB	34.420002	35.869995	2022-09-14
+Saida	""	Lebanon	33.45019	35.38628	Nabatiye et Tahta	An Nabatiyah	LB	33.383305	35.45	2022-09-14
+Broadstairs	""	United Kingdom	51.358887	1.4394287	Dover	Kent	GB	51.133713	1.3000134	2022-09-14
+Dumpton Gap	""	United Kingdom	51.35858	1.439331	Dover	Kent	GB	51.133713	1.3000134	2022-09-14
+Seward	AK	United States	60.11219	-149.44313	Seward	Alaska	US	60.12616	-149.46999	2022-09-14
+Warrenton	OR	United States	46.165127	-123.92386	Astoria	Oregon	US	46.18838	-123.829994	2022-09-14
+Colombo	""	Sri Lanka	6.9267344	79.871994	Colombo	Colombo	LK	6.931966	79.85775	2022-09-14
+Bizerte	""	Tunisia	37.27635	9.8673525	Bizerte	Bizerte	TN	37.290424	9.854995	2022-09-14
+Annaba	""	Algeria	36.902344	7.7554398	Annaba	Annaba	DZ	36.920006	7.7599807	2022-09-14
+Tuticorine	""	India	8.802197	78.145134	Tuticorin	Tamil Nadu	IN	8.81999	78.13	2022-09-14
+Ventspils	""	Latvia	57.38953	21.56998	Ventspils	Ventspils	LV	57.389866	21.560585	2022-09-14
+Al Ghaydah	""	Yemen	16.210382	52.18236	Al Ghaydah	Al Mahrah	YE	16.239408	52.16378	2022-09-14
+Al Hudaydah	""	Yemen	14.685558	43.00854	Al Hudaydah	Al Hudaydah	YE	14.797946	42.952976	2022-09-14
+Bari	""	Italy	41.125492	16.866663	Bari	Apulia	IT	41.11422	16.872759	2022-09-14
+Trivendrum	""	India	8.798144	76.97024	Thiruvananthapuram	Kerala	IN	8.499984	76.95002	2022-09-14
+Unqui	""	Costa Rica	9.525856	-84.45427	Alajuela	Alajuela	CR	10.0200205	-84.230034	2022-09-14
+Asilah	""	Morocco	35.470776	-6.0357614	Larache	Tanger - Tétouan	MA	35.20042	-6.1600223	2022-09-14
+Qingdao	""	China	36.087074	120.34257	Qingdao	Shandong	CN	36.08998	120.33001	2022-09-14
+Oran	""	Algeria	35.701645	-0.64196634	Oran	Oran	DZ	35.710003	-0.61997277	2022-09-14
+Nevelsk	""	Russia	46.68445	141.85915	Nevelsk	Sakhalin	RU	46.68029	141.86993	2022-09-14
+Homer	AK	United States	59.646366	-151.54431	Homer	Alaska	US	59.642933	-151.54828	2022-09-14
+Kenai	AK	United States	60.55291	-151.25978	Kenai	Alaska	US	60.55435	-151.25801	2022-09-14
+Nikiski	AK	United States	60.689823	-151.29172	Kenai	Alaska	US	60.55435	-151.25801	2022-09-14
+Kurilsk	""	Russia	45.08668	147.88148	Korsakov	Sakhalin	RU	46.642437	142.77748	2022-09-14
+Yuzhno Kurilsk	""	Russia	44.034523	145.85861	Korsakov	Sakhalin	RU	46.642437	142.77748	2022-09-14
+Krabozavodskoye	""	Russia	43.79362	146.74724	Korsakov	Sakhalin	RU	46.642437	142.77748	2022-09-14
+Naoetsu	""	Japan	37.169746	138.24216	Nagano	Nagano	JP	36.649998	138.17	2022-09-14
+Mancora	""	Peru	-4.154046	-81.05379	Talara	Piura	PE	-4.5799932	-81.27998	2022-09-14
+Kelibia	""	Tunisia	36.84931	11.0899105	Nabeul	Nabeul	TN	36.460342	10.730032	2022-09-14
+Vung Tau	""	Vietnam	10.341846	107.0792	Vung Tau	Bà R?a - Vung Tàu	VN	10.355374	107.08498	2022-09-14
+Ballesteros	""	Philippines	18.409409	121.513954	Tuguegarao	Cagayan	PH	17.613096	121.726875	2022-09-14
+Morant Point	""	Jamaica	17.918365	-76.18434	Port Morant	Saint Thomas	JM	17.891	-76.329	2022-09-14
+Madang	""	Papua New Guinea	-5.2336845	145.78476	Madang	Madang	PG	-5.2248116	145.78525	2022-09-14
+Vanimo	""	Papua New Guinea	-2.6896863	141.29985	Vanimo	Sandaun	PG	-2.690001	141.304	2022-09-14
+Wewak	""	Papua New Guinea	-3.580017	143.65833	Wewak	East Sepik	PG	-3.5534923	143.6367	2022-09-14
+Lorengau	""	Papua New Guinea	-2.0349736	147.27905	Lorengau	Manus	PG	-2.032002	147.28	2022-09-14
+Kavieng	""	Papua New Guinea	-2.57811	150.80861	Kavieng	New Ireland	PG	-2.5812843	150.81297	2022-09-14
+Kokopo	""	Papua New Guinea	-4.3423457	152.27463	Rabaul	East New Britain	PG	-4.2054906	152.14343	2022-09-14
+Kimbe	""	Papua New Guinea	-5.551157	150.13873	Kimbe	West New Britain	PG	-5.550003	150.14302	2022-09-14
+Arawa	""	Papua New Guinea	-6.2256265	155.56781	Arawa	North Solomons	PG	-6.228	155.566	2022-09-14
+Lae	""	Papua New Guinea	-6.74279	146.99297	Lae	Morobe	PG	-6.7329884	146.99004	2022-09-14
+Popondetta	""	Papua New Guinea	-8.604482	148.29347	Popondetta	Northern	PG	-8.769195	148.24841	2022-09-14
+Alotau	""	Papua New Guinea	-10.315707	150.45879	Alotau	Milne Bay	PG	-10.302073	150.45908	2022-09-14
+Kerema	""	Papua New Guinea	-7.9637322	145.77174	Kerema	Gulf	PG	-7.927002	145.838	2022-09-14
+Daru	""	Papua New Guinea	-9.078178	143.20998	Daru	""	PG	-9.109152	143.23372	2022-09-14
+Chabahar	""	Iran	25.298225	60.62962	Chabahar	Sistan and Baluchestan	IR	25.300406	60.629932	2022-09-14
+Bandar Abbas	""	Iran	27.187166	56.27435	Bandar-e-Abbas	Hormozgan	IR	27.20406	56.272137	2022-09-14
+Coleraine	""	United Kingdom	55.130733	-6.6761904	Lisburn	Dungannon	GB	54.52038	-6.670017	2022-09-14
+Matthew Town	""	Bahamas	20.950514	-73.683075	Port-De-Paix	Nord-Ouest	HT	19.93176	-72.82948	2022-09-14
+Port Antonio	""	Jamaica	18.176323	-76.44608	Port Antonio	Portland	JM	18.159002	-76.380005	2022-09-14
+Negril	""	Jamaica	18.27867	-78.34826	Lucea	Hanover	JM	18.442999	-78.179	2022-09-14
+Black River	""	Jamaica	18.023693	-77.84837	Black River	Saint Elizabeth	JM	18.030996	-77.852	2022-09-14
+Port Vila	""	Vanuatu	-17.73033	168.3228	Port Vila	Shefa	VU	-17.73335	168.31664	2022-09-14
+Skalvik	""	Sweden	56.68319	12.683269	Halmstad	Halland	SE	56.671772	12.855587	2022-09-14
+Deeside Clwyd	""	United Kingdom	53.201725	-3.0275602	Chester	Cheshire	GB	53.20002	-2.9199874	2022-09-14
+Qaqortoq	""	Greenland	60.718937	-46.035393	Qaqortoq	Kommune Kujalleq	GL	60.72891	-46.03641	2022-09-14
+Sitka	AK	United States	57.052914	-135.3344	Sitka	Alaska	US	57.0604	-135.32755	2022-09-14
+Cavite	""	Philippines	14.286268	120.82011	Pasay City	Metropolitan Manila	PH	14.550442	120.99999	2022-09-14
+Shindu-Ri	""	South Korea	36.576252	126.39159	Gunsan	Jeollabuk-do	KR	35.981766	126.71602	2022-09-14
+Totness	""	Suriname	5.886631	-56.375374	Totness	Coronie	SR	5.890427	-56.319984	2022-09-14
+Majuro	""	Marshall Islands	7.1162443	171.1857	Majuro	""	MH	7.1030045	171.38	2022-09-14
+Kwajalein	""	Marshall Islands	9.189776	167.42436	Majuro	""	MH	7.1030045	171.38	2022-09-14
+Pago Pago	""	American Samoa	-14.276549	-170.69571	Pago Pago	""	AS	-14.27661	-170.70665	2022-09-14
+Liepaja	""	Latvia	56.508186	21.01129	Liepaga	Liepaja	LV	56.50997	21.010025	2022-09-14
+Mariehamn	""	Finland	60.11384	19.937853	Turku	Finland Proper	FI	60.453865	22.254961	2022-09-14
+Toamasina	""	Madagascar	-18.14618	49.400333	Toamasina	Toamasina	MG	-18.181799	49.404984	2022-09-14
+Nouakchott	""	Mauritania	18.08387	-15.978284	Nouakchott	Nouakchott	MR	18.086428	-15.975341	2022-09-14
+Banjul	""	Gambia	13.455945	-16.58136	Banjul	Banjul	GM	13.4538765	-16.591702	2022-09-14
+Conakry	""	Guinea	9.513624	-13.703822	Conakry	Conakry	GN	9.531523	-13.680235	2022-09-14
+Freetown	""	Sierra Leone	8.485331	-13.2381	Freetown	Western	SL	8.470012	-13.234216	2022-09-14
+Monrovia	""	Liberia	6.3000765	-10.797184	Monrovia	Montserrado	LR	6.310557	-10.804751	2022-09-14
+Lome	""	Togo	6.1260076	1.2278078	Lomé	Maritime	TG	6.131937	1.2227571	2022-09-14
+Guningtou	""	Taiwan	24.476143	118.30712	Magong	Penghu	TW	23.566668	119.583336	2022-09-14
+Lake Ci	""	Taiwan	24.45552	118.289734	Magong	Penghu	TW	23.566668	119.583336	2022-09-14
+Dadeng Island	""	China	24.55673	118.300964	Xiamen	Fujian	CN	24.449991	118.08002	2022-09-14
+Guanyin Mountain	""	China	24.493917	118.18896	Xiamen	Fujian	CN	24.449991	118.08002	2022-09-14
+Bata	""	Equatorial Guinea	1.8600695	9.768231	Bata	Litoral	GQ	1.8700008	9.769987	2022-09-14
+Breivika	""	Norway	68.73505	16.553188	Harstad	Troms	NO	68.7879	16.51557	2022-09-14
+Longyearbyen	Svalbard	Norway	78.21853	15.648793	Longyearbyen	Svalbard	SJ	78.21668	15.549996	2022-09-14
+Fuzhou	""	China	26.071095	119.303215	Fuzhou	Fujian	CN	26.079996	119.30005	2022-09-14
+Yzerfontein	""	South Africa	-33.348225	18.15553	Saldanha	Western Cape	ZA	-33.01004	17.930006	2022-09-14
+Swakopmund	""	Namibia	-22.678326	14.528091	Swakopmund	Erongo	NA	-22.668863	14.53502	2022-09-14
+Limbe	""	Cameroon	4.014516	9.208467	Limbe	Sud-Ouest	CM	4.030386	9.190022	2022-09-14
+Kribi	""	Cameroon	2.9329176	9.9104185	Kribi	Sud	CM	2.9404263	9.91003	2022-09-14
+Derna	""	Libya	32.763554	22.63922	Darnah	Al Qubbah	LY	32.764812	22.63914	2022-09-14
+Haina	""	Dominican Republic	18.699	-70.16184	San Cristóbal	San Cristóbal	DO	18.415998	-70.109	2022-09-14
+Nakhodka	""	Russia	42.812626	132.87401	Nakhodka	Primor'ye	RU	42.83745	132.88744	2022-09-14

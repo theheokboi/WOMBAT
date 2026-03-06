@@ -73,14 +73,14 @@ def test_golden_country_mask_cells(tmp_path: Path) -> None:
         [(Path("tests/fixtures/facilities_small.csv"), "fixture")],
         canonical_h3_resolutions=[4, 5, 7],
     )
-    polygon_dataset = _write_country_polygon_dataset(tmp_path, "US")
+    polygon_dataset = _write_country_polygon_dataset(tmp_path, "TW")
     layer = CountryMaskLayer(version="v1")
     _, cells = layer.compute(
         canonical_store={"facilities": facilities},
         layer_store={},
         params={
             "resolution": 4,
-            "membership_rule": "centroid_in_polygon",
+            "membership_rule": "overlap_ratio",
             "polygon_dataset": str(polygon_dataset),
             "exclude_iso_a2": ["AQ"],
         },
@@ -118,7 +118,7 @@ def test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid
         "base_resolution": 4,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 9,
-        "facility_max_resolution": 13,
+        "facility_max_resolution": 9,
         "target_facilities_per_leaf": 1,
         "empty_interior_max_resolution": 7,
         "empty_refine_boundary_band_k": 1,

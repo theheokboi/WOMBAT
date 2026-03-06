@@ -32,7 +32,7 @@ class CountryMaskLayer:
         return {
             "name": "country_mask",
             "version": self.version,
-            "distance_semantics": "centroid_in_polygon_or_quadtree_classify_split",
+            "distance_semantics": "fixed_overlap_ratio_or_quadtree_classify_split",
             "params": [
                 "mode",
                 "resolution",
@@ -60,7 +60,7 @@ class CountryMaskLayer:
         if not callable(progress_cb):
             progress_cb = None
         mode = str(params.get("mode", "fixed_resolution"))
-        rule = str(params.get("membership_rule", "centroid_in_polygon"))
+        rule = str(params.get("membership_rule", "overlap_ratio"))
         dataset = params.get("polygon_dataset")
         dataset_dir = params.get("polygon_dataset_dir")
         include_iso = {str(code).upper() for code in params.get("include_iso_a2", [])}
@@ -198,7 +198,21 @@ class CountryMaskLayer:
                 }
             )
 
-        cells = pd.DataFrame(rows).sort_values(by=["h3"]).reset_index(drop=True)
+        cells = pd.DataFrame(
+            rows,
+            columns=[
+                "h3",
+                "resolution",
+                "layer_value",
+                "country_name",
+                "country_color",
+                "country_color_hex",
+                "layer_id",
+                "asof_date",
+            ],
+        )
+        if not cells.empty:
+            cells = cells.sort_values(by=["h3"]).reset_index(drop=True)
         metadata = {
             "layer_name": "country_mask",
             "layer_version": self.version,
@@ -227,7 +241,7 @@ class CountryMaskLayer:
                 else None
             ),
             "distance_semantics": (
-                "centroid_in_polygon"
+                "fixed_resolution_overlap_ratio"
                 if mode == "fixed_resolution"
                 else "quadtree_classify_split_overlap_ratio"
             ),
@@ -241,10 +255,20 @@ class CountryMaskLayer:
     def _polygon_to_cells_fixed(
         self, polygon: Any, resolution: int, rule: str
     ) -> list[str]:
-        if rule != "centroid_in_polygon":
+        if rule != "overlap_ratio":
             raise ValueError(f"Unsupported membership rule: {rule}")
-        geojson = polygon.__geo_interface__
-        return list(h3.geo_to_cells(geojson, resolution))
+        # Fixed mode applies deterministic overlap-ratio membership at one resolution.
+        candidates = self._shape_to_cells(
+            polygon=polygon,
+            resolution=resolution,
+            contain="overlap",
+        )
+        selected = [
+            str(cell)
+            for cell in sorted(candidates)
+            if self._overlap_ratio(cell=str(cell), polygon=polygon) > 0.0
+        ]
+        return selected
 
     def _polygon_to_cells_quadtree_classify_split(
         self,

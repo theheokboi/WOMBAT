@@ -36,7 +36,7 @@ def _has_ancestor_descendant_overlap(cells: pd.DataFrame) -> bool:
     return False
 
 
-def test_country_mask_centroid_assignment_rule() -> None:
+def test_country_mask_fixed_overlap_ratio_assignment_rule() -> None:
     facilities = pd.DataFrame(
         [
             {"facility_id": "a", "asof_date": "2026-02-28"},
@@ -49,7 +49,7 @@ def test_country_mask_centroid_assignment_rule() -> None:
         layer_store={},
         params={
             "resolution": 4,
-            "membership_rule": "centroid_in_polygon",
+            "membership_rule": "overlap_ratio",
             "polygon_dataset_dir": "data/countries",
             "include_iso_a2": ["TW"],
             "exclude_iso_a2": ["AQ"],
@@ -57,7 +57,8 @@ def test_country_mask_centroid_assignment_rule() -> None:
     )
 
     assert metadata["layer_name"] == "country_mask"
-    assert metadata["params"]["membership_rule"] == "centroid_in_polygon"
+    assert metadata["params"]["membership_rule"] == "overlap_ratio"
+    assert metadata["distance_semantics"] == "fixed_resolution_overlap_ratio"
     assert len(cells) > 0
     assert cells["layer_value"].notnull().all()
     assert not cells["h3"].duplicated().any()
@@ -115,7 +116,7 @@ def test_country_mask_quadtree_classify_split_outputs_mixed_resolutions() -> Non
 
 def test_country_mask_warns_on_legacy_world_dataset_path(tmp_path: Path) -> None:
     facilities = pd.DataFrame([{"facility_id": "a", "asof_date": "2026-02-28"}])
-    polygon_dataset = _write_country_polygon_dataset(tmp_path, "US")
+    polygon_dataset = _write_country_polygon_dataset(tmp_path, "TW")
     layer = CountryMaskLayer(version="v1", legacy_world_dataset_path=str(polygon_dataset))
 
     with pytest.warns(UserWarning, match="deprecated legacy world file"):
@@ -124,7 +125,7 @@ def test_country_mask_warns_on_legacy_world_dataset_path(tmp_path: Path) -> None
             layer_store={},
             params={
                 "resolution": 4,
-                "membership_rule": "centroid_in_polygon",
+                "membership_rule": "overlap_ratio",
                 "polygon_dataset": str(polygon_dataset),
                 "exclude_iso_a2": ["AQ"],
             },
@@ -144,7 +145,7 @@ def test_country_mask_requires_include_iso_for_dataset_dir() -> None:
             layer_store={},
             params={
                 "resolution": 4,
-                "membership_rule": "centroid_in_polygon",
+                "membership_rule": "overlap_ratio",
                 "polygon_dataset_dir": "data/countries",
                 "include_iso_a2": [],
             },
@@ -179,3 +180,60 @@ def test_country_mask_emits_polygon_progress_notes() -> None:
     assert any(note.startswith("polygons loaded: ") for note in notes)
     assert any("polygon 1/" in note for note in notes)
     assert any(note.startswith("polygon processing complete: ") for note in notes)
+
+
+def test_country_mask_fixed_overlap_ratio_selects_any_positive_overlap(tmp_path: Path) -> None:
+    facilities = pd.DataFrame([{"facility_id": "a", "asof_date": "2026-02-28"}])
+    polygon_dataset = tmp_path / "tiny_tw.geojson"
+    polygon_dataset.write_text(
+        json.dumps(
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": {"iso_a2": "TW", "name": "TW"},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [
+                                [
+                                    [121.50, 25.00],
+                                    [121.51, 25.00],
+                                    [121.51, 25.01],
+                                    [121.50, 25.01],
+                                    [121.50, 25.00],
+                                ]
+                            ],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    layer = CountryMaskLayer(version="v1")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store={},
+        params={
+            "mode": "fixed_resolution",
+            "resolution": 2,
+            "membership_rule": "overlap_ratio",
+            "polygon_dataset": str(polygon_dataset),
+            "exclude_iso_a2": [],
+        },
+    )
+
+    assert metadata["params"]["mode"] == "fixed_resolution"
+    assert metadata["params"]["resolution"] == 2
+    assert not cells.empty
+    assert list(cells.columns) == [
+        "h3",
+        "resolution",
+        "layer_value",
+        "country_name",
+        "country_color",
+        "country_color_hex",
+        "layer_id",
+        "asof_date",
+    ]

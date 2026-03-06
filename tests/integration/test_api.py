@@ -13,15 +13,15 @@ pytestmark = pytest.mark.skip(
 )
 
 
-def _write_gb_input_fixture(tmp_path: Path) -> Path:
-    fixture_path = tmp_path / "facilities_gb.csv"
+def _write_tw_input_fixture(tmp_path: Path) -> Path:
+    fixture_path = tmp_path / "facilities_tw.csv"
     fixture_path.write_text(
         "\n".join(
             [
                 "ORGANIZATION,NODE_NAME,LATITUDE,LONGITUDE,SOURCE,ASOF_DATE,COUNTRY",
-                "ExampleNet,London-1,51.5074,-0.1278,fixture,2026-02-28,GB",
-                "ExampleNet,London-2,51.5074,-0.1278,fixture,2026-02-28,GB",
-                "ExampleNet,Manchester-1,53.4808,-2.2426,fixture,2026-02-28,GB",
+                "ExampleNet,Taipei-1,25.0330,121.5654,fixture,2026-02-28,TW",
+                "ExampleNet,Taipei-2,25.0478,121.5319,fixture,2026-02-28,TW",
+                "ExampleNet,Kaohsiung-1,22.6273,120.3014,fixture,2026-02-28,TW",
             ]
         )
         + "\n",
@@ -30,8 +30,8 @@ def _write_gb_input_fixture(tmp_path: Path) -> Path:
     return fixture_path
 
 
-def _write_gb_only_polygon_dataset(tmp_path: Path) -> Path:
-    source_path = Path("data/countries/GB.geojson")
+def _write_tw_only_polygon_dataset(tmp_path: Path) -> Path:
+    source_path = Path("data/countries/TW.geojson")
     payload = json.loads(source_path.read_text(encoding="utf-8"))
     features = []
     for feature in payload.get("features", []):
@@ -39,12 +39,12 @@ def _write_gb_only_polygon_dataset(tmp_path: Path) -> Path:
         features.append(
             {
                 "type": "Feature",
-                "properties": {"iso_a2": "GB", "name": str(properties.get("COUNTRY", "GB"))},
+                "properties": {"iso_a2": "TW", "name": str(properties.get("COUNTRY", "TW"))},
                 "geometry": feature["geometry"],
             }
         )
     payload["features"] = features
-    out_path = tmp_path / "gb_only_admin0.geojson"
+    out_path = tmp_path / "tw_only_admin0.geojson"
     out_path.write_text(json.dumps(payload), encoding="utf-8")
     return out_path
 
@@ -67,7 +67,7 @@ def _build_system_with_tmp_paths(tmp_path: Path, input_path: Path):
     )
 
 
-def _build_layers_with_gb_scope(gb_polygon_path: Path):
+def _build_layers_with_tw_scope(tw_polygon_path: Path):
     layers = load_layers_config(Path("configs/layers.yaml"))
     updated_layers = []
     for layer in layers.layers:
@@ -75,7 +75,7 @@ def _build_layers_with_gb_scope(gb_polygon_path: Path):
             updated_layers.append(layer)
             continue
         params = dict(layer.params)
-        params["polygon_dataset"] = str(gb_polygon_path)
+        params["polygon_dataset"] = str(tw_polygon_path)
         params.pop("polygon_dataset_dir", None)
         params.pop("include_iso_a2", None)
         params["exclude_iso_a2"] = []
@@ -84,10 +84,10 @@ def _build_layers_with_gb_scope(gb_polygon_path: Path):
 
 
 def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
-    gb_fixture = _write_gb_input_fixture(tmp_path)
-    gb_polygons = _write_gb_only_polygon_dataset(tmp_path)
-    system = _build_system_with_tmp_paths(tmp_path, input_path=gb_fixture)
-    layers = _build_layers_with_gb_scope(gb_polygon_path=gb_polygons)
+    tw_fixture = _write_tw_input_fixture(tmp_path)
+    tw_polygons = _write_tw_only_polygon_dataset(tmp_path)
+    system = _build_system_with_tmp_paths(tmp_path, input_path=tw_fixture)
+    layers = _build_layers_with_tw_scope(tw_polygon_path=tw_polygons)
     run_id = run_pipeline(system, layers)
     published_root = Path(system.paths.published_root)
     assert (published_root / "latest-dev").read_text(encoding="utf-8").strip() == run_id
@@ -196,8 +196,8 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
 
     calibration_latest_missing = client.get("/v1/calibration/latest")
     assert calibration_latest_missing.status_code == 404
-    calibration_gb_missing = client.get("/v1/calibration/estimates/gb")
-    assert calibration_gb_missing.status_code == 404
+    calibration_tw_missing = client.get("/v1/calibration/estimates/gb")
+    assert calibration_tw_missing.status_code == 404
     calibration_world_missing = client.get("/v1/calibration/estimates/world")
     assert calibration_world_missing.status_code == 404
 
@@ -216,8 +216,8 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert adaptive_meta_json["layer_name"] == "facility_density_adaptive"
     assert adaptive_meta_json["layer_version"] == "v3"
     assert adaptive_meta_json["policy_name"] == "facility_hierarchical_partition_v3"
-    assert adaptive_meta_json["coverage_domain"] == "country_mask_r4"
-    assert adaptive_meta_json["params"]["base_resolution"] == 4
+    assert adaptive_meta_json["coverage_domain"] == "country_mask_r2"
+    assert adaptive_meta_json["params"]["base_resolution"] == 2
     assert adaptive_meta_json["params"]["empty_compact_min_resolution"] == 0
     assert adaptive_meta_json["params"]["facility_floor_resolution"] == 9
     assert adaptive_meta_json["params"]["facility_max_resolution"] == 9
@@ -236,7 +236,7 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     country_features = country_cells.json()["features"]
     assert len(country_features) > 0
     assert "country_color" in country_features[0]["properties"]
-    assert {feature["properties"]["layer_value"] for feature in country_features} == {"GB"}
+    assert {feature["properties"]["layer_value"] for feature in country_features} == {"TW"}
 
     adaptive_cells_default = client.get("/v1/layers/facility_density_adaptive/cells")
     assert adaptive_cells_default.status_code == 200
@@ -279,18 +279,12 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     root = client.get("/", follow_redirects=False)
     assert root.status_code == 307
     assert root.headers["location"] == "/ui/"
-    ar = client.get("/ar", follow_redirects=False)
-    assert ar.status_code == 307
-    assert ar.headers["location"] == "/ui/?country=AR"
-    ar_slash = client.get("/ar/", follow_redirects=False)
-    assert ar_slash.status_code == 307
-    assert ar_slash.headers["location"] == "/ui/?country=AR"
-    gb = client.get("/gb", follow_redirects=False)
-    assert gb.status_code == 307
-    assert gb.headers["location"] == "/ui/?country=GB"
-    gb_slash = client.get("/gb/", follow_redirects=False)
-    assert gb_slash.status_code == 307
-    assert gb_slash.headers["location"] == "/ui/?country=GB"
+    tw = client.get("/tw", follow_redirects=False)
+    assert tw.status_code == 307
+    assert tw.headers["location"] == "/ui/?country=TW"
+    tw_slash = client.get("/tw/", follow_redirects=False)
+    assert tw_slash.status_code == 307
+    assert tw_slash.headers["location"] == "/ui/?country=TW"
     demo = client.get("/demo", follow_redirects=False)
     assert demo.status_code == 307
     assert demo.headers["location"] == "/ui/?country=DEMO"
@@ -304,32 +298,32 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     old_report_dir.mkdir(parents=True, exist_ok=True)
     latest_report_dir.mkdir(parents=True, exist_ok=True)
     (old_report_dir / "report.json").write_text(
-        json.dumps({"calibration_id": "old", "country": "GB", "runtime_seconds": 10.0, "facility_count_total": 10}),
+        json.dumps({"calibration_id": "old", "country": "TW", "runtime_seconds": 10.0, "facility_count_total": 10}),
         encoding="utf-8",
     )
     (latest_report_dir / "report.json").write_text(
-        json.dumps({"country": "GB", "runtime_seconds": 60.0, "facility_count_total": 100}),
+        json.dumps({"country": "TW", "runtime_seconds": 60.0, "facility_count_total": 100}),
         encoding="utf-8",
     )
 
     calibration_latest = client.get("/v1/calibration/latest")
     assert calibration_latest.status_code == 200
     calibration_latest_body = calibration_latest.json()
-    assert calibration_latest_body["country"] == "GB"
+    assert calibration_latest_body["country"] == "TW"
     assert calibration_latest_body["calibration_id"] == "20260228T020000Z"
 
-    calibration_gb = client.get("/v1/calibration/estimates/gb")
-    assert calibration_gb.status_code == 200
-    calibration_gb_body = calibration_gb.json()
-    assert calibration_gb_body["calibration_id"] == "20260228T020000Z"
-    assert calibration_gb_body["country"] == "GB"
-    assert calibration_gb_body["estimate_basis"] == "latest_calibration_report"
-    assert "estimate" in calibration_gb_body
+    calibration_tw = client.get("/v1/calibration/estimates/gb")
+    assert calibration_tw.status_code == 200
+    calibration_tw_body = calibration_tw.json()
+    assert calibration_tw_body["calibration_id"] == "20260228T020000Z"
+    assert calibration_tw_body["country"] == "TW"
+    assert calibration_tw_body["estimate_basis"] == "latest_calibration_report"
+    assert "estimate" in calibration_tw_body
 
     calibration_world = client.get("/v1/calibration/estimates/world")
     assert calibration_world.status_code == 200
     calibration_world_body = calibration_world.json()
     assert calibration_world_body["calibration_id"] == "20260228T020000Z"
-    assert calibration_world_body["country"] == "GB"
+    assert calibration_world_body["country"] == "TW"
     assert calibration_world_body["deprecated"] is True
     assert calibration_world_body["deprecated_alias_for"] == "/v1/calibration/estimates/gb"

@@ -71,7 +71,7 @@ Minimum cadence:
 
 Primary workflow commands:
 
-- `make run-dev COUNTRY=<code>`
+- `make run-dev COUNTRIES=<code[,code...]>`
 - `make serve-dev`
 - `make ui-dev`
 - `make verify-dev`
@@ -112,8 +112,16 @@ Non-blocking reporting remains required for perf/monitoring checks.
 
 - Always support facility points and H3 grid layers.
 - Use config-driven zoom-to-H3 mapping.
+- Adaptive resolution display bounds must follow published layer metadata params (no hardcoded UI min/max).
 - Avoid heavy client-side geospatial joins.
 - Prioritize legibility and provenance in tooltips.
+
+## Country Mask Defaults
+
+- Default `country_mask` policy is `fixed_resolution` with `membership_rule: overlap_ratio` at `resolution: 2`.
+- In fixed mode, include cells when `overlap_ratio > 0` (any positive overlap).
+- Keep deterministic one-cell ownership ordering across countries.
+- `facility_density_adaptive` must derive effective base resolution from `country_mask` fixed-resolution metadata when present.
 
 ## Visual Verification Protocol
 

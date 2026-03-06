@@ -43,7 +43,7 @@ def test_calibration_produces_report_without_publish_mutation(tmp_path: Path, la
     calibration_root = Path("artifacts") / "calibration"
     before_reports = set(calibration_root.glob("*/report.json")) if calibration_root.exists() else set()
 
-    report_path = run_calibration(system=system, layers=layers, country_code="GB")
+    report_path = run_calibration(system=system, layers=layers, country_code="TW")
     try:
         assert report_path.exists()
         assert report_path.parent.parent == calibration_root
@@ -61,7 +61,7 @@ def test_calibration_produces_report_without_publish_mutation(tmp_path: Path, la
             "invariant_stage_duration_seconds",
         }
         assert required.issubset(report.keys())
-        assert report["country_code"] == "GB"
+        assert report["country_code"] == "TW"
         assert isinstance(report["facility_count"], int)
         assert isinstance(report["domain_r4_cell_count"], int)
         assert isinstance(report["layer_durations_seconds"], dict)

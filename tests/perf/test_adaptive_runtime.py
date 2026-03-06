@@ -35,14 +35,14 @@ def test_adaptive_compute_runtime_budget_fixture(tmp_path: Path) -> None:
         [(Path("tests/fixtures/facilities_small.csv"), "fixture")],
         canonical_h3_resolutions=[4, 5, 7, 9, 13],
     )
-    polygon_dataset = _write_country_polygon_dataset(tmp_path, "US")
+    polygon_dataset = _write_country_polygon_dataset(tmp_path, "TW")
     country_layer = CountryMaskLayer(version="v1")
     _, country_cells = country_layer.compute(
         canonical_store={"facilities": facilities},
         layer_store={},
         params={
             "resolution": 4,
-            "membership_rule": "centroid_in_polygon",
+            "membership_rule": "overlap_ratio",
             "polygon_dataset": str(polygon_dataset),
             "exclude_iso_a2": ["AQ"],
         },
@@ -68,14 +68,14 @@ def test_adaptive_invariant_runtime_budget_fixture(tmp_path: Path) -> None:
         [(Path("tests/fixtures/facilities_small.csv"), "fixture")],
         canonical_h3_resolutions=sorted(set(system.canonical_h3_resolutions + [system.country_mask_resolution])),
     )
-    polygon_dataset = _write_country_polygon_dataset(tmp_path, "US")
+    polygon_dataset = _write_country_polygon_dataset(tmp_path, "TW")
     country_layer = CountryMaskLayer(version="v1")
     _, country_cells = country_layer.compute(
         canonical_store={"facilities": facilities},
         layer_store={},
         params={
             "resolution": 4,
-            "membership_rule": "centroid_in_polygon",
+            "membership_rule": "overlap_ratio",
             "polygon_dataset": str(polygon_dataset),
             "exclude_iso_a2": ["AQ"],
         },
