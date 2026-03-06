@@ -3,10 +3,14 @@
   --panel: #fffdf7;
   --ink: #1f2937;
   --facility: #f97316;
+  --landing-point: #0ea5e9;
   --metro: #0f766e;
   --country: #1d4ed8;
   --adaptive: #7c2d12;
   --global: #b91c1c;
+  --osm-rail: #374151;
+  --osm-motorway: #dc2626;
+  --osm-trunk: #ea580c;
 }
 
 * {
@@ -131,6 +135,10 @@ h1, h2 {
   background: var(--facility);
 }
 
+.swatch.landing-point {
+  background: var(--landing-point);
+}
+
 .swatch.metro {
   background: var(--metro);
 }
@@ -145,6 +153,26 @@ h1, h2 {
 
 .swatch.global {
   background: var(--global);
+}
+
+.swatch.osm-rail {
+  background: repeating-linear-gradient(
+    to right,
+    var(--osm-rail) 0 5px,
+    rgba(55, 65, 81, 0.2) 5px 8px
+  );
+}
+
+.swatch.osm-motorway {
+  background: var(--osm-motorway);
+}
+
+.swatch.osm-trunk {
+  background: repeating-linear-gradient(
+    to right,
+    var(--osm-trunk) 0 8px,
+    rgba(234, 88, 12, 0.2) 8px 10px
+  );
 }
 
 #map {

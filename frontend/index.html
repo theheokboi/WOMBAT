@@ -11,19 +11,24 @@
     <div id="panel">
       <h1>Infrastructure Layers</h1>
       <div class="controls">
-        <label for="country-selector">Country scope</label>
-        <select id="country-selector"></select>
+        <label for="run-selector">Run / r-level</label>
+        <select id="run-selector"></select>
       </div>
       <div id="display-scope">Display scope: loading...</div>
       <div class="controls">
         <label><input type="checkbox" id="toggle-facilities" checked /> Facilities</label>
         <label><input type="checkbox" id="toggle-country" checked /> Country H3</label>
         <label><input type="checkbox" id="toggle-adaptive" checked /> Adaptive Facility H3</label>
+        <label><input type="checkbox" id="toggle-osm-transport" checked /> OSM transport overlay</label>
       </div>
       <div id="legend">
         <div><span class="swatch facility"></span> Facility points</div>
+        <div><span class="swatch landing-point"></span> Landing points</div>
         <div><span class="swatch country"></span> Country cells (mask)</div>
         <div><span class="swatch adaptive"></span> Adaptive facility cells</div>
+        <div><span class="swatch osm-rail"></span> OSM railway (rail)</div>
+        <div><span class="swatch osm-motorway"></span> OSM motorway</div>
+        <div><span class="swatch osm-trunk"></span> OSM trunk</div>
       </div>
       <div id="stats">
         <div id="facility-count">Facilities loaded: --</div>

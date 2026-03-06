@@ -12,9 +12,18 @@ async function tryLoadJson(path) {
   }
 }
 
-const DEFAULT_COUNTRY_CODE = 'GB';
-const ADAPTIVE_MIN_RESOLUTION = 5;
-const ADAPTIVE_MAX_RESOLUTION = 9;
+function parseIntegerOrDefault(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : fallback;
+}
+
+function buildAdaptiveResolutionBounds(adaptiveMetadata) {
+  const params = adaptiveMetadata?.params || {};
+  const min = parseIntegerOrDefault(params.min_output_resolution, 5);
+  const max = parseIntegerOrDefault(params.facility_max_resolution, 9);
+  if (min < 0 || max > 9 || min > max) return { min: 5, max: 9 };
+  return { min, max };
+}
 
 function clearLayer(layer) {
   if (layer) layer.clearLayers();
@@ -24,6 +33,19 @@ function toNumeric(value) {
   if (value === null || value === undefined || value === '') return 0;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+const FACILITY_POINT_COLOR = '#f97316';
+const LANDING_POINT_COLOR = '#0ea5e9';
+const OSM_TRANSPORT_STYLES = {
+  rail: { color: '#374151', weight: 1.5, opacity: 0.9, dashArray: '7 4' },
+  motorway: { color: '#dc2626', weight: 2.8, opacity: 0.95, dashArray: null },
+  trunk: { color: '#ea580c', weight: 2.2, opacity: 0.95, dashArray: '10 3' },
+};
+
+function isLandingPointFeature(feature) {
+  const source = String(feature?.properties?.source_name || '').toLowerCase();
+  return source.includes('landing');
 }
 
 function getAdaptiveLeafCount(properties) {
@@ -46,11 +68,11 @@ function getAdaptiveResolution(properties) {
   return '';
 }
 
-function isAdaptiveResolutionAllowed(properties) {
+function isAdaptiveResolutionAllowed(properties, bounds) {
   const raw = getAdaptiveResolution(properties);
   const resolution = Number(raw);
   if (!Number.isInteger(resolution)) return false;
-  return resolution >= ADAPTIVE_MIN_RESOLUTION && resolution <= ADAPTIVE_MAX_RESOLUTION;
+  return resolution >= bounds.min && resolution <= bounds.max;
 }
 
 function getAdaptiveH3(properties) {
@@ -72,6 +94,11 @@ function normalizeCountryCode(value) {
   return '';
 }
 
+function normalizeRunId(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
 function getFeatureH3Candidates(properties) {
   if (!properties) return [];
   const out = [];
@@ -84,9 +111,18 @@ function getFeatureH3Candidates(properties) {
   return out;
 }
 
-function getRequestedCountryCode() {
+function getRequestedRunId() {
   const params = new URLSearchParams(window.location.search);
-  return normalizeCountryCode(params.get('country')) || DEFAULT_COUNTRY_CODE;
+  return normalizeRunId(params.get('run'));
+}
+
+function buildRunLabel(run) {
+  const runId = normalizeRunId(run?.run_id) || '--';
+  const mode = run?.country_mask_mode ? String(run.country_mask_mode) : '--';
+  const resolution = Number.isInteger(Number(run?.country_mask_resolution))
+    ? `r${Number(run.country_mask_resolution)}`
+    : '--';
+  return `${resolution} | ${mode} | ${runId}`;
 }
 
 function buildAvailableCountries(countryFeatures) {
@@ -170,24 +206,26 @@ function filterFeaturesByCountry(features, countryCode, countryByMaskCell, avail
   });
 }
 
-function setupCountrySelector(availableCountries, requestedCountry, effectiveCountry) {
-  const selector = document.getElementById('country-selector');
+function setupRunSelector(runCatalog, requestedRunId, effectiveRunId) {
+  const selector = document.getElementById('run-selector');
   if (!selector) return;
-  const countryOptions = Array.from(new Set([...(availableCountries || []), requestedCountry].filter(Boolean))).sort();
+  const runs = Array.isArray(runCatalog?.runs) ? runCatalog.runs : [];
   selector.innerHTML = '';
-  for (const code of countryOptions) {
+  for (const run of runs) {
+    const runId = normalizeRunId(run?.run_id);
+    if (!runId) continue;
     const option = document.createElement('option');
-    option.value = code;
-    option.textContent = code;
-    if (code === effectiveCountry) option.selected = true;
+    option.value = runId;
+    option.textContent = buildRunLabel(run);
+    if (runId === effectiveRunId) option.selected = true;
     selector.appendChild(option);
   }
 
-  selector.disabled = countryOptions.length === 0;
-  selector.title = `Requested: ${requestedCountry}; Effective: ${effectiveCountry}`;
+  selector.disabled = runs.length === 0;
+  selector.title = `Requested: ${requestedRunId || '--'}; Effective: ${effectiveRunId || '--'}`;
   selector.addEventListener('change', () => {
     const params = new URLSearchParams(window.location.search);
-    params.set('country', selector.value);
+    params.set('run', selector.value);
     const query = params.toString();
     const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
     window.location.assign(nextUrl);
@@ -195,89 +233,57 @@ function setupCountrySelector(availableCountries, requestedCountry, effectiveCou
 }
 
 async function init() {
-  const [ui, facilities, countryCells, adaptiveCells, adaptiveMetadata, latestStatus, activeStatus, calibrationLatest] = await Promise.all([
+  const [ui, runCatalog] = await Promise.all([
     loadJson('/v1/ui/config'),
-    loadJson('/v1/facilities?limit=50000'),
-    loadJson('/v1/layers/country_mask/cells'),
-    loadJson('/v1/layers/facility_density_adaptive/cells?limit=100000'),
-    tryLoadJson('/v1/layers/facility_density_adaptive/metadata'),
-    tryLoadJson('/v1/runs/latest/status'),
+    tryLoadJson('/v1/runs/catalog'),
+  ]);
+  const requestedRunId = getRequestedRunId();
+  const runs = Array.isArray(runCatalog?.runs) ? runCatalog.runs : [];
+  const runIdSet = new Set(runs.map((run) => normalizeRunId(run?.run_id)).filter(Boolean));
+  const latestCatalogRunId = normalizeRunId(runCatalog?.latest_run_id);
+  let effectiveRunId = requestedRunId;
+  if (!effectiveRunId || !runIdSet.has(effectiveRunId)) {
+    effectiveRunId = latestCatalogRunId || (runs[0] ? normalizeRunId(runs[0].run_id) : '');
+  }
+  setupRunSelector(runCatalog, requestedRunId, effectiveRunId);
+
+  const withRun = (path) => {
+    if (!effectiveRunId) return path;
+    const url = new URL(path, window.location.origin);
+    url.searchParams.set('run_id', effectiveRunId);
+    return `${url.pathname}?${url.searchParams.toString()}`;
+  };
+
+  const [facilities, countryCells, adaptiveCells, adaptiveMetadata, runStatus, activeStatus, calibrationLatest, osmTransport] = await Promise.all([
+    loadJson(withRun('/v1/facilities?limit=50000')),
+    loadJson(withRun('/v1/layers/country_mask/cells')),
+    loadJson(withRun('/v1/layers/facility_density_adaptive/cells?limit=100000')),
+    tryLoadJson(withRun('/v1/layers/facility_density_adaptive/metadata')),
+    effectiveRunId ? tryLoadJson(`/v1/runs/${encodeURIComponent(effectiveRunId)}/status`) : tryLoadJson('/v1/runs/latest/status'),
     tryLoadJson('/v1/runs/active/status'),
     tryLoadJson('/v1/calibration/latest'),
+    tryLoadJson('/v1/osm/transport'),
   ]);
   const countryFeatures = featureCollectionFeatures(countryCells);
-  const requestedCountry = getRequestedCountryCode();
   const availableCountries = buildAvailableCountries(countryFeatures);
-  const availableCountriesSet = new Set(availableCountries);
-  const countryByMaskCell = buildCountryCellIndex(countryFeatures);
-
-  const countryCountsByCode = new Map();
-  for (const code of availableCountries) {
-    countryCountsByCode.set(code, 0);
-  }
-  for (const feature of countryFeatures) {
-    const code = normalizeCountryCode(feature?.properties?.layer_value);
-    if (code) countryCountsByCode.set(code, (countryCountsByCode.get(code) || 0) + 1);
-  }
+  const adaptiveResolutionBounds = buildAdaptiveResolutionBounds(adaptiveMetadata);
 
   const facilitiesFeatures = featureCollectionFeatures(facilities);
   const adaptiveFeatures = featureCollectionFeatures(adaptiveCells);
-  const facilityCountsByCode = countFeaturesByCountry(facilitiesFeatures, countryByMaskCell, availableCountriesSet);
-  const adaptiveCountsByCode = countFeaturesByCountry(
-    adaptiveFeatures,
-    countryByMaskCell,
-    availableCountriesSet,
-    (feature) => isAdaptiveResolutionAllowed(feature?.properties || {})
+  const osmTransportFeatures = featureCollectionFeatures(osmTransport);
+  const effectiveAdaptiveFeatures = (adaptiveFeatures || []).filter(
+    (feature) => isAdaptiveResolutionAllowed(feature?.properties || {}, adaptiveResolutionBounds)
   );
-
-  function totalCountryDataCount(code) {
-    return (
-      (facilityCountsByCode.get(code) || 0) +
-      (countryCountsByCode.get(code) || 0) +
-      (adaptiveCountsByCode.get(code) || 0)
-    );
-  }
-
-  let effectiveCountry = requestedCountry;
-  let fallbackNotice = '';
-  if (totalCountryDataCount(effectiveCountry) === 0) {
-    const fallbackCandidate = availableCountries.find((code) => totalCountryDataCount(code) > 0)
-      || availableCountries[0]
-      || requestedCountry;
-    if (fallbackCandidate !== requestedCountry) {
-      fallbackNotice =
-        `Fallback applied: requested ${requestedCountry} has zero data across facilities/country/adaptive; using ${fallbackCandidate}.`;
-    }
-    effectiveCountry = fallbackCandidate;
-  }
-
-  const effectiveCountryFeatures = countryFeatures.filter(
-    (feature) => normalizeCountryCode(feature?.properties?.layer_value) === effectiveCountry
-  );
-  const effectiveFacilitiesFeatures = filterFeaturesByCountry(
-    facilitiesFeatures,
-    effectiveCountry,
-    countryByMaskCell,
-    availableCountriesSet
-  );
-  const effectiveAdaptiveFeatures = filterFeaturesByCountry(
-    adaptiveFeatures,
-    effectiveCountry,
-    countryByMaskCell,
-    availableCountriesSet,
-    (feature) => isAdaptiveResolutionAllowed(feature?.properties || {})
-  );
-  const scopedFacilities = { ...facilities, features: effectiveFacilitiesFeatures };
-  const scopedCountryCells = { ...countryCells, features: effectiveCountryFeatures };
-  setupCountrySelector(availableCountries, requestedCountry, effectiveCountry);
+  const scopedFacilities = facilities;
+  const scopedCountryCells = countryCells;
 
   const adaptivePolicyName = adaptiveMetadata?.policy_name || adaptiveMetadata?.policy?.name || null;
-  const policyVersion = adaptiveMetadata?.layer_version || latestStatus?.adaptive_policy?.layer_version || '--';
+  const policyVersion = adaptiveMetadata?.layer_version || runStatus?.adaptive_policy?.layer_version || '--';
 
   const [lon, lat] = ui.center;
-  document.getElementById('facility-count').textContent = `${effectiveCountry} facilities loaded: ${scopedFacilities.features.length.toLocaleString()}`;
+  document.getElementById('facility-count').textContent = `All-country facilities loaded: ${scopedFacilities.features.length.toLocaleString()}`;
   document.getElementById('location-count').textContent =
-    `${effectiveCountry} unique locations: ${new Set((scopedFacilities.features || []).map((f) => f.geometry.coordinates.join(','))).size.toLocaleString()}`;
+    `All-country unique locations: ${new Set((scopedFacilities.features || []).map((f) => f.geometry.coordinates.join(','))).size.toLocaleString()}`;
   const displayScopeNode = document.getElementById('display-scope');
   const latestAdaptiveVersionNode = document.getElementById('latest-adaptive-version');
   const adaptivePolicyNode = document.getElementById('adaptive-policy');
@@ -288,24 +294,23 @@ async function init() {
   const availableCountriesPreview = availableCountries.slice(0, 12).join(', ');
   const availableCountriesLabel =
     availableCountries.length > 12 ? `${availableCountriesPreview}, ...` : (availableCountriesPreview || '--');
-  const fallbackSuffix = fallbackNotice ? ` ${fallbackNotice}` : '';
   displayScopeNode.textContent =
-    `Display scope: requested=${requestedCountry}, effective=${effectiveCountry}; available countries (${availableCountries.length}): ${availableCountriesLabel}; ` +
-    `${effectiveCountryFeatures.length.toLocaleString()} country cells, ${effectiveAdaptiveFeatures.length.toLocaleString()} adaptive cells.${fallbackSuffix}`;
+    `Display scope: run=${effectiveRunId || '--'}; mode=all-countries; available countries (${availableCountries.length}): ${availableCountriesLabel}; ` +
+    `${featureCollectionFeatures(scopedCountryCells).length.toLocaleString()} country cells, ${effectiveAdaptiveFeatures.length.toLocaleString()} adaptive cells.`;
 
-  const latestRunId = latestStatus?.run_id || '--';
-  const latestPolicyName = latestStatus?.adaptive_policy?.policy_name || adaptivePolicyName || '--';
-  const latestPolicyVersion = latestStatus?.adaptive_policy?.layer_version || policyVersion || '--';
+  const latestRunId = runStatus?.run_id || effectiveRunId || '--';
+  const latestPolicyName = runStatus?.adaptive_policy?.policy_name || adaptivePolicyName || '--';
+  const latestPolicyVersion = runStatus?.adaptive_policy?.layer_version || policyVersion || '--';
   latestAdaptiveVersionNode.textContent =
-    `Latest published adaptive version: ${latestRunId} | ${latestPolicyName} | ${latestPolicyVersion}`;
+    `Selected run adaptive version: ${latestRunId} | ${latestPolicyName} | ${latestPolicyVersion}`;
 
   adaptivePolicyNode.textContent = `Adaptive policy: ${adaptivePolicyName || '--'} (${policyVersion})`;
 
-  const makeRunTypical = latestStatus?.runtime_expectations?.make_run?.typical_minutes || '--';
-  const makeRunSlow = latestStatus?.runtime_expectations?.make_run?.slow_path_minutes || '--';
+  const makeRunTypical = runStatus?.runtime_expectations?.make_run?.typical_minutes || '--';
+  const makeRunSlow = runStatus?.runtime_expectations?.make_run?.slow_path_minutes || '--';
   runtimeExpectationNode.textContent = `Runtime expectation: make run typical ${makeRunTypical} min, slow path ${makeRunSlow} min`;
 
-  const latestRuntimeSeconds = latestStatus?.metrics?.run_duration_seconds;
+  const latestRuntimeSeconds = runStatus?.metrics?.run_duration_seconds;
   if (typeof latestRuntimeSeconds === 'number') {
     latestRunRuntimeNode.textContent = `Latest run runtime: ${(latestRuntimeSeconds / 60).toFixed(2)} min`;
   } else {
@@ -353,17 +358,20 @@ async function init() {
       const radius = p.facility_count
         ? Math.min(12, 2 + Math.log10(Math.max(1, Number(p.facility_count))) * 3)
         : 3;
+      const fillColor = isLandingPointFeature(feature) ? LANDING_POINT_COLOR : FACILITY_POINT_COLOR;
       return L.circleMarker(latlng, {
         radius,
         color: '#ffffff',
         weight: 1,
-        fillColor: '#f97316',
+        fillColor,
         fillOpacity: 0.95,
       });
     },
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
+      const pointType = isLandingPointFeature(feature) ? 'Landing point' : 'Facility';
       layer.bindTooltip(
+        `Type: ${pointType}<br/>` +
         `Org: ${p.org_name || ''}<br/>` +
         `Source: ${p.source_name || ''}<br/>` +
         `H3: ${p['h3_r7'] || ''}`
@@ -434,7 +442,36 @@ async function init() {
   }
   renderAdaptiveCells();
 
-  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer]);
+  const osmTransportLayer = L.geoJSON(null, {
+    style: (feature) => {
+      const transportClass =
+        String(feature?.properties?.transport_class || feature?.properties?.infrastructure_type || '').toLowerCase();
+      const style = OSM_TRANSPORT_STYLES[transportClass] || OSM_TRANSPORT_STYLES.trunk;
+      return {
+        color: style.color,
+        weight: style.weight,
+        opacity: style.opacity,
+        dashArray: style.dashArray || null,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties || {};
+      const transportClass = String(p.transport_class || p.infrastructure_type || '').toLowerCase();
+      layer.bindTooltip(
+        `Layer: osm_transport<br/>Class: ${transportClass || '--'}<br/>Country: ${p.country_code || '--'}`
+      );
+    },
+  }).addTo(map);
+
+  const osmTransportToggle = document.getElementById('toggle-osm-transport');
+  function renderOsmTransport() {
+    clearLayer(osmTransportLayer);
+    if (!osmTransportToggle || !osmTransportToggle.checked) return;
+    osmTransportLayer.addData(osmTransportFeatures);
+  }
+  renderOsmTransport();
+
+  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer, osmTransportLayer]);
   if (combined.getBounds().isValid()) {
     map.fitBounds(combined.getBounds(), { padding: [20, 20] });
   }
@@ -454,6 +491,11 @@ async function init() {
   adaptiveToggle.addEventListener('change', () => {
     renderAdaptiveCells();
   });
+  if (osmTransportToggle) {
+    osmTransportToggle.addEventListener('change', () => {
+      renderOsmTransport();
+    });
+  }
 }
 
 init().catch((error) => {

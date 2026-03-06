@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ import h3
 import mapbox_vector_tile
 import mercantile
 import pandas as pd
+import shapefile
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,6 +57,13 @@ def _load_layer_metadata(run_root: Path) -> list[dict[str, Any]]:
                 payload = json.loads(metadata_path.read_text(encoding="utf-8"))
                 items.append(payload)
     return items
+
+
+def _latest_layer_metadata_for(run_root: Path, layer_name: str) -> dict[str, Any] | None:
+    candidates = [m for m in _load_layer_metadata(run_root) if m.get("layer_name") == layer_name]
+    if not candidates:
+        return None
+    return candidates[-1]
 
 
 def _read_json_if_exists(path: Path) -> dict[str, Any] | None:
@@ -222,7 +231,75 @@ def _cell_polygon_coords(cell: str) -> list[list[float]]:
     return ring
 
 
-def create_app(runs_root: Path, published_root: Path, system_config: SystemConfig | None = None) -> FastAPI:
+def _available_osm_countries(openstreetmap_root: Path) -> list[str]:
+    if not openstreetmap_root.exists():
+        return []
+    countries: list[str] = []
+    for path in sorted(openstreetmap_root.iterdir()):
+        code = path.name.strip().upper()
+        if not (path.is_dir() and len(code) == 2 and code.isalpha()):
+            continue
+        has_roads = (path / "gis_osm_roads_free_1.shp").exists()
+        has_railways = (path / "gis_osm_railways_free_1.shp").exists()
+        if has_roads or has_railways:
+            countries.append(code)
+    return countries
+
+
+def _iter_shape_records(path: Path):
+    if not path.exists():
+        return
+    try:
+        reader = shapefile.Reader(str(path))
+    except (OSError, shapefile.ShapefileException):
+        return
+    fields = [field[0] for field in reader.fields if field[0] != "DeletionFlag"]
+    for item in reader.iterShapeRecords():
+        properties = {field: item.record[index] for index, field in enumerate(fields)}
+        yield properties, dict(item.shape.__geo_interface__)
+
+
+@lru_cache(maxsize=16)
+def _osm_transport_features_for_country(country_code: str, country_root: Path) -> tuple[dict[str, Any], ...]:
+    features: list[dict[str, Any]] = []
+
+    roads_path = country_root / "gis_osm_roads_free_1.shp"
+    for properties, geometry in _iter_shape_records(roads_path):
+        fclass = str(properties.get("fclass", "")).strip().lower()
+        if fclass not in {"motorway", "trunk"}:
+            continue
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geometry,
+                "properties": {
+                    "country_code": country_code,
+                    "transport_class": fclass,
+                },
+            }
+        )
+
+    railways_path = country_root / "gis_osm_railways_free_1.shp"
+    for properties, geometry in _iter_shape_records(railways_path):
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geometry,
+                "properties": {
+                    "country_code": country_code,
+                    "transport_class": "rail",
+                },
+            }
+        )
+    return tuple(features)
+
+
+def create_app(
+    runs_root: Path,
+    published_root: Path,
+    system_config: SystemConfig | None = None,
+    openstreetmap_root: Path | None = None,
+) -> FastAPI:
     app = FastAPI(title="Infrastructure Map API", version="1.0.0")
     app.add_middleware(
         CORSMiddleware,
@@ -249,19 +326,14 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
             "stalled_after_no_output_seconds": 600,
         },
     }
+    osm_root = openstreetmap_root or Path("data/openstreetmap")
 
-    @app.get("/v1/runs/latest")
-    def get_latest_run() -> dict[str, Any]:
-        pointer_info = store.latest_pointer()
-        run_id = pointer_info["run_id"]
-        manifest_path = store.run_root(run_id) / "reports" / "run_manifest.json"
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-        return {**payload, "pointer": pointer_info["pointer"], "lane": pointer_info["lane"]}
-
-    @app.get("/v1/runs/latest/status")
-    def latest_run_status() -> dict[str, Any]:
-        pointer_info = store.latest_pointer()
-        run_id = pointer_info["run_id"]
+    def build_run_status_payload(
+        run_id: str,
+        *,
+        pointer: str | None,
+        lane: str | None,
+    ) -> dict[str, Any]:
         run_root = store.run_root(run_id)
         layer_metadata = _load_layer_metadata(run_root)
         adaptive = next((m for m in layer_metadata if m.get("layer_name") == "facility_density_adaptive"), None)
@@ -274,8 +346,8 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
                 latest_progress = json.loads(lines[-1])
         return {
             "run_id": run_id,
-            "pointer": pointer_info["pointer"],
-            "lane": pointer_info["lane"],
+            "pointer": pointer,
+            "lane": lane,
             "runtime_expectations": runtime_expectations,
             "metrics": metrics,
             "adaptive_policy": {
@@ -286,6 +358,65 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
             },
             "latest_progress_event": latest_progress,
         }
+
+    @app.get("/v1/runs/latest")
+    def get_latest_run() -> dict[str, Any]:
+        pointer_info = store.latest_pointer()
+        run_id = pointer_info["run_id"]
+        manifest_path = store.run_root(run_id) / "reports" / "run_manifest.json"
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return {**payload, "pointer": pointer_info["pointer"], "lane": pointer_info["lane"]}
+
+    @app.get("/v1/runs/latest/status")
+    def latest_run_status() -> dict[str, Any]:
+        pointer_info = store.latest_pointer()
+        return build_run_status_payload(
+            pointer_info["run_id"],
+            pointer=pointer_info["pointer"],
+            lane=pointer_info["lane"],
+        )
+
+    @app.get("/v1/runs/{run_id}/status")
+    def run_status(run_id: str) -> dict[str, Any]:
+        pointer = None
+        lane = None
+        try:
+            pointer_info = store.latest_pointer()
+            if pointer_info["run_id"] == run_id:
+                pointer = pointer_info["pointer"]
+                lane = pointer_info["lane"]
+        except HTTPException:
+            pass
+        return build_run_status_payload(run_id, pointer=pointer, lane=lane)
+
+    @app.get("/v1/runs/catalog")
+    def runs_catalog(limit: int = Query(default=50, ge=1, le=200)) -> dict[str, Any]:
+        run_dirs = [path for path in store.runs_root.iterdir() if path.is_dir()] if store.runs_root.exists() else []
+        run_dirs = sorted(run_dirs, key=lambda path: path.stat().st_mtime, reverse=True)
+        items: list[dict[str, Any]] = []
+        for run_dir in run_dirs[:limit]:
+            run_id = run_dir.name
+            country_meta = _latest_layer_metadata_for(run_dir, "country_mask") or {}
+            adaptive_meta = _latest_layer_metadata_for(run_dir, "facility_density_adaptive") or {}
+            country_params = country_meta.get("params", {}) if isinstance(country_meta, dict) else {}
+            adaptive_params = adaptive_meta.get("params", {}) if isinstance(adaptive_meta, dict) else {}
+            item = {
+                "run_id": run_id,
+                "country_mask_mode": country_params.get("mode"),
+                "country_mask_resolution": country_params.get("resolution"),
+                "country_mask_base_resolution": country_params.get("base_resolution"),
+                "adaptive_base_resolution": adaptive_params.get("base_resolution"),
+                "include_iso_a2": country_params.get("include_iso_a2", []),
+                "exclude_iso_a2": country_params.get("exclude_iso_a2", []),
+            }
+            items.append(item)
+
+        latest_run_id = None
+        try:
+            latest_run_id = store.latest_run_id()
+        except HTTPException:
+            latest_run_id = None
+        return {"latest_run_id": latest_run_id, "runs": items}
 
     @app.get("/v1/runs/active/status")
     def active_run_status() -> dict[str, Any]:
@@ -341,14 +472,14 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         }
 
     @app.get("/v1/layers")
-    def list_layers() -> dict[str, Any]:
-        run_id = store.latest_run_id()
+    def list_layers(run_id: str | None = None) -> dict[str, Any]:
+        run_id = run_id or store.latest_run_id()
         metadata = _load_layer_metadata(store.run_root(run_id))
         return {"run_id": run_id, "layers": metadata}
 
     @app.get("/v1/layers/{layer}/metadata")
-    def get_layer_metadata(layer: str) -> dict[str, Any]:
-        run_id = store.latest_run_id()
+    def get_layer_metadata(layer: str, run_id: str | None = None) -> dict[str, Any]:
+        run_id = run_id or store.latest_run_id()
         candidates = [m for m in _load_layer_metadata(store.run_root(run_id)) if m.get("layer_name") == layer]
         if not candidates:
             raise HTTPException(status_code=404, detail=f"Layer not found: {layer}")
@@ -359,8 +490,9 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         layer: str,
         limit: int = 200000,
         split_threshold: int | None = Query(default=None, ge=1),
+        run_id: str | None = None,
     ) -> dict[str, Any]:
-        run_id = store.latest_run_id()
+        run_id = run_id or store.latest_run_id()
         run_root = store.run_root(run_id)
         layer_root = run_root / "layers" / layer
         versions = sorted(layer_root.glob("*")) if layer_root.exists() else []
@@ -409,8 +541,9 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
         org: str | None = None,
         h3_cell: str | None = Query(default=None, alias="h3"),
         limit: int = 10000,
+        run_id: str | None = None,
     ) -> dict[str, Any]:
-        run_id = store.latest_run_id()
+        run_id = run_id or store.latest_run_id()
         facilities = pd.read_parquet(store.run_root(run_id) / "canonical" / "facilities.parquet")
         if source:
             facilities = facilities[facilities["source_name"] == source]
@@ -518,6 +651,45 @@ def create_app(runs_root: Path, published_root: Path, system_config: SystemConfi
             "zoom": system.ui.zoom,
             "drilldown_resolution": system.ui.drilldown_resolution,
             "zoom_to_h3_resolution": system.zoom_to_h3_resolution,
+        }
+
+    @app.get("/v1/osm/transport")
+    def osm_transport_overlay(
+        country: str | None = Query(default=None, min_length=2, max_length=2),
+        limit: int = Query(default=200000, ge=1, le=500000),
+    ) -> dict[str, Any]:
+        available_countries = _available_osm_countries(osm_root)
+        features: list[dict[str, Any]] = []
+        target_countries = available_countries
+        if country:
+            country_code = country.strip().upper()
+            if country_code not in available_countries:
+                raise HTTPException(status_code=404, detail=f"OSM transport data unavailable for country: {country_code}")
+            target_countries = [country_code]
+
+        for country_code in target_countries:
+            country_root = osm_root / country_code
+            features.extend(_osm_transport_features_for_country(country_code, country_root))
+            if len(features) >= limit:
+                break
+
+        selected_features = features[:limit]
+        classes = sorted(
+            {
+                str(feature.get("properties", {}).get("transport_class", "")).strip()
+                for feature in selected_features
+                if feature.get("properties")
+            }
+        )
+        return {
+            "type": "FeatureCollection",
+            "source": "osm_transport",
+            "run_agnostic": True,
+            "country": country.strip().upper() if country else None,
+            "available_countries": available_countries,
+            "classes": classes,
+            "feature_count": len(selected_features),
+            "features": selected_features,
         }
 
     @app.get("/", include_in_schema=False)

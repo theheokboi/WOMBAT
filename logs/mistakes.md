@@ -51,3 +51,38 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Replaced shell append approach with a single-quoted heredoc and corrected the malformed progress-log evidence entry.
 - Prevention rule: For markdown log appends, always use single-quoted heredocs or `apply_patch`; never embed backticks in double-quoted shell command strings.
 - Verification evidence: `logs/mistakes.md` has this entry and `logs/progress/2026-02-28-ui-gb-only-display.md` contains clean evidence text.
+
+## 2026-03-05T20:53:29Z
+- Mistake: Applied a broad country-code replacement across tests, which temporarily produced invalid expectations (for example duplicated TW tokens in CLI parsing expectations) and required cleanup.
+- Root cause: Used a coarse scripted search/replace before narrowing replacements to per-test semantics and invariant expectations.
+- Corrective action: Reworked affected test assertions manually to preserve intended behavior while enforcing TW-only country scope, then re-ran focused suites and `make verify-dev`.
+- Prevention rule: Avoid global semantic replacements in tests for logic-bearing values; run scoped replacements and immediately validate each touched test file.
+- Verification evidence: `pytest -q tests/unit/test_agent_cli.py tests/unit/test_ingest_normalize.py tests/unit/test_country_mask.py tests/unit/test_facility_density_adaptive.py tests/unit/test_invariants.py tests/golden/test_golden_regression.py` and `make verify-dev` pass.
+
+## 2026-03-06T08:03:53Z
+- Mistake: Used an unquoted heredoc while appending markdown to progress log, which caused backtick command substitution and malformed log text.
+- Root cause: I wrote markdown with inline code fences in a shell context that still allowed interpolation.
+- Corrective action: Preserved the original entry, then appended corrected progress-log entries using single-quoted heredocs and explicit verification.
+- Prevention rule: For log markdown appends, always use single-quoted heredoc delimiters () when content may include backticks.
+- Verification evidence: logs/progress/2026-03-06-tw-osm-roads-railways-prune.md now includes corrected follow-up entries with intact inline code.
+
+## 2026-03-06T08:22:37Z
+- Mistake: Appended progress-log markdown using a double-quoted shell command containing backticks, which triggered unintended command substitution and malformed evidence text.
+- Root cause: I used an unsafe shell append pattern for markdown content with inline code formatting.
+- Corrective action: Preserved the malformed entry and appended a corrected follow-up entry using a single-quoted heredoc.
+- Prevention rule: For progress-log markdown appends, always use single-quoted heredocs and avoid backticks in double-quoted shell strings.
+- Verification evidence: logs/progress/2026-03-06-ui-osm-overlay-rail-motorway-trunk.md includes a corrective append entry after the malformed line.
+
+## 2026-03-06T08:27:41Z
+- Mistake: Attempted to parse API JSON with a piped heredoc command pattern that fed JSON into the Python interpreter source stream, causing a SyntaxError.
+- Root cause: Mixed  patterns incorrectly; heredoc supplies code and ignores piped stdin semantics.
+- Corrective action: Switched to  for stdin JSON parsing and reran payload verification.
+- Prevention rule: When validating JSON from a pipe, use /; do not combine  with piped payload input.
+- Verification evidence: successful payload check printed feature_count/available_countries/classes from  on port 8001.
+
+## 2026-03-06T08:28:20Z
+- Mistake: Previous mistake-ledger entry was malformed by shell interpolation and dropped key command text.
+- Root cause: Continued use of shell-quoted markdown appends while including inline command formatting.
+- Corrective action: Added this corrective append with explicit plain-text command names (curl pipe to python -c), and switched to apply_patch for future ledger edits.
+- Prevention rule: For logs containing command snippets, prefer apply_patch edits over shell appends to eliminate interpolation risks.
+- Verification evidence: this corrective entry preserves complete command context without missing tokens.
