@@ -23,15 +23,29 @@ def test_ui_static_smoke() -> None:
     assert "Display scope: loading..." in response.text
     assert "display-scope" in response.text
     assert "run-selector" in response.text
+    assert "basemap-selector" in response.text
+    assert "Basemap" in response.text
+    assert "CARTO Positron" in response.text
+    assert "OSM Standard" in response.text
+    assert "CARTO Dark" in response.text
     assert "country-selector" not in response.text
     assert "toggle-facilities" in response.text
     assert "toggle-adaptive" in response.text
     assert "toggle-country" in response.text
     assert "toggle-osm-transport" in response.text
     assert "OSM transport overlay" in response.text
+    assert "osm-transport-source" in response.text
+    assert "OSM transport source" in response.text
+    assert "Shapefile" in response.text
+    assert "Graph" in response.text
+    assert "osm-graph-variant" in response.text
+    assert "Graph variant" in response.text
+    assert "Raw" in response.text
+    assert "Collapsed" in response.text
     assert "OSM railway (rail)" in response.text
     assert "OSM motorway" in response.text
     assert "OSM trunk" in response.text
+    assert "OSM graph nodes (source=graph)" in response.text
     assert "Published Run & Adaptive Version" in response.text
     assert "latest-adaptive-version" in response.text
     assert "adaptive-policy" in response.text
@@ -53,6 +67,10 @@ def test_ui_static_smoke() -> None:
     assert "Display scope: run=" in script_response.text
     assert "country-selector" not in script_response.text
     assert "run-selector" in script_response.text
+    assert "BASEMAP_STYLES" in script_response.text
+    assert "basemap-selector" in script_response.text
+    assert "light_all" in script_response.text
+    assert "dark_all" in script_response.text
     assert "/v1/layers/facility_density_adaptive/metadata" in script_response.text
     assert "/v1/runs/catalog" in script_response.text
     assert "/v1/runs/latest/status" in script_response.text
@@ -66,5 +84,12 @@ def test_ui_static_smoke() -> None:
     assert "LANDING_POINT_COLOR" in script_response.text
     assert "OSM_TRANSPORT_STYLES" in script_response.text
     assert "toggle-osm-transport" in script_response.text
+    assert "osm-transport-source" in script_response.text
     assert "/v1/osm/transport" in script_response.text
+    assert "searchParams.set('source'" in script_response.text
+    assert "include_nodes" in script_response.text
+    assert "graph_variant" in script_response.text
+    assert "searchParams.set('graph_variant'" in script_response.text
+    assert "osm-graph-variant" in script_response.text
+    assert "colorGraphEdgesByAdjacency" in script_response.text
     assert "/v1/calibration/estimates/world" not in script_response.text

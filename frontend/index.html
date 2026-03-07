@@ -13,6 +13,12 @@
       <div class="controls">
         <label for="run-selector">Run / r-level</label>
         <select id="run-selector"></select>
+        <label for="basemap-selector">Basemap</label>
+        <select id="basemap-selector">
+          <option value="positron">CARTO Positron</option>
+          <option value="osm">OSM Standard</option>
+          <option value="dark">CARTO Dark</option>
+        </select>
       </div>
       <div id="display-scope">Display scope: loading...</div>
       <div class="controls">
@@ -20,6 +26,18 @@
         <label><input type="checkbox" id="toggle-country" checked /> Country H3</label>
         <label><input type="checkbox" id="toggle-adaptive" checked /> Adaptive Facility H3</label>
         <label><input type="checkbox" id="toggle-osm-transport" checked /> OSM transport overlay</label>
+        <label for="osm-transport-source">OSM transport source</label>
+        <select id="osm-transport-source">
+          <option value="shapefile">Shapefile</option>
+          <option value="graph">Graph</option>
+        </select>
+        <div id="osm-graph-variant-control" class="inline-control">
+          <label for="osm-graph-variant">Graph variant</label>
+          <select id="osm-graph-variant">
+            <option value="raw">Raw</option>
+            <option value="collapsed">Collapsed</option>
+          </select>
+        </div>
       </div>
       <div id="legend">
         <div><span class="swatch facility"></span> Facility points</div>
@@ -29,6 +47,7 @@
         <div><span class="swatch osm-rail"></span> OSM railway (rail)</div>
         <div><span class="swatch osm-motorway"></span> OSM motorway</div>
         <div><span class="swatch osm-trunk"></span> OSM trunk</div>
+        <div><span class="swatch osm-graph-node"></span> OSM graph nodes (source=graph)</div>
       </div>
       <div id="stats">
         <div id="facility-count">Facilities loaded: --</div>

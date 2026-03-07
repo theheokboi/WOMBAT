@@ -1,7 +1,7 @@
 :root {
-  --bg: #f2eee4;
-  --panel: #fffdf7;
-  --ink: #1f2937;
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --ink: #111827;
   --facility: #f97316;
   --landing-point: #0ea5e9;
   --metro: #0f766e;
@@ -21,7 +21,7 @@ body {
   margin: 0;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top left, #e7f3ff, var(--bg));
+  background: var(--bg);
   display: grid;
   grid-template-columns: 320px 1fr;
   height: 100vh;
@@ -29,7 +29,7 @@ body {
 
 #panel {
   background: var(--panel);
-  border-right: 1px solid #ddd6c7;
+  border-right: 1px solid #e5e7eb;
   padding: 14px;
   overflow-y: auto;
 }
@@ -44,20 +44,42 @@ h1, h2 {
   margin-bottom: 14px;
 }
 
+#osm-transport-source {
+  max-width: 180px;
+}
+
+#osm-graph-variant {
+  max-width: 140px;
+}
+
+.inline-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-control label {
+  margin: 0;
+}
+
+#basemap-selector {
+  max-width: 180px;
+}
+
 #global-h3-controls {
-  border: 1px solid #ddd6c7;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 8px;
-  background: #fffaf0;
+  background: #ffffff;
   display: grid;
   gap: 6px;
 }
 
 #adaptive-controls {
-  border: 1px solid #ddd6c7;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 8px;
-  background: #fff7ed;
+  background: #ffffff;
   display: grid;
   gap: 6px;
 }
@@ -85,10 +107,10 @@ h1, h2 {
 
 #global-h3-suggested {
   justify-self: start;
-  border: 1px solid #d97706;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
-  background: #ffedd5;
-  color: #7c2d12;
+  background: #f9fafb;
+  color: #374151;
   padding: 4px 8px;
   font-size: 12px;
   cursor: pointer;
@@ -116,10 +138,10 @@ h1, h2 {
   display: grid;
   gap: 6px;
   margin-bottom: 14px;
-  border: 1px solid #ddd6c7;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 8px;
-  background: #f8fafc;
+  background: #ffffff;
   font-size: 13px;
 }
 
@@ -156,11 +178,7 @@ h1, h2 {
 }
 
 .swatch.osm-rail {
-  background: repeating-linear-gradient(
-    to right,
-    var(--osm-rail) 0 5px,
-    rgba(55, 65, 81, 0.2) 5px 8px
-  );
+  background: var(--osm-rail);
 }
 
 .swatch.osm-motorway {
@@ -168,11 +186,12 @@ h1, h2 {
 }
 
 .swatch.osm-trunk {
-  background: repeating-linear-gradient(
-    to right,
-    var(--osm-trunk) 0 8px,
-    rgba(234, 88, 12, 0.2) 8px 10px
-  );
+  background: var(--osm-trunk);
+}
+
+.swatch.osm-graph-node {
+  background: radial-gradient(circle, #f8fafc 35%, #0f172a 36%);
+  border: 1px solid #0f172a;
 }
 
 #map {
@@ -199,6 +218,6 @@ h1, h2 {
 
   #panel {
     border-right: none;
-    border-bottom: 1px solid #ddd6c7;
+    border-bottom: 1px solid #e5e7eb;
   }
 }

@@ -24,8 +24,8 @@ layers:
     params:
       base_resolution: 3
       empty_compact_min_resolution: 0
-      facility_floor_resolution: 5
-      facility_max_resolution: 5
+      facility_floor_resolution: 7
+      facility_max_resolution: 7
       target_facilities_per_leaf: 1
       empty_interior_max_resolution: 2
       min_output_resolution: 2

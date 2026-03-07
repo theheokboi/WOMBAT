@@ -40,7 +40,35 @@ const LANDING_POINT_COLOR = '#0ea5e9';
 const OSM_TRANSPORT_STYLES = {
   rail: { color: '#374151', weight: 1.5, opacity: 0.9, dashArray: '7 4' },
   motorway: { color: '#dc2626', weight: 2.8, opacity: 0.95, dashArray: null },
+  motorway_link: { color: '#ef4444', weight: 2.2, opacity: 0.9, dashArray: '6 3' },
   trunk: { color: '#ea580c', weight: 2.2, opacity: 0.95, dashArray: '10 3' },
+  trunk_link: { color: '#f97316', weight: 1.8, opacity: 0.9, dashArray: '5 3' },
+};
+const OSM_GRAPH_EDGE_PALETTE = ['#e11d48', '#dc2626', '#ea580c', '#ca8a04', '#65a30d', '#16a34a', '#0891b2', '#2563eb', '#4f46e5', '#7c3aed', '#c026d3', '#db2777'];
+const BASEMAP_STYLES = {
+  positron: {
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    options: {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  },
+  osm: {
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  },
+  dark: {
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    options: {
+      maxZoom: 19,
+      subdomains: 'abcd',
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  },
 };
 
 function isLandingPointFeature(feature) {
@@ -85,6 +113,150 @@ function getAdaptiveH3(properties) {
 
 function featureCollectionFeatures(collection) {
   return Array.isArray(collection && collection.features) ? collection.features : [];
+}
+
+function normalizeOsmTransportSource(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'graph' || normalized === 'shapefile') return normalized;
+  return '';
+}
+
+function normalizeOsmGraphVariant(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'raw' || normalized === 'collapsed') return normalized;
+  return '';
+}
+
+function getBackendPreferredOsmTransportSource(osmTransportResponse) {
+  const candidates = [
+    osmTransportResponse?.source,
+    osmTransportResponse?.default_source,
+    osmTransportResponse?.selected_source,
+    osmTransportResponse?.metadata?.source,
+    osmTransportResponse?.metadata?.default_source,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeOsmTransportSource(candidate);
+    if (normalized) return normalized;
+  }
+  return 'shapefile';
+}
+
+function getBackendPreferredOsmGraphVariant(osmTransportResponse) {
+  const candidates = [
+    osmTransportResponse?.graph_variant,
+    osmTransportResponse?.default_graph_variant,
+    osmTransportResponse?.selected_graph_variant,
+    osmTransportResponse?.metadata?.graph_variant,
+    osmTransportResponse?.metadata?.default_graph_variant,
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeOsmGraphVariant(candidate);
+    if (normalized) return normalized;
+  }
+  return 'raw';
+}
+
+function buildOsmTransportPath(source, includeNodes = false, graphVariant = 'raw') {
+  const url = new URL('/v1/osm/transport', window.location.origin);
+  const selectedSource = normalizeOsmTransportSource(source) || 'shapefile';
+  url.searchParams.set('source', selectedSource);
+  if (selectedSource === 'graph') {
+    url.searchParams.set('graph_variant', normalizeOsmGraphVariant(graphVariant) || 'raw');
+  }
+  if (includeNodes) url.searchParams.set('include_nodes', 'true');
+  return `${url.pathname}?${url.searchParams.toString()}`;
+}
+
+function getGeometryType(feature) {
+  return String(feature?.geometry?.type || '').toLowerCase();
+}
+
+function isGraphEdgeFeature(feature) {
+  const featureType = String(feature?.properties?.graph_feature_type || '').toLowerCase();
+  if (featureType === 'edge') return true;
+  const geometryType = getGeometryType(feature);
+  return geometryType.includes('line');
+}
+
+function isGraphNodeFeature(feature) {
+  const featureType = String(feature?.properties?.graph_feature_type || '').toLowerCase();
+  if (featureType === 'node') return true;
+  return getGeometryType(feature) === 'point';
+}
+
+function getGraphEdgeKey(feature, fallbackIndex) {
+  const edgeId = feature?.properties?.edge_id;
+  if (edgeId) return String(edgeId);
+  return `edge_${fallbackIndex}`;
+}
+
+function getGraphNodeId(raw) {
+  if (raw === null || raw === undefined) return '';
+  return String(raw).trim();
+}
+
+function colorGraphEdgesByAdjacency(features) {
+  const graphEdges = [];
+  for (const feature of features || []) {
+    if (isGraphEdgeFeature(feature)) graphEdges.push(feature);
+  }
+  if (graphEdges.length === 0) return;
+
+  const edgeRecords = graphEdges.map((feature, index) => {
+    const p = feature?.properties || {};
+    const u = getGraphNodeId(p.u);
+    const v = getGraphNodeId(p.v);
+    return {
+      feature,
+      key: getGraphEdgeKey(feature, index),
+      u,
+      v,
+    };
+  });
+
+  const incident = new Map();
+  for (const record of edgeRecords) {
+    if (!record.u || !record.v) continue;
+    if (!incident.has(record.u)) incident.set(record.u, []);
+    if (!incident.has(record.v)) incident.set(record.v, []);
+    incident.get(record.u).push(record.key);
+    incident.get(record.v).push(record.key);
+  }
+
+  const recordByKey = new Map(edgeRecords.map((record) => [record.key, record]));
+  const order = [...edgeRecords].sort((a, b) => {
+    const aDegree = (incident.get(a.u)?.length || 0) + (incident.get(a.v)?.length || 0);
+    const bDegree = (incident.get(b.u)?.length || 0) + (incident.get(b.v)?.length || 0);
+    return bDegree - aDegree;
+  });
+
+  const assigned = new Map();
+  for (const record of order) {
+    const used = new Set();
+    for (const nodeId of [record.u, record.v]) {
+      const neighbors = incident.get(nodeId) || [];
+      for (const neighborKey of neighbors) {
+        const neighborColor = assigned.get(neighborKey);
+        if (neighborColor !== undefined) used.add(neighborColor);
+      }
+    }
+    let colorIndex = 0;
+    while (used.has(colorIndex) && colorIndex < OSM_GRAPH_EDGE_PALETTE.length) {
+      colorIndex += 1;
+    }
+    if (colorIndex >= OSM_GRAPH_EDGE_PALETTE.length) {
+      colorIndex = Math.abs(record.key.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % OSM_GRAPH_EDGE_PALETTE.length;
+    }
+    assigned.set(record.key, colorIndex);
+  }
+
+  for (const [key, colorIndex] of assigned.entries()) {
+    const record = recordByKey.get(key);
+    if (!record || !record.feature || !record.feature.properties) continue;
+    record.feature.properties.edge_palette_index = colorIndex;
+    record.feature.properties.edge_palette_color = OSM_GRAPH_EDGE_PALETTE[colorIndex];
+  }
 }
 
 function normalizeCountryCode(value) {
@@ -270,7 +442,8 @@ async function init() {
 
   const facilitiesFeatures = featureCollectionFeatures(facilities);
   const adaptiveFeatures = featureCollectionFeatures(adaptiveCells);
-  const osmTransportFeatures = featureCollectionFeatures(osmTransport);
+  let osmTransportEdgeFeatures = [];
+  let osmTransportNodeFeatures = [];
   const effectiveAdaptiveFeatures = (adaptiveFeatures || []).filter(
     (feature) => isAdaptiveResolutionAllowed(feature?.properties || {}, adaptiveResolutionBounds)
   );
@@ -347,10 +520,24 @@ async function init() {
   });
 
   // Optional base map. If unreachable, data overlays still render.
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(map);
+  const basemapSelector = document.getElementById('basemap-selector');
+  const createBasemapLayer = (basemapId) => {
+    const id = BASEMAP_STYLES[basemapId] ? basemapId : 'positron';
+    const style = BASEMAP_STYLES[id];
+    return L.tileLayer(style.url, style.options);
+  };
+  let currentBasemap = 'positron';
+  let basemapLayer = createBasemapLayer(currentBasemap).addTo(map);
+  if (basemapSelector) {
+    basemapSelector.value = currentBasemap;
+    basemapSelector.addEventListener('change', () => {
+      const nextBasemap = BASEMAP_STYLES[basemapSelector.value] ? basemapSelector.value : 'positron';
+      if (nextBasemap === currentBasemap) return;
+      if (basemapLayer) map.removeLayer(basemapLayer);
+      basemapLayer = createBasemapLayer(nextBasemap).addTo(map);
+      currentBasemap = nextBasemap;
+    });
+  }
 
   const facilityLayer = L.geoJSON(null, {
     pointToLayer: (feature, latlng) => {
@@ -442,8 +629,17 @@ async function init() {
   }
   renderAdaptiveCells();
 
-  const osmTransportLayer = L.geoJSON(null, {
+  const osmTransportEdgeLayer = L.geoJSON(null, {
     style: (feature) => {
+      const edgeColor = feature?.properties?.edge_palette_color;
+      if (edgeColor) {
+        return {
+          color: edgeColor,
+          weight: 2.4,
+          opacity: 0.92,
+          dashArray: null,
+        };
+      }
       const transportClass =
         String(feature?.properties?.transport_class || feature?.properties?.infrastructure_type || '').toLowerCase();
       const style = OSM_TRANSPORT_STYLES[transportClass] || OSM_TRANSPORT_STYLES.trunk;
@@ -462,16 +658,78 @@ async function init() {
       );
     },
   }).addTo(map);
+  const osmTransportNodeLayer = L.geoJSON(null, {
+    pointToLayer: (_feature, latlng) =>
+      L.circleMarker(latlng, {
+        radius: 2.8,
+        color: '#0f172a',
+        weight: 1,
+        fillColor: '#f8fafc',
+        fillOpacity: 0.95,
+      }),
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties || {};
+      layer.bindTooltip(
+        `Layer: osm_transport_graph_node<br/>Node ID: ${p.node_id ?? '--'}<br/>Country: ${p.country_code || '--'}`
+      );
+    },
+  }).addTo(map);
 
   const osmTransportToggle = document.getElementById('toggle-osm-transport');
-  function renderOsmTransport() {
-    clearLayer(osmTransportLayer);
-    if (!osmTransportToggle || !osmTransportToggle.checked) return;
-    osmTransportLayer.addData(osmTransportFeatures);
+  const osmTransportSourceSelect = document.getElementById('osm-transport-source');
+  const osmGraphVariantControl = document.getElementById('osm-graph-variant-control');
+  const osmGraphVariantSelect = document.getElementById('osm-graph-variant');
+  let selectedOsmTransportSource = getBackendPreferredOsmTransportSource(osmTransport);
+  let selectedOsmGraphVariant = getBackendPreferredOsmGraphVariant(osmTransport);
+  if (osmTransportSourceSelect) {
+    osmTransportSourceSelect.value = selectedOsmTransportSource;
+    if (osmTransportSourceSelect.value !== selectedOsmTransportSource) {
+      selectedOsmTransportSource = 'shapefile';
+      osmTransportSourceSelect.value = selectedOsmTransportSource;
+    }
   }
-  renderOsmTransport();
+  if (osmGraphVariantSelect) {
+    osmGraphVariantSelect.value = selectedOsmGraphVariant;
+    if (osmGraphVariantSelect.value !== selectedOsmGraphVariant) {
+      selectedOsmGraphVariant = 'raw';
+      osmGraphVariantSelect.value = selectedOsmGraphVariant;
+    }
+  }
 
-  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer, osmTransportLayer]);
+  function syncOsmGraphVariantControl() {
+    const isGraphSource = selectedOsmTransportSource === 'graph';
+    if (osmGraphVariantControl) osmGraphVariantControl.hidden = !isGraphSource;
+    if (osmGraphVariantSelect) osmGraphVariantSelect.disabled = !isGraphSource;
+  }
+
+  function renderOsmTransport() {
+    clearLayer(osmTransportEdgeLayer);
+    clearLayer(osmTransportNodeLayer);
+    if (!osmTransportToggle || !osmTransportToggle.checked) return;
+    osmTransportEdgeLayer.addData(osmTransportEdgeFeatures);
+    osmTransportNodeLayer.addData(osmTransportNodeFeatures);
+  }
+
+  async function reloadOsmTransport() {
+    const selectedSource = normalizeOsmTransportSource(selectedOsmTransportSource) || 'shapefile';
+    const selectedVariant = normalizeOsmGraphVariant(selectedOsmGraphVariant) || 'raw';
+    const includeNodes = selectedSource === 'graph';
+    const payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant));
+    const features = featureCollectionFeatures(payload);
+    if (selectedSource === 'graph') {
+      colorGraphEdgesByAdjacency(features);
+      osmTransportEdgeFeatures = features.filter((feature) => isGraphEdgeFeature(feature));
+      osmTransportNodeFeatures = features.filter((feature) => isGraphNodeFeature(feature));
+    } else {
+      osmTransportEdgeFeatures = features;
+      osmTransportNodeFeatures = [];
+    }
+    renderOsmTransport();
+  }
+  syncOsmGraphVariantControl();
+  await reloadOsmTransport();
+
+  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer, osmTransportEdgeLayer, osmTransportNodeLayer]);
   if (combined.getBounds().isValid()) {
     map.fitBounds(combined.getBounds(), { padding: [20, 20] });
   }
@@ -494,6 +752,20 @@ async function init() {
   if (osmTransportToggle) {
     osmTransportToggle.addEventListener('change', () => {
       renderOsmTransport();
+    });
+  }
+  if (osmTransportSourceSelect) {
+    osmTransportSourceSelect.addEventListener('change', async () => {
+      selectedOsmTransportSource = normalizeOsmTransportSource(osmTransportSourceSelect.value) || 'shapefile';
+      syncOsmGraphVariantControl();
+      await reloadOsmTransport();
+    });
+  }
+  if (osmGraphVariantSelect) {
+    osmGraphVariantSelect.addEventListener('change', async () => {
+      selectedOsmGraphVariant = normalizeOsmGraphVariant(osmGraphVariantSelect.value) || 'raw';
+      if (selectedOsmTransportSource !== 'graph') return;
+      await reloadOsmTransport();
     });
   }
 }

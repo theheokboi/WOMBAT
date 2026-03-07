@@ -86,3 +86,24 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Added this corrective append with explicit plain-text command names (curl pipe to python -c), and switched to apply_patch for future ledger edits.
 - Prevention rule: For logs containing command snippets, prefer apply_patch edits over shell appends to eliminate interpolation risks.
 - Verification evidence: this corrective entry preserves complete command context without missing tokens.
+
+## 2026-03-06T20:59:53Z
+- Mistake: Appended progress-log markdown with an unquoted shell heredoc containing inline code markers, which triggered command substitution and produced malformed evidence text.
+- Root cause: I used an unsafe shell append pattern for markdown that contained backticks.
+- Corrective action: Preserved the original append for auditability, then added a corrective append-only progress entry and switched log edits back to apply_patch.
+- Prevention rule: Use apply_patch for progress and mistake logs whenever markdown includes inline code or special shell characters.
+- Verification evidence: logs/progress/2026-03-06-ui-osm-transport-source-toggle.md now includes a corrective entry at 2026-03-06T20:59:53Z with intact evidence text.
+
+## 2026-03-06T21:05:52Z
+- Mistake: Ran Python bytecode compilation against a JavaScript file (`frontend/main.js`) during verification.
+- Root cause: Verification command was assembled quickly and mixed file types.
+- Corrective action: Re-ran `py_compile` with Python files only and continued JS validation via UI smoke tests.
+- Prevention rule: Restrict `python -m py_compile` targets to `.py` files; validate frontend JS through dedicated frontend/UI checks.
+- Verification evidence: `python -m py_compile src/inframap/ingest/major_road_graph.py scripts/build_major_roads_graph.py src/inframap/serve/app.py tests/unit/test_serve_osm_transport.py`; `pytest -q tests/ui/test_ui_smoke.py`.
+
+## 2026-03-06T21:11:50Z
+- Mistake: Attempted to parse piped JSON using a heredoc Python invocation, causing the JSON payload to be interpreted as Python source and fail with `SyntaxError`.
+- Root cause: Mixed incompatible shell patterns (`pipe` + `python - <<'PY'`) under quick verification.
+- Corrective action: Re-ran JSON validation with `python -c` reading from `sys.stdin`.
+- Prevention rule: For piped JSON checks, use `python -c` or `jq`; do not combine piped payloads with heredoc Python source mode.
+- Verification evidence: `curl -s 'http://127.0.0.1:8001/v1/osm/transport?...' | python -c "import json,sys; ..."` completed successfully.

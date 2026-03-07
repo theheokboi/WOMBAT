@@ -8,6 +8,10 @@ node_modules/
 data/runs/
 data/staging/
 data/published/
+data/openstreetmap/**/*.osm.pbf
+data/openstreetmap/**/major_roads*.geojson
+artifacts/screenshots/
+artifacts/derived/
 
 # local env
 .venv/
