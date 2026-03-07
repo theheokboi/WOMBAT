@@ -89,11 +89,13 @@ Screenshot path convention:
 Read endpoints remain under `/v1`.
 Run-oriented responses now include pointer/lane context for dev visibility.
 OSM transport overlay data is available from the run-agnostic endpoint `/v1/osm/transport` (no `run_id` coupling).
-`/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed|adaptive` (default `raw`).
+`/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed|adaptive|adaptive_portal|adaptive_portal_run` (default `raw`).
 `graph_variant=raw` reads `major_roads_edges.geojson` (and optional `major_roads_nodes.geojson` when `include_nodes=true`).
 `graph_variant=collapsed` reads `major_roads_edges_collapsed.geojson` (and optional `major_roads_nodes_collapsed.geojson` when `include_nodes=true`).
 `graph_variant=adaptive` reads `major_roads_edges_adaptive.geojson` (and optional `major_roads_nodes_adaptive.geojson` when `include_nodes=true`), where adaptive means fixed-resolution H3 boundary-aware protected-node contraction.
-Frontend exposes an `OSM transport overlay` toggle and legend entries for `rail`, `motorway`, and `trunk`.
+`graph_variant=adaptive_portal` reads `major_roads_edges_adaptive_portal.geojson` (and optional `major_roads_nodes_adaptive_portal.geojson` when `include_nodes=true`), where adaptive_portal means fixed-resolution boundary splitting with explicit portal/interface nodes and per-cell topology contraction; class filtering is resolution-aware: cells at `r5` and coarser keep `motorway`/`trunk`, while cells at `r6` and finer keep `motorway`/`trunk`/`primary`/`secondary`/`tertiary`/`unclassified`/`residential` (excluding `*_link`), with anchor-only nodes (portal + junction nodes).
+`graph_variant=adaptive_portal_run` reads run-scoped files from `data/runs/<run_id>/graph/<country>/major_roads_edges_adaptive_portal_run.geojson` (and optional nodes file), derived from run `facility_density_adaptive` variable-resolution mask cells; `r6+` fine classes (`primary`/`secondary`/`tertiary`/`unclassified`/`residential`) are included only for cells with `layer_value > 0` (at least one facility/landing), otherwise filtering falls back to `motorway`/`trunk`, with anchor-only node semantics.
+Frontend exposes an `OSM transport overlay` toggle and legend entries for `rail`, `motorway`, `trunk`, `primary`, `secondary`, `tertiary`, `unclassified`, and `residential`.
 
 Major-road graph GeoJSON artifacts can be generated from country OSM PBF files with:
 
@@ -101,7 +103,7 @@ Major-road graph GeoJSON artifacts can be generated from country OSM PBF files w
 python scripts/build_major_roads_graph.py --country TW
 ```
 
-By default this writes both raw and collapsed graph variants. Use `--graph-variant raw|collapsed|both` to control outputs.
+By default this writes both raw and collapsed graph variants. Use `--graph-variant raw|collapsed|adaptive|adaptive_portal|adaptive_portal_run|both` to control outputs.
 The command now prints stage-level progress with a progress bar and ETA while building graph artifacts.
 
 Adaptive-aware contraction output can be generated as an additive graph variant:
@@ -111,6 +113,14 @@ python scripts/build_major_roads_graph.py --country TW --graph-variant adaptive 
 ```
 
 `adaptive` here is a static country-level graph artifact generated with fixed H3 resolution boundary protection. It is not yet a run-scoped overlay derived from published `facility_density_adaptive` output.
+
+To build run-scoped adaptive-portal output from the latest adaptive mask cells in a run:
+
+```bash
+python scripts/build_major_roads_graph.py --country TW --graph-variant adaptive_portal_run --run-id <run-id>
+```
+
+Default output path for this mode is `data/runs/<run-id>/graph/<country>/` unless `--out-dir` is provided.
 
 To compare `raw` vs `collapsed` as cable-corridor proxy graphs (connectivity/path-length drift, shortcut and detour signals), run:
 

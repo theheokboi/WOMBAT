@@ -43,9 +43,16 @@ def test_ui_static_smoke() -> None:
     assert "Raw" in response.text
     assert "Collapsed" in response.text
     assert "Adaptive" in response.text
+    assert "Adaptive portal" in response.text
+    assert "Adaptive portal (run mask)" in response.text
     assert "OSM railway (rail)" in response.text
     assert "OSM motorway" in response.text
     assert "OSM trunk" in response.text
+    assert "OSM primary" in response.text
+    assert "OSM secondary" in response.text
+    assert "OSM tertiary" in response.text
+    assert "OSM unclassified" in response.text
+    assert "OSM residential" in response.text
     assert "OSM graph nodes (source=graph)" in response.text
     assert "Published Run & Adaptive Version" in response.text
     assert "latest-adaptive-version" in response.text
@@ -84,6 +91,11 @@ def test_ui_static_smoke() -> None:
     assert "isLandingPointFeature" in script_response.text
     assert "LANDING_POINT_COLOR" in script_response.text
     assert "OSM_TRANSPORT_STYLES" in script_response.text
+    assert "primary: { color:" in script_response.text
+    assert "secondary: { color:" in script_response.text
+    assert "tertiary: { color:" in script_response.text
+    assert "unclassified: { color:" in script_response.text
+    assert "residential: { color:" in script_response.text
     assert "toggle-osm-transport" in script_response.text
     assert "osm-transport-source" in script_response.text
     assert "/v1/osm/transport" in script_response.text
@@ -92,5 +104,8 @@ def test_ui_static_smoke() -> None:
     assert "graph_variant" in script_response.text
     assert "searchParams.set('graph_variant'" in script_response.text
     assert "osm-graph-variant" in script_response.text
+    assert "adaptive_portal" in script_response.text
+    assert "adaptive_portal_run" in script_response.text
+    assert "searchParams.set('run_id'" in script_response.text
     assert "colorGraphEdgesByAdjacency" in script_response.text
     assert "/v1/calibration/estimates/world" not in script_response.text

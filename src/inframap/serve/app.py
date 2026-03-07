@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from inframap.config import SystemConfig, load_system_config
 from inframap.agent.runtime_estimator import estimate_world_runtime
+from inframap.osm_transport import MAINLINE_ROAD_CLASS_SET
 
 
 class DataStore:
@@ -246,17 +247,23 @@ def _available_osm_countries(openstreetmap_root: Path) -> list[str]:
     return countries
 
 
-def _graph_variant_filenames(graph_variant: Literal["raw", "collapsed", "adaptive"]) -> tuple[str, str]:
+def _graph_variant_filenames(
+    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"]
+) -> tuple[str, str]:
     if graph_variant == "collapsed":
         return "major_roads_edges_collapsed.geojson", "major_roads_nodes_collapsed.geojson"
     if graph_variant == "adaptive":
         return "major_roads_edges_adaptive.geojson", "major_roads_nodes_adaptive.geojson"
+    if graph_variant == "adaptive_portal":
+        return "major_roads_edges_adaptive_portal.geojson", "major_roads_nodes_adaptive_portal.geojson"
+    if graph_variant == "adaptive_portal_run":
+        return "major_roads_edges_adaptive_portal_run.geojson", "major_roads_nodes_adaptive_portal_run.geojson"
     return "major_roads_edges.geojson", "major_roads_nodes.geojson"
 
 
 def _available_osm_graph_countries(
     openstreetmap_root: Path,
-    graph_variant: Literal["raw", "collapsed", "adaptive"],
+    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"],
 ) -> list[str]:
     if not openstreetmap_root.exists():
         return []
@@ -306,7 +313,7 @@ def _osm_transport_features_for_country(country_code: str, country_root: Path) -
     roads_path = country_root / "gis_osm_roads_free_1.shp"
     for properties, geometry in _iter_shape_records(roads_path):
         fclass = str(properties.get("fclass", "")).strip().lower()
-        if fclass not in {"motorway", "trunk"}:
+        if fclass not in MAINLINE_ROAD_CLASS_SET:
             continue
         features.append(
             {
@@ -338,7 +345,7 @@ def _osm_transport_features_for_country(country_code: str, country_root: Path) -
 def _osm_transport_graph_components_for_country(
     country_code: str,
     country_root: Path,
-    graph_variant: Literal["raw", "collapsed", "adaptive"],
+    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"],
 ) -> tuple[tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
     edge_features: list[dict[str, Any]] = []
     node_features: list[dict[str, Any]] = []
@@ -752,13 +759,22 @@ def create_app(
     @app.get("/v1/osm/transport")
     def osm_transport_overlay(
         country: str | None = Query(default=None, min_length=2, max_length=2),
+        run_id: str | None = Query(default=None, min_length=3),
         limit: int = Query(default=200000, ge=1, le=500000),
         source: Literal["shapefile", "graph"] = Query(default="shapefile"),
-        graph_variant: Literal["raw", "collapsed", "adaptive"] = Query(default="raw"),
+        graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"] = Query(
+            default="raw"
+        ),
         include_nodes: bool = Query(default=False),
     ) -> dict[str, Any]:
+        used_run_id = run_id.strip() if isinstance(run_id, str) else None
+        graph_root = osm_root
         if source == "graph":
-            available_countries = _available_osm_graph_countries(osm_root, graph_variant)
+            if graph_variant == "adaptive_portal_run":
+                if not used_run_id:
+                    raise HTTPException(status_code=400, detail="run_id is required for graph_variant=adaptive_portal_run")
+                graph_root = store.run_root(used_run_id) / "graph"
+            available_countries = _available_osm_graph_countries(graph_root, graph_variant)
         else:
             available_countries = _available_osm_countries(osm_root)
         features: list[dict[str, Any]] = []
@@ -770,7 +786,7 @@ def create_app(
             target_countries = [country_code]
 
         for country_code in target_countries:
-            country_root = osm_root / country_code
+            country_root = graph_root / country_code if source == "graph" else (osm_root / country_code)
             if source == "graph":
                 edge_features, node_features = _osm_transport_graph_components_for_country(
                     country_code,
@@ -800,16 +816,20 @@ def create_app(
                 if feature.get("properties")
             }
         )
-        return {
+        payload: dict[str, Any] = {
             "type": "FeatureCollection",
             "source": source,
-            "run_agnostic": True,
+            "graph_variant": graph_variant if source == "graph" else None,
+            "run_agnostic": not (source == "graph" and graph_variant == "adaptive_portal_run"),
             "country": country.strip().upper() if country else None,
             "available_countries": available_countries,
             "classes": classes,
             "feature_count": len(selected_features),
             "features": selected_features,
         }
+        if source == "graph" and graph_variant == "adaptive_portal_run":
+            payload["run_id"] = used_run_id
+        return payload
 
     @app.get("/", include_in_schema=False)
     def root_redirect() -> RedirectResponse:

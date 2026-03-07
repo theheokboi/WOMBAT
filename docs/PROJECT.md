@@ -67,8 +67,10 @@ Published run directories are immutable after pointer update.
 - `graph_variant=raw` uses `major_roads_edges.geojson` and `major_roads_nodes.geojson`.
 - `graph_variant=collapsed` uses `major_roads_edges_collapsed.geojson` and `major_roads_nodes_collapsed.geojson`.
 - `graph_variant=adaptive` uses `major_roads_edges_adaptive.geojson` and `major_roads_nodes_adaptive.geojson`, produced by protected-node contraction at fixed H3 resolution (cross-cell endpoints are preserved).
+- `graph_variant=adaptive_portal` uses `major_roads_edges_adaptive_portal.geojson` and `major_roads_nodes_adaptive_portal.geojson`, produced by fixed-resolution boundary splitting with explicit portal/interface nodes and per-cell topology contraction; class filtering is resolution-aware: cells at `r5` and coarser keep `motorway`/`trunk`, while cells at `r6` and finer keep `motorway`/`trunk`/`primary`/`secondary`/`tertiary`/`unclassified`/`residential` (excluding `*_link`), and nodes are anchor-only (portal + junction nodes).
+- `graph_variant=adaptive_portal_run` uses run-scoped files under `data/runs/<run_id>/graph/<country>/`: `major_roads_edges_adaptive_portal_run.geojson` and `major_roads_nodes_adaptive_portal_run.geojson`; this variant uses `facility_density_adaptive` run cells as a variable-resolution mask and applies facility-gated fine-class filtering: cells at `r6` and finer include `primary`/`secondary`/`tertiary`/`unclassified`/`residential` only when the run layer cell has `layer_value > 0` (at least one facility/landing), otherwise it falls back to `motorway`/`trunk`; nodes remain anchor-only.
 - `include_nodes=true` loads the node file that matches the selected graph variant when present.
-- Current graph artifacts are run-agnostic overlay data.
+- Graph artifacts are run-agnostic except `adaptive_portal_run`, which is run-scoped.
 - `scripts/evaluate_major_roads_graph.py` compares `raw` vs `collapsed` edge artifacts using connectivity and path-length-ratio metrics for cable-corridor plausibility checks; its report is a static OSM graph analysis artifact (not a run-scoped published layer artifact).
 
 ## Graph And Layer Roles

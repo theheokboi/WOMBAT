@@ -39,10 +39,18 @@ const FACILITY_POINT_COLOR = '#f97316';
 const LANDING_POINT_COLOR = '#0ea5e9';
 const OSM_TRANSPORT_STYLES = {
   rail: { color: '#374151', weight: 1.5, opacity: 0.9, dashArray: '7 4' },
-  motorway: { color: '#dc2626', weight: 2.8, opacity: 0.95, dashArray: null },
-  motorway_link: { color: '#ef4444', weight: 2.2, opacity: 0.9, dashArray: '6 3' },
-  trunk: { color: '#ea580c', weight: 2.2, opacity: 0.95, dashArray: '10 3' },
-  trunk_link: { color: '#f97316', weight: 1.8, opacity: 0.9, dashArray: '5 3' },
+  motorway: { color: '#d73027', weight: 2.8, opacity: 0.95, dashArray: null },
+  motorway_link: { color: '#fc8d59', weight: 2.2, opacity: 0.9, dashArray: '6 3' },
+  trunk: { color: '#4575b4', weight: 2.2, opacity: 0.95, dashArray: '10 3' },
+  trunk_link: { color: '#91bfdb', weight: 1.8, opacity: 0.9, dashArray: '5 3' },
+  primary: { color: '#fdae61', weight: 2.0, opacity: 0.95, dashArray: '4 3' },
+  primary_link: { color: '#fee08b', weight: 1.8, opacity: 0.9, dashArray: '4 3' },
+  secondary: { color: '#1a9850', weight: 2.0, opacity: 0.95, dashArray: '4 3' },
+  secondary_link: { color: '#66bd63', weight: 1.8, opacity: 0.9, dashArray: '4 3' },
+  tertiary: { color: '#7b3294', weight: 1.8, opacity: 0.95, dashArray: '3 3' },
+  tertiary_link: { color: '#c2a5cf', weight: 1.6, opacity: 0.9, dashArray: '3 3' },
+  unclassified: { color: '#4d4d4d', weight: 1.6, opacity: 0.9, dashArray: '2 4' },
+  residential: { color: '#9e9e9e', weight: 1.4, opacity: 0.9, dashArray: '2 5' },
 };
 const OSM_GRAPH_EDGE_PALETTE = ['#e11d48', '#dc2626', '#ea580c', '#ca8a04', '#65a30d', '#16a34a', '#0891b2', '#2563eb', '#4f46e5', '#7c3aed', '#c026d3', '#db2777'];
 const BASEMAP_STYLES = {
@@ -123,7 +131,15 @@ function normalizeOsmTransportSource(value) {
 
 function normalizeOsmGraphVariant(value) {
   const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'raw' || normalized === 'collapsed' || normalized === 'adaptive') return normalized;
+  if (
+    normalized === 'raw' ||
+    normalized === 'collapsed' ||
+    normalized === 'adaptive' ||
+    normalized === 'adaptive_portal' ||
+    normalized === 'adaptive_portal_run'
+  ) {
+    return normalized;
+  }
   return '';
 }
 
@@ -157,12 +173,16 @@ function getBackendPreferredOsmGraphVariant(osmTransportResponse) {
   return 'raw';
 }
 
-function buildOsmTransportPath(source, includeNodes = false, graphVariant = 'raw') {
+function buildOsmTransportPath(source, includeNodes = false, graphVariant = 'raw', runId = '') {
   const url = new URL('/v1/osm/transport', window.location.origin);
   const selectedSource = normalizeOsmTransportSource(source) || 'shapefile';
   url.searchParams.set('source', selectedSource);
   if (selectedSource === 'graph') {
-    url.searchParams.set('graph_variant', normalizeOsmGraphVariant(graphVariant) || 'raw');
+    const selectedVariant = normalizeOsmGraphVariant(graphVariant) || 'raw';
+    url.searchParams.set('graph_variant', selectedVariant);
+    if (selectedVariant === 'adaptive_portal_run' && runId) {
+      url.searchParams.set('run_id', String(runId));
+    }
   }
   if (includeNodes) url.searchParams.set('include_nodes', 'true');
   return `${url.pathname}?${url.searchParams.toString()}`;
@@ -714,17 +734,7 @@ async function init() {
     const selectedSource = normalizeOsmTransportSource(selectedOsmTransportSource) || 'shapefile';
     const selectedVariant = normalizeOsmGraphVariant(selectedOsmGraphVariant) || 'raw';
     const includeNodes = selectedSource === 'graph';
-    let payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant));
-    if (
-      selectedSource === 'graph' &&
-      selectedVariant === 'adaptive' &&
-      Array.isArray(payload?.available_countries) &&
-      payload.available_countries.length === 0
-    ) {
-      selectedOsmGraphVariant = 'raw';
-      if (osmGraphVariantSelect) osmGraphVariantSelect.value = selectedOsmGraphVariant;
-      payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedOsmGraphVariant));
-    }
+    const payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant, effectiveRunId));
     const features = featureCollectionFeatures(payload);
     if (selectedSource === 'graph') {
       colorGraphEdgesByAdjacency(features);

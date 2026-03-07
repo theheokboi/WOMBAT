@@ -9,8 +9,13 @@
   --adaptive: #7c2d12;
   --global: #b91c1c;
   --osm-rail: #374151;
-  --osm-motorway: #dc2626;
-  --osm-trunk: #ea580c;
+  --osm-motorway: #d73027;
+  --osm-trunk: #4575b4;
+  --osm-primary: #fdae61;
+  --osm-secondary: #1a9850;
+  --osm-tertiary: #7b3294;
+  --osm-unclassified: #4d4d4d;
+  --osm-residential: #9e9e9e;
 }
 
 * {
@@ -187,6 +192,26 @@ h1, h2 {
 
 .swatch.osm-trunk {
   background: var(--osm-trunk);
+}
+
+.swatch.osm-primary {
+  background: var(--osm-primary);
+}
+
+.swatch.osm-secondary {
+  background: var(--osm-secondary);
+}
+
+.swatch.osm-tertiary {
+  background: var(--osm-tertiary);
+}
+
+.swatch.osm-unclassified {
+  background: var(--osm-unclassified);
+}
+
+.swatch.osm-residential {
+  background: var(--osm-residential);
 }
 
 .swatch.osm-graph-node {

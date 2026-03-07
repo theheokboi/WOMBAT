@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 from time import perf_counter
 
+import pandas as pd
+
 from inframap.ingest.major_road_graph import build_major_road_graph_variants
 
 
@@ -13,6 +15,8 @@ _STAGE_LABELS = {
     "write_raw": "Write raw graph files",
     "write_collapsed": "Write collapsed graph files",
     "write_adaptive": "Write adaptive graph files",
+    "write_adaptive_portal": "Write adaptive portal graph files",
+    "write_adaptive_portal_run": "Write adaptive portal run graph files",
 }
 
 
@@ -98,7 +102,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", default=None, help="Output directory (default: country directory)")
     parser.add_argument(
         "--graph-variant",
-        choices=("raw", "collapsed", "adaptive", "both"),
+        choices=("raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run", "both"),
         default="both",
         help="Graph output variant to write",
     )
@@ -108,7 +112,28 @@ def parse_args() -> argparse.Namespace:
         default=6,
         help="Adaptive H3 resolution used when graph_variant includes adaptive",
     )
+    parser.add_argument("--run-id", default=None, help="Run ID used for graph_variant=adaptive_portal_run")
+    parser.add_argument("--runs-root", default="data/runs", help="Runs root used for run-scoped graph outputs")
     return parser.parse_args()
+
+
+def _latest_adaptive_mask_cells(run_root: Path) -> tuple[set[str], set[str]]:
+    layer_root = run_root / "layers" / "facility_density_adaptive"
+    layer_dirs = sorted(path for path in layer_root.glob("*") if path.is_dir())
+    if not layer_dirs:
+        raise FileNotFoundError(f"No facility_density_adaptive layer directory found under {layer_root}")
+    cells_path = layer_dirs[-1] / "cells.parquet"
+    if not cells_path.exists():
+        raise FileNotFoundError(f"Adaptive mask cells parquet not found: {cells_path}")
+    cells = pd.read_parquet(cells_path)
+    if "h3" not in cells.columns:
+        raise ValueError(f"Adaptive mask cells parquet missing h3 column: {cells_path}")
+    mask_cells = {str(cell) for cell in cells["h3"].astype(str).tolist()}
+    occupied_cells: set[str] = set()
+    if "layer_value" in cells.columns:
+        occupied = cells[cells["layer_value"] > 0]
+        occupied_cells = {str(cell) for cell in occupied["h3"].astype(str).tolist()}
+    return mask_cells, occupied_cells
 
 
 def main() -> None:
@@ -119,14 +144,25 @@ def main() -> None:
 
     osm_root = Path(args.openstreetmap_root)
     country_dir = osm_root / country_code
+    runs_root = Path(args.runs_root)
+    run_id = str(args.run_id).strip() if isinstance(args.run_id, str) and str(args.run_id).strip() else None
     pbf_path = Path(args.pbf) if args.pbf else _default_pbf_path(country_code, osm_root)
-    out_dir = Path(args.out_dir) if args.out_dir else country_dir
 
     variant_arg = str(args.graph_variant).strip().lower()
     if variant_arg == "both":
         variants = ("raw", "collapsed")
     else:
         variants = (variant_arg,)
+    if variant_arg == "adaptive_portal_run" and run_id is None:
+        raise ValueError("--run-id is required when --graph-variant=adaptive_portal_run")
+
+    if args.out_dir:
+        out_dir = Path(args.out_dir)
+    elif variant_arg == "adaptive_portal_run":
+        out_dir = runs_root / str(run_id) / "graph" / country_code
+    else:
+        out_dir = country_dir
+
     progress = ProgressReporter(variants=variants)
     build_kwargs = {
         "pbf_path": pbf_path,
@@ -134,8 +170,12 @@ def main() -> None:
         "variants": variants,
         "progress_callback": progress.callback,
     }
-    if "adaptive" in variants:
+    if "adaptive" in variants or "adaptive_portal" in variants:
         build_kwargs["adaptive_resolution"] = int(args.adaptive_resolution)
+    if "adaptive_portal_run" in variants:
+        adaptive_mask_cells, adaptive_occupied_cells = _latest_adaptive_mask_cells(runs_root / str(run_id))
+        build_kwargs["adaptive_mask_cells"] = adaptive_mask_cells
+        build_kwargs["adaptive_occupied_cells"] = adaptive_occupied_cells
     outputs = build_major_road_graph_variants(**build_kwargs)
     print(f"country={country_code}")
     print(f"input_pbf={pbf_path}")
@@ -152,6 +192,14 @@ def main() -> None:
         adaptive_edges_path, adaptive_nodes_path = outputs["adaptive"]
         print(f"edges_geojson_adaptive={adaptive_edges_path}")
         print(f"nodes_geojson_adaptive={adaptive_nodes_path}")
+    if "adaptive_portal" in outputs:
+        adaptive_portal_edges_path, adaptive_portal_nodes_path = outputs["adaptive_portal"]
+        print(f"edges_geojson_adaptive_portal={adaptive_portal_edges_path}")
+        print(f"nodes_geojson_adaptive_portal={adaptive_portal_nodes_path}")
+    if "adaptive_portal_run" in outputs:
+        adaptive_portal_run_edges_path, adaptive_portal_run_nodes_path = outputs["adaptive_portal_run"]
+        print(f"edges_geojson_adaptive_portal_run={adaptive_portal_run_edges_path}")
+        print(f"nodes_geojson_adaptive_portal_run={adaptive_portal_run_nodes_path}")
 
 
 if __name__ == "__main__":
