@@ -18,6 +18,11 @@ The repository is currently **dev-only**.
 - Strict/promotion workflow is deferred to a future hardening phase.
 - Do not introduce strict gating assumptions into day-to-day dev commands.
 
+## Context Preservation
+
+- When reading, exploring, implementing, or reviewing code, delegate scoped discovery tasks to subagents when possible to preserve the main agent context window.
+- Use subagents for parallel codebase inspection, document review, and targeted file analysis; keep synthesis and final decisions in the main thread.
+
 ## Non-Negotiable Principles (Current)
 
 - Geometry authority: do not infer spatial membership from free text.
@@ -65,7 +70,7 @@ Minimum cadence:
 3. Implement minimal code.
 4. Run local verification for impacted paths.
 5. Update docs/config examples when behavior/interfaces change.
-6. Update `README.md` and `AGENTS.md` for workflow/contract/tooling changes.
+6. Update `docs/PROJECT.md`, `README.md`, and `AGENTS.md` for workflow/contract/tooling changes.
 
 ## Dev Commands
 
@@ -107,6 +112,7 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - Include `run_id` and layer version context in responses.
 - Include lane/pointer context in run/health status payloads for dev visibility.
 - Preserve backward compatibility for additive updates.
+- `/v1/osm/transport` must keep default `source=shapefile` behavior and allow `source=graph` loading from per-country graph files with `graph_variant` support: `raw` uses `major_roads_edges.geojson`/`major_roads_nodes.geojson`, `collapsed` uses `major_roads_edges_collapsed.geojson`/`major_roads_nodes_collapsed.geojson`; support optional `include_nodes=true` by loading the variant-matched nodes file when present.
 
 ## Visualization Rules
 
@@ -136,7 +142,7 @@ For UI/visual changes:
 
 ## Documentation Freshness Policy
 
-`README.md` and `AGENTS.md` are living docs.
+`README.md`, `AGENTS.md`, and `docs/PROJECT.md` are living docs.
 
 Any workflow/quality gate/command/contract change must include doc updates in the same change.
 If no update is needed, record: `Docs check: no changes required` with rationale in progress log.
@@ -147,10 +153,17 @@ If no update is needed, record: `Docs check: no changes required` with rationale
 - Log each discovered mistake with root cause, corrective action, prevention rule, and verification.
 - Before handoff, run a mistake replay check and record confirmation in progress log.
 
+## Log Retention
+
+- Keep `logs/mistakes.md` live and append-only.
+- Keep active and recent task logs in `logs/progress/`.
+- Move completed progress logs older than 7 days to `archive/logs/progress/` instead of deleting them.
+- Prefer archiving over deletion for historical task records.
+
 ## Archived Documentation
 
 Historical handover/planning/log summary docs are stored under `archive/docs/`.
-Active docs remain in `docs/` (`PROJECT.md`, `IMPLEMENTATION_PLAN.md`).
+Active docs remain in `docs/` (`PROJECT.md`, `ADAPTIVE_CELL_ROUTING.md`).
 
 ## Definition of Done (Current Mode)
 

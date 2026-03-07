@@ -72,6 +72,7 @@ Screenshot path convention:
 
 - Active pointer: `data/published/latest-dev`
 - Compatibility alias: `data/published/latest` mirrors `latest-dev`
+- Serve and API paths read `latest-dev` first and fall back to `latest` only for backward compatibility when `latest-dev` is absent.
 - Dev exploration must not rely on strict/prod pointer semantics.
 
 ## Dev Verification Contract
@@ -88,7 +89,18 @@ Screenshot path convention:
 Read endpoints remain under `/v1`.
 Run-oriented responses now include pointer/lane context for dev visibility.
 OSM transport overlay data is available from the run-agnostic endpoint `/v1/osm/transport` (no `run_id` coupling).
+`/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed` (default `raw`).
+`graph_variant=raw` reads `major_roads_edges.geojson` (and optional `major_roads_nodes.geojson` when `include_nodes=true`).
+`graph_variant=collapsed` reads `major_roads_edges_collapsed.geojson` (and optional `major_roads_nodes_collapsed.geojson` when `include_nodes=true`).
 Frontend exposes an `OSM transport overlay` toggle and legend entries for `rail`, `motorway`, and `trunk`.
+
+Major-road graph GeoJSON artifacts can be generated from country OSM PBF files with:
+
+```bash
+python scripts/build_major_roads_graph.py --country TW
+```
+
+By default this writes both raw and collapsed graph variants. Use `--graph-variant raw|collapsed|both` to control outputs.
 
 ## Deferred Hardening (For Engineering)
 
@@ -111,5 +123,5 @@ Historical handover/planning/log summaries were moved to:
 ## References
 
 - `docs/PROJECT.md` (authoritative contracts)
-- `docs/IMPLEMENTATION_PLAN.md` (current dev-only execution plan)
+- `docs/ADAPTIVE_CELL_ROUTING.md` (design discussion on graph density, adaptive cells, and routing)
 - `AGENTS.md`
