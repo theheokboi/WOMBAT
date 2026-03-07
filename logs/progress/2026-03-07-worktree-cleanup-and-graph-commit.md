@@ -20,3 +20,17 @@ Checklist
 - Update: Added ignore rules for local screenshots and per-country OSM graph input/output files, then ran targeted verification for the graph endpoint, contraction logic, and UI smoke path. All targeted checks passed.
 - Evidence: `.gitignore`; `pytest -q tests/unit/test_serve_osm_transport.py tests/unit/test_major_road_graph_contraction.py tests/ui/test_ui_smoke.py`; `python -m py_compile src/inframap/serve/app.py src/inframap/ingest/major_road_graph.py scripts/build_major_roads_graph.py tests/unit/test_serve_osm_transport.py tests/unit/test_major_road_graph_contraction.py`
 - Next: Stage the coherent feature files and related logs, then commit them without including local datasets or screenshots.
+
+## 2026-03-07T06:28:57Z
+- Status: complete
+- Checklist item: Commit the remaining coherent feature/log changes
+- Update: Committed the remaining OSM graph feature work as `feat: add major road graph graph-source overlays` (`b374967`). The normal worktree is now clean; only ignored local artifacts and datasets remain outside Git status.
+- Evidence: `git commit -m "feat: add major road graph graph-source overlays"`; `git status --short`
+- Next: None.
+
+Checklist Snapshot
+- [x] Inspect remaining tracked and untracked files
+- [x] Separate feature code from local artifacts/data
+- [x] Add ignore rules for local generated artifacts and datasets
+- [x] Verify the OSM graph feature changes
+- [x] Commit the remaining coherent feature/log changes
