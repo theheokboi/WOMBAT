@@ -66,8 +66,10 @@ Published run directories are immutable after pointer update.
 - `source=graph` loads per-country major-road graph artifacts from `data/openstreetmap/<country>/`.
 - `graph_variant=raw` uses `major_roads_edges.geojson` and `major_roads_nodes.geojson`.
 - `graph_variant=collapsed` uses `major_roads_edges_collapsed.geojson` and `major_roads_nodes_collapsed.geojson`.
+- `graph_variant=adaptive` uses `major_roads_edges_adaptive.geojson` and `major_roads_nodes_adaptive.geojson`, produced by protected-node contraction at fixed H3 resolution (cross-cell endpoints are preserved).
 - `include_nodes=true` loads the node file that matches the selected graph variant when present.
 - Current graph artifacts are run-agnostic overlay data.
+- `scripts/evaluate_major_roads_graph.py` compares `raw` vs `collapsed` edge artifacts using connectivity and path-length-ratio metrics for cable-corridor plausibility checks; its report is a static OSM graph analysis artifact (not a run-scoped published layer artifact).
 
 ## Graph And Layer Roles
 

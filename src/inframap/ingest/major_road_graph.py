@@ -4,8 +4,10 @@ import json
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
-from typing import Literal
+from time import perf_counter
+from typing import Any, Callable, Literal
 
+import h3
 import osmium
 
 
@@ -14,7 +16,10 @@ RAW_EDGE_FILENAME = "major_roads_edges.geojson"
 RAW_NODE_FILENAME = "major_roads_nodes.geojson"
 COLLAPSED_EDGE_FILENAME = "major_roads_edges_collapsed.geojson"
 COLLAPSED_NODE_FILENAME = "major_roads_nodes_collapsed.geojson"
-GraphVariant = Literal["raw", "collapsed"]
+ADAPTIVE_EDGE_FILENAME = "major_roads_edges_adaptive.geojson"
+ADAPTIVE_NODE_FILENAME = "major_roads_nodes_adaptive.geojson"
+GraphVariant = Literal["raw", "collapsed", "adaptive"]
+ProgressCallback = Callable[[str, str, dict[str, Any]], None]
 
 
 def _way_road_class(way: osmium.osm.Way) -> str | None:
@@ -74,10 +79,14 @@ def _edge_coordinates(edge: dict[str, object]) -> list[list[float]]:
     return normalized
 
 
-def contract_degree2_undirected_edges(edges: list[dict[str, object]]) -> list[dict[str, object]]:
+def contract_degree2_undirected_edges(
+    edges: list[dict[str, object]],
+    protected_nodes: set[int] | None = None,
+) -> list[dict[str, object]]:
     """Collapse interior degree-2 nodes in an undirected edge list."""
     active_edges: dict[str, dict[str, object]] = {}
     node_to_edges: dict[int, set[str]] = defaultdict(set)
+    protected = {int(node_id) for node_id in protected_nodes or set()}
 
     for edge in edges:
         edge_id = str(edge.get("edge_id", ""))
@@ -108,7 +117,9 @@ def contract_degree2_undirected_edges(edges: list[dict[str, object]]) -> list[di
         node_to_edges[v].add(edge_id)
 
     while True:
-        candidate_nodes = sorted(node for node, incident in node_to_edges.items() if len(incident) == 2)
+        candidate_nodes = sorted(
+            node for node, incident in node_to_edges.items() if len(incident) == 2 and node not in protected
+        )
         merged = False
         for node in candidate_nodes:
             incident_ids = sorted(node_to_edges.get(node, set()))
@@ -339,7 +350,34 @@ def _to_edge_features(edges: list[dict[str, object]]) -> list[dict[str, object]]
     return edge_features
 
 
+def _node_cells_at_resolution(nodes: dict[int, tuple[float, float]], resolution: int) -> dict[int, str]:
+    return {
+        int(node_id): str(h3.latlng_to_cell(float(lat), float(lon), resolution))
+        for node_id, (lon, lat) in nodes.items()
+    }
+
+
+def _protected_nodes_from_cross_cell_edges(
+    edges: list[dict[str, object]],
+    node_cells: dict[int, str],
+) -> set[int]:
+    protected_nodes: set[int] = set()
+    for edge in edges:
+        u = int(edge["u"])
+        v = int(edge["v"])
+        u_cell = node_cells.get(u)
+        v_cell = node_cells.get(v)
+        if u_cell is None or v_cell is None:
+            continue
+        if u_cell != v_cell:
+            protected_nodes.add(u)
+            protected_nodes.add(v)
+    return protected_nodes
+
+
 def _variant_filenames(variant: GraphVariant) -> tuple[str, str]:
+    if variant == "adaptive":
+        return ADAPTIVE_EDGE_FILENAME, ADAPTIVE_NODE_FILENAME
     if variant == "collapsed":
         return COLLAPSED_EDGE_FILENAME, COLLAPSED_NODE_FILENAME
     return RAW_EDGE_FILENAME, RAW_NODE_FILENAME
@@ -349,41 +387,86 @@ def build_major_road_graph_variants(
     pbf_path: Path,
     output_dir: Path,
     variants: tuple[GraphVariant, ...] = ("raw",),
+    adaptive_resolution: int | None = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> dict[GraphVariant, tuple[Path, Path]]:
-    collector = _SplitNodeCollector()
-    collector.apply_file(str(pbf_path), locations=False)
+    def notify(event: str, stage: str, payload: dict[str, Any] | None = None) -> None:
+        if progress_callback is None:
+            return
+        progress_callback(event, stage, payload or {})
 
-    builder = _MajorRoadGraphBuilder(shared_node_refs=collector.shared_node_refs)
-    builder.apply_file(str(pbf_path), locations=True, idx="flex_mem")
+    def run_stage(stage: str, fn: Callable[[], None]) -> None:
+        notify("phase_start", stage)
+        started = perf_counter()
+        fn()
+        notify("phase_end", stage, {"elapsed_seconds": perf_counter() - started})
 
     requested = tuple(dict.fromkeys(variants))
+    if "adaptive" in requested and adaptive_resolution is None:
+        raise ValueError("adaptive_resolution is required when adaptive graph variant is requested")
+
+    collector = _SplitNodeCollector()
+    run_stage("collect_shared_nodes", lambda: collector.apply_file(str(pbf_path), locations=False))
+
+    builder = _MajorRoadGraphBuilder(shared_node_refs=collector.shared_node_refs)
+    run_stage("build_raw_graph", lambda: builder.apply_file(str(pbf_path), locations=True, idx="flex_mem"))
+
     outputs: dict[GraphVariant, tuple[Path, Path]] = {}
     output_dir.mkdir(parents=True, exist_ok=True)
     if "raw" in requested:
-        raw_edge_features = _to_edge_features(builder.edges)
-        raw_node_features = _to_node_features(sorted(builder.nodes.items()))
-        raw_edges_name, raw_nodes_name = _variant_filenames("raw")
-        raw_edges_path = output_dir / raw_edges_name
-        raw_nodes_path = output_dir / raw_nodes_name
-        _write_geojson(raw_edges_path, raw_edge_features)
-        _write_geojson(raw_nodes_path, raw_node_features)
-        outputs["raw"] = (raw_edges_path, raw_nodes_path)
+        def write_raw() -> None:
+            raw_edge_features = _to_edge_features(builder.edges)
+            raw_node_features = _to_node_features(sorted(builder.nodes.items()))
+            raw_edges_name, raw_nodes_name = _variant_filenames("raw")
+            raw_edges_path = output_dir / raw_edges_name
+            raw_nodes_path = output_dir / raw_nodes_name
+            _write_geojson(raw_edges_path, raw_edge_features)
+            _write_geojson(raw_nodes_path, raw_node_features)
+            outputs["raw"] = (raw_edges_path, raw_nodes_path)
+
+        run_stage("write_raw", write_raw)
 
     if "collapsed" in requested:
-        collapsed_edges = contract_degree2_undirected_edges(builder.edges)
-        collapsed_node_ids = sorted({int(edge["u"]) for edge in collapsed_edges} | {int(edge["v"]) for edge in collapsed_edges})
-        collapsed_node_items = [
-            (node_id, builder.nodes[node_id]) for node_id in collapsed_node_ids if node_id in builder.nodes
-        ]
-        collapsed_edge_features = _to_edge_features(collapsed_edges)
-        collapsed_node_features = _to_node_features(collapsed_node_items)
-        collapsed_edges_name, collapsed_nodes_name = _variant_filenames("collapsed")
-        collapsed_edges_path = output_dir / collapsed_edges_name
-        collapsed_nodes_path = output_dir / collapsed_nodes_name
-        _write_geojson(collapsed_edges_path, collapsed_edge_features)
-        _write_geojson(collapsed_nodes_path, collapsed_node_features)
-        outputs["collapsed"] = (collapsed_edges_path, collapsed_nodes_path)
+        def write_collapsed() -> None:
+            collapsed_edges = contract_degree2_undirected_edges(builder.edges)
+            collapsed_node_ids = sorted(
+                {int(edge["u"]) for edge in collapsed_edges} | {int(edge["v"]) for edge in collapsed_edges}
+            )
+            collapsed_node_items = [
+                (node_id, builder.nodes[node_id]) for node_id in collapsed_node_ids if node_id in builder.nodes
+            ]
+            collapsed_edge_features = _to_edge_features(collapsed_edges)
+            collapsed_node_features = _to_node_features(collapsed_node_items)
+            collapsed_edges_name, collapsed_nodes_name = _variant_filenames("collapsed")
+            collapsed_edges_path = output_dir / collapsed_edges_name
+            collapsed_nodes_path = output_dir / collapsed_nodes_name
+            _write_geojson(collapsed_edges_path, collapsed_edge_features)
+            _write_geojson(collapsed_nodes_path, collapsed_node_features)
+            outputs["collapsed"] = (collapsed_edges_path, collapsed_nodes_path)
 
+        run_stage("write_collapsed", write_collapsed)
+
+    if "adaptive" in requested:
+        def write_adaptive() -> None:
+            node_cells = _node_cells_at_resolution(builder.nodes, adaptive_resolution)
+            protected_nodes = _protected_nodes_from_cross_cell_edges(builder.edges, node_cells)
+            adaptive_edges = contract_degree2_undirected_edges(builder.edges, protected_nodes=protected_nodes)
+            adaptive_node_ids = sorted({int(edge["u"]) for edge in adaptive_edges} | {int(edge["v"]) for edge in adaptive_edges})
+            adaptive_node_items = [
+                (node_id, builder.nodes[node_id]) for node_id in adaptive_node_ids if node_id in builder.nodes
+            ]
+            adaptive_edge_features = _to_edge_features(adaptive_edges)
+            adaptive_node_features = _to_node_features(adaptive_node_items)
+            adaptive_edges_name, adaptive_nodes_name = _variant_filenames("adaptive")
+            adaptive_edges_path = output_dir / adaptive_edges_name
+            adaptive_nodes_path = output_dir / adaptive_nodes_name
+            _write_geojson(adaptive_edges_path, adaptive_edge_features)
+            _write_geojson(adaptive_nodes_path, adaptive_node_features)
+            outputs["adaptive"] = (adaptive_edges_path, adaptive_nodes_path)
+
+        run_stage("write_adaptive", write_adaptive)
+
+    notify("done", "complete", {"output_count": len(outputs)})
     return outputs
 
 

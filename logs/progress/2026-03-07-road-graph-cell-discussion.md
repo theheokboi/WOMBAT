@@ -103,6 +103,20 @@ Checklist Snapshot
 - Evidence: `archive/logs/progress/`; `docs/PROJECT.md`; `AGENTS.md`; `find logs -maxdepth 3 -type f | sort`
 - Next: Keep screenshots, derived artifacts, and OSM data untouched for now; they remain candidates only if the project decides they are no longer needed as evidence or source data.
 
+## 2026-03-07T06:31:54Z
+- Status: in progress
+- Checklist item: Update routing note with clarified proxy-routing semantics
+- Update: User clarified that roads are being used as a proxy for inland Internet cable corridors rather than for road-navigation correctness. Updating `docs/ADAPTIVE_CELL_ROUTING.md` to reflect that undirected traversal is acceptable and that the design should optimize for plausible corridor continuity rather than road-law semantics.
+- Evidence: user clarification in discussion; `docs/ADAPTIVE_CELL_ROUTING.md`
+- Next: Revise the note, verify the wording, then produce an updated handoff prompt.
+
+## 2026-03-07T06:33:00Z
+- Status: complete
+- Checklist item: Update routing note with clarified proxy-routing semantics
+- Update: Revised `docs/ADAPTIVE_CELL_ROUTING.md` to treat roads as an inland cable-corridor proxy, making undirected traversal acceptable and shifting the evaluation criteria toward corridor plausibility, connectivity, and shortcut avoidance. No tests were run because this change is documentation-only.
+- Evidence: `docs/ADAPTIVE_CELL_ROUTING.md`; `sed -n '1,220p' docs/ADAPTIVE_CELL_ROUTING.md`
+- Next: Handoff updated prompt for the next main agent.
+
 ## 2026-03-07T06:30:00Z
 - Status: complete
 - Checklist item: Implement documentation improvements

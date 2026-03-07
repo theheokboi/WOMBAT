@@ -2,8 +2,80 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from time import perf_counter
 
 from inframap.ingest.major_road_graph import build_major_road_graph_variants
+
+
+_STAGE_LABELS = {
+    "collect_shared_nodes": "Collect shared road nodes",
+    "build_raw_graph": "Build raw road graph",
+    "write_raw": "Write raw graph files",
+    "write_collapsed": "Write collapsed graph files",
+    "write_adaptive": "Write adaptive graph files",
+}
+
+
+def _stage_order(variants: tuple[str, ...]) -> list[str]:
+    order = ["collect_shared_nodes", "build_raw_graph"]
+    for variant in variants:
+        order.append(f"write_{variant}")
+    return order
+
+
+def _format_seconds(value: float) -> str:
+    total = max(0, int(round(value)))
+    minutes, seconds = divmod(total, 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def _progress_bar(fraction: float, width: int = 28) -> str:
+    clamped = min(max(float(fraction), 0.0), 1.0)
+    filled = int(round(clamped * width))
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + "]"
+
+
+class ProgressReporter:
+    def __init__(self, variants: tuple[str, ...]) -> None:
+        self._stages = _stage_order(variants)
+        count = len(self._stages)
+        if count <= 2:
+            self._weights = {stage: 1.0 / count for stage in self._stages}
+        else:
+            base_weight = 0.8 / 2
+            write_weight = 0.2 / (count - 2)
+            self._weights = {}
+            for stage in self._stages:
+                if stage in {"collect_shared_nodes", "build_raw_graph"}:
+                    self._weights[stage] = base_weight
+                else:
+                    self._weights[stage] = write_weight
+        self._elapsed = 0.0
+        self._completed_weight = 0.0
+        self._started = perf_counter()
+
+    def callback(self, event: str, stage: str, payload: dict[str, object]) -> None:
+        label = _STAGE_LABELS.get(stage, stage.replace("_", " ").title())
+        if event == "phase_start":
+            index = self._stages.index(stage) + 1 if stage in self._stages else 0
+            print(f"[{index}/{len(self._stages)}] {label}...")
+            return
+        if event == "phase_end":
+            elapsed_stage = float(payload.get("elapsed_seconds", 0.0) or 0.0)
+            self._elapsed += max(0.0, elapsed_stage)
+            self._completed_weight += self._weights.get(stage, 0.0)
+            progress = min(self._completed_weight, 1.0)
+            eta = 0.0
+            if progress > 0:
+                eta = max(0.0, (self._elapsed / progress) - self._elapsed)
+            print(
+                f"    {_progress_bar(progress)} {progress * 100:5.1f}% | "
+                f"elapsed {_format_seconds(self._elapsed)} | eta {_format_seconds(eta)}"
+            )
+            return
+        if event == "done":
+            total_elapsed = perf_counter() - self._started
+            print(f"    {_progress_bar(1.0)} 100.0% | elapsed {_format_seconds(total_elapsed)} | eta 00:00")
 
 
 def _default_pbf_path(country_code: str, openstreetmap_root: Path) -> Path:
@@ -26,9 +98,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out-dir", default=None, help="Output directory (default: country directory)")
     parser.add_argument(
         "--graph-variant",
-        choices=("raw", "collapsed", "both"),
+        choices=("raw", "collapsed", "adaptive", "both"),
         default="both",
         help="Graph output variant to write",
+    )
+    parser.add_argument(
+        "--adaptive-resolution",
+        type=int,
+        default=6,
+        help="Adaptive H3 resolution used when graph_variant includes adaptive",
     )
     return parser.parse_args()
 
@@ -49,7 +127,16 @@ def main() -> None:
         variants = ("raw", "collapsed")
     else:
         variants = (variant_arg,)
-    outputs = build_major_road_graph_variants(pbf_path=pbf_path, output_dir=out_dir, variants=variants)
+    progress = ProgressReporter(variants=variants)
+    build_kwargs = {
+        "pbf_path": pbf_path,
+        "output_dir": out_dir,
+        "variants": variants,
+        "progress_callback": progress.callback,
+    }
+    if "adaptive" in variants:
+        build_kwargs["adaptive_resolution"] = int(args.adaptive_resolution)
+    outputs = build_major_road_graph_variants(**build_kwargs)
     print(f"country={country_code}")
     print(f"input_pbf={pbf_path}")
     print(f"graph_variant={variant_arg}")
@@ -61,6 +148,10 @@ def main() -> None:
         collapsed_edges_path, collapsed_nodes_path = outputs["collapsed"]
         print(f"edges_geojson_collapsed={collapsed_edges_path}")
         print(f"nodes_geojson_collapsed={collapsed_nodes_path}")
+    if "adaptive" in outputs:
+        adaptive_edges_path, adaptive_nodes_path = outputs["adaptive"]
+        print(f"edges_geojson_adaptive={adaptive_edges_path}")
+        print(f"nodes_geojson_adaptive={adaptive_nodes_path}")
 
 
 if __name__ == "__main__":

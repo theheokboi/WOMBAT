@@ -123,7 +123,7 @@ function normalizeOsmTransportSource(value) {
 
 function normalizeOsmGraphVariant(value) {
   const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'raw' || normalized === 'collapsed') return normalized;
+  if (normalized === 'raw' || normalized === 'collapsed' || normalized === 'adaptive') return normalized;
   return '';
 }
 
@@ -714,7 +714,17 @@ async function init() {
     const selectedSource = normalizeOsmTransportSource(selectedOsmTransportSource) || 'shapefile';
     const selectedVariant = normalizeOsmGraphVariant(selectedOsmGraphVariant) || 'raw';
     const includeNodes = selectedSource === 'graph';
-    const payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant));
+    let payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant));
+    if (
+      selectedSource === 'graph' &&
+      selectedVariant === 'adaptive' &&
+      Array.isArray(payload?.available_countries) &&
+      payload.available_countries.length === 0
+    ) {
+      selectedOsmGraphVariant = 'raw';
+      if (osmGraphVariantSelect) osmGraphVariantSelect.value = selectedOsmGraphVariant;
+      payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedOsmGraphVariant));
+    }
     const features = featureCollectionFeatures(payload);
     if (selectedSource === 'graph') {
       colorGraphEdgesByAdjacency(features);

@@ -42,6 +42,7 @@ def test_ui_static_smoke() -> None:
     assert "Graph variant" in response.text
     assert "Raw" in response.text
     assert "Collapsed" in response.text
+    assert "Adaptive" in response.text
     assert "OSM railway (rail)" in response.text
     assert "OSM motorway" in response.text
     assert "OSM trunk" in response.text

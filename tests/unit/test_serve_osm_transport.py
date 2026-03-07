@@ -135,6 +135,42 @@ def _write_major_roads_nodes_collapsed_geojson(path: Path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
+def _write_major_roads_edges_adaptive_geojson(path: Path) -> None:
+    payload = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[121.8, 25.8], [121.9, 25.9]],
+                },
+                "properties": {"road_class": "motorway_link"},
+            }
+        ],
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _write_major_roads_nodes_adaptive_geojson(path: Path) -> None:
+    payload = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [121.8, 25.8]},
+                "properties": {"node_id": 301, "lon": 121.8, "lat": 25.8},
+            },
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [121.9, 25.9]},
+                "properties": {"node_id": 302, "lon": 121.9, "lat": 25.9},
+            },
+        ],
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
 def test_osm_transport_overlay_filters_motorway_and_trunk_and_includes_railway(tmp_path: Path) -> None:
     osm_root = tmp_path / "openstreetmap"
     tw = osm_root / "TW"
@@ -313,6 +349,61 @@ def test_osm_transport_overlay_source_graph_variant_collapsed_country_listing_us
 
     client = _build_client(tmp_path, osm_root)
     response = client.get("/v1/osm/transport?source=graph&graph_variant=collapsed")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["available_countries"] == ["US"]
+    assert {feature["properties"]["country_code"] for feature in payload["features"]} == {"US"}
+
+
+def test_osm_transport_overlay_source_graph_variant_adaptive_loads_adaptive_files(tmp_path: Path) -> None:
+    osm_root = tmp_path / "openstreetmap"
+    tw = osm_root / "TW"
+    tw.mkdir(parents=True)
+    _write_major_roads_edges_geojson(tw / "major_roads_edges.geojson")
+    _write_major_roads_edges_adaptive_geojson(tw / "major_roads_edges_adaptive.geojson")
+
+    client = _build_client(tmp_path, osm_root)
+    response = client.get("/v1/osm/transport?source=graph&graph_variant=adaptive")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "graph"
+    assert payload["available_countries"] == ["TW"]
+    assert payload["classes"] == ["motorway_link"]
+    assert len(payload["features"]) == 1
+    assert payload["features"][0]["properties"]["transport_class"] == "motorway_link"
+
+
+def test_osm_transport_overlay_source_graph_variant_adaptive_include_nodes_uses_adaptive_nodes(tmp_path: Path) -> None:
+    osm_root = tmp_path / "openstreetmap"
+    tw = osm_root / "TW"
+    tw.mkdir(parents=True)
+    _write_major_roads_edges_adaptive_geojson(tw / "major_roads_edges_adaptive.geojson")
+    _write_major_roads_nodes_adaptive_geojson(tw / "major_roads_nodes_adaptive.geojson")
+
+    client = _build_client(tmp_path, osm_root)
+    response = client.get("/v1/osm/transport?source=graph&graph_variant=adaptive&include_nodes=true")
+
+    assert response.status_code == 200
+    payload = response.json()
+    node_features = [feature for feature in payload["features"] if feature["properties"].get("graph_feature_type") == "node"]
+    assert len(node_features) == 2
+    assert {feature["properties"]["node_id"] for feature in node_features} == {301, 302}
+
+
+def test_osm_transport_overlay_source_graph_variant_adaptive_country_listing_uses_adaptive_edges(tmp_path: Path) -> None:
+    osm_root = tmp_path / "openstreetmap"
+
+    tw = osm_root / "TW"
+    tw.mkdir(parents=True)
+    _write_major_roads_edges_geojson(tw / "major_roads_edges.geojson")
+
+    us = osm_root / "US"
+    us.mkdir(parents=True)
+    _write_major_roads_edges_adaptive_geojson(us / "major_roads_edges_adaptive.geojson")
+
+    client = _build_client(tmp_path, osm_root)
+    response = client.get("/v1/osm/transport?source=graph&graph_variant=adaptive")
     assert response.status_code == 200
     payload = response.json()
     assert payload["available_countries"] == ["US"]

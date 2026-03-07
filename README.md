@@ -89,9 +89,10 @@ Screenshot path convention:
 Read endpoints remain under `/v1`.
 Run-oriented responses now include pointer/lane context for dev visibility.
 OSM transport overlay data is available from the run-agnostic endpoint `/v1/osm/transport` (no `run_id` coupling).
-`/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed` (default `raw`).
+`/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed|adaptive` (default `raw`).
 `graph_variant=raw` reads `major_roads_edges.geojson` (and optional `major_roads_nodes.geojson` when `include_nodes=true`).
 `graph_variant=collapsed` reads `major_roads_edges_collapsed.geojson` (and optional `major_roads_nodes_collapsed.geojson` when `include_nodes=true`).
+`graph_variant=adaptive` reads `major_roads_edges_adaptive.geojson` (and optional `major_roads_nodes_adaptive.geojson` when `include_nodes=true`), where adaptive means fixed-resolution H3 boundary-aware protected-node contraction.
 Frontend exposes an `OSM transport overlay` toggle and legend entries for `rail`, `motorway`, and `trunk`.
 
 Major-road graph GeoJSON artifacts can be generated from country OSM PBF files with:
@@ -101,6 +102,23 @@ python scripts/build_major_roads_graph.py --country TW
 ```
 
 By default this writes both raw and collapsed graph variants. Use `--graph-variant raw|collapsed|both` to control outputs.
+The command now prints stage-level progress with a progress bar and ETA while building graph artifacts.
+
+Adaptive-aware contraction output can be generated as an additive graph variant:
+
+```bash
+python scripts/build_major_roads_graph.py --country TW --graph-variant adaptive --adaptive-resolution 6
+```
+
+`adaptive` here is a static country-level graph artifact generated with fixed H3 resolution boundary protection. It is not yet a run-scoped overlay derived from published `facility_density_adaptive` output.
+
+To compare `raw` vs `collapsed` as cable-corridor proxy graphs (connectivity/path-length drift, shortcut and detour signals), run:
+
+```bash
+python scripts/evaluate_major_roads_graph.py --country TW --out artifacts/eval/TW-major-roads-eval.json
+```
+
+This evaluation reads static OSM graph artifacts and writes a static analysis report; it does not create run-scoped published layer outputs.
 
 ## Deferred Hardening (For Engineering)
 

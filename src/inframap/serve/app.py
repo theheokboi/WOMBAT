@@ -246,13 +246,22 @@ def _available_osm_countries(openstreetmap_root: Path) -> list[str]:
     return countries
 
 
-def _available_osm_graph_countries(openstreetmap_root: Path, graph_variant: Literal["raw", "collapsed"]) -> list[str]:
+def _graph_variant_filenames(graph_variant: Literal["raw", "collapsed", "adaptive"]) -> tuple[str, str]:
+    if graph_variant == "collapsed":
+        return "major_roads_edges_collapsed.geojson", "major_roads_nodes_collapsed.geojson"
+    if graph_variant == "adaptive":
+        return "major_roads_edges_adaptive.geojson", "major_roads_nodes_adaptive.geojson"
+    return "major_roads_edges.geojson", "major_roads_nodes.geojson"
+
+
+def _available_osm_graph_countries(
+    openstreetmap_root: Path,
+    graph_variant: Literal["raw", "collapsed", "adaptive"],
+) -> list[str]:
     if not openstreetmap_root.exists():
         return []
     countries: list[str] = []
-    edges_filename = "major_roads_edges.geojson"
-    if graph_variant == "collapsed":
-        edges_filename = "major_roads_edges_collapsed.geojson"
+    edges_filename, _ = _graph_variant_filenames(graph_variant)
     for path in sorted(openstreetmap_root.iterdir()):
         code = path.name.strip().upper()
         if not (path.is_dir() and len(code) == 2 and code.isalpha()):
@@ -329,15 +338,11 @@ def _osm_transport_features_for_country(country_code: str, country_root: Path) -
 def _osm_transport_graph_components_for_country(
     country_code: str,
     country_root: Path,
-    graph_variant: Literal["raw", "collapsed"],
+    graph_variant: Literal["raw", "collapsed", "adaptive"],
 ) -> tuple[tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
     edge_features: list[dict[str, Any]] = []
     node_features: list[dict[str, Any]] = []
-    edges_filename = "major_roads_edges.geojson"
-    nodes_filename = "major_roads_nodes.geojson"
-    if graph_variant == "collapsed":
-        edges_filename = "major_roads_edges_collapsed.geojson"
-        nodes_filename = "major_roads_nodes_collapsed.geojson"
+    edges_filename, nodes_filename = _graph_variant_filenames(graph_variant)
 
     edges_path = country_root / edges_filename
     for feature in _iter_geojson_features(edges_path):
@@ -749,7 +754,7 @@ def create_app(
         country: str | None = Query(default=None, min_length=2, max_length=2),
         limit: int = Query(default=200000, ge=1, le=500000),
         source: Literal["shapefile", "graph"] = Query(default="shapefile"),
-        graph_variant: Literal["raw", "collapsed"] = Query(default="raw"),
+        graph_variant: Literal["raw", "collapsed", "adaptive"] = Query(default="raw"),
         include_nodes: bool = Query(default=False),
     ) -> dict[str, Any]:
         if source == "graph":
