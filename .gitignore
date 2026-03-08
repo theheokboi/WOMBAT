@@ -8,10 +8,16 @@ node_modules/
 data/runs/
 data/staging/
 data/published/
-data/openstreetmap/**/*.osm.pbf
 data/openstreetmap/**/major_roads*.geojson
 artifacts/screenshots/
-artifacts/derived/
+artifacts/derived/*.geojson
+artifacts/derived/*.csv
+artifacts/derived/*.json
+
+# large/generated data (do not add frontend/demo-data/ — required)
+data/openstreetmap/**/*.osm.pbf
+data/populated_places/
+data/countries/
 
 # local env
 .venv/
