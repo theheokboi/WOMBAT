@@ -40,6 +40,11 @@ def test_ui_static_smoke() -> None:
     assert "R7 Region Routes" in response.text
     assert "toggle-country" in response.text
     assert "Country H3" in response.text
+    assert '<input type="checkbox" id="toggle-facilities" checked />' in response.text
+    assert '<input type="checkbox" id="toggle-country" />' in response.text
+    assert '<input type="checkbox" id="toggle-adaptive" />' in response.text
+    assert '<input type="checkbox" id="toggle-r7-regions" checked />' in response.text
+    assert '<input type="checkbox" id="toggle-r7-routes" checked />' in response.text
     assert "toggle-places" not in response.text
     assert "Populated places" not in response.text
     assert "toggle-osm-transport" not in response.text
