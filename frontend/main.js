@@ -12,9 +12,120 @@ async function tryLoadJson(path) {
   }
 }
 
+function getRequestedDataMode() {
+  const params = new URLSearchParams(window.location.search);
+  const value = String(params.get('data') || '').trim().toLowerCase();
+  return value === 'static' || value === 'api' ? value : '';
+}
+
+async function detectDataSource() {
+  const requestedMode = getRequestedDataMode();
+  const staticManifest = requestedMode === 'api' ? null : await tryLoadJson('demo-data/manifest.json');
+  if (requestedMode === 'static') {
+    if (!staticManifest) throw new Error('Static demo data requested but demo-data/manifest.json is unavailable');
+    return { mode: 'static', staticManifest, liveUiConfig: null };
+  }
+  const liveUiConfig = await tryLoadJson('/v1/ui/config');
+  if (liveUiConfig) {
+    return { mode: 'api', staticManifest, liveUiConfig };
+  }
+  if (staticManifest) {
+    return { mode: 'static', staticManifest, liveUiConfig: null };
+  }
+  throw new Error('Unable to load live API or static demo data');
+}
+
+function buildStaticRouteCountries(staticManifest) {
+  const routeCountries = Array.isArray(staticManifest?.route_countries) ? staticManifest.route_countries : [];
+  const normalized = routeCountries.map((value) => normalizeCountryCode(value)).filter(Boolean);
+  return normalized.length > 0 ? normalized : ['AR', 'TW'];
+}
+
+function createDataSource({ mode, staticManifest, liveUiConfig }) {
+  const routeCountries = buildStaticRouteCountries(staticManifest);
+  if (mode === 'static') {
+    return {
+      mode,
+      routeCountries,
+      loadUiConfig: async () => loadJson('demo-data/ui-config.json'),
+      loadRunsCatalog: async () => loadJson('demo-data/runs-catalog.json'),
+      loadFacilities: async () => loadJson('demo-data/facilities.json'),
+      loadCountryCells: async () => loadJson('demo-data/country-mask-cells.json'),
+      loadAdaptiveCells: async () => loadJson('demo-data/facility-density-adaptive-cells.json'),
+      loadR7RegionCells: async () => loadJson('demo-data/facility-density-r7-regions-cells.json'),
+      loadAdaptiveMetadata: async () => tryLoadJson('demo-data/facility-density-adaptive-metadata.json'),
+      loadRunStatus: async (_runId) => tryLoadJson('demo-data/run-status.json'),
+      loadActiveStatus: async () => tryLoadJson('demo-data/active-status.json'),
+      loadCalibrationLatest: async () => tryLoadJson('demo-data/calibration-latest.json'),
+      loadR7RouteOverlay: async () => {
+        const collections = await Promise.all(
+          routeCountries.map((country) => tryLoadJson(`demo-data/r7-region-routes-${country}.json`))
+        );
+        return {
+          type: 'FeatureCollection',
+          features: collections.flatMap((collection) => featureCollectionFeatures(collection)),
+        };
+      },
+    };
+  }
+  return {
+    mode,
+    routeCountries,
+    loadUiConfig: async () => liveUiConfig || loadJson('/v1/ui/config'),
+    loadRunsCatalog: async () => tryLoadJson('/v1/runs/catalog'),
+    loadFacilities: async (runId) => {
+      const url = new URL('/v1/facilities?limit=50000', window.location.origin);
+      if (runId) url.searchParams.set('run_id', runId);
+      return loadJson(`${url.pathname}?${url.searchParams.toString()}`);
+    },
+    loadCountryCells: async (runId) => {
+      const url = new URL('/v1/layers/country_mask/cells', window.location.origin);
+      if (runId) url.searchParams.set('run_id', runId);
+      return loadJson(`${url.pathname}?${url.searchParams.toString()}`);
+    },
+    loadAdaptiveCells: async (runId) => {
+      const url = new URL('/v1/layers/facility_density_adaptive/cells?limit=100000', window.location.origin);
+      if (runId) url.searchParams.set('run_id', runId);
+      return loadJson(`${url.pathname}?${url.searchParams.toString()}`);
+    },
+    loadR7RegionCells: async (runId) => {
+      const url = new URL('/v1/layers/facility_density_r7_regions/cells?limit=200000', window.location.origin);
+      if (runId) url.searchParams.set('run_id', runId);
+      return loadJson(`${url.pathname}?${url.searchParams.toString()}`);
+    },
+    loadAdaptiveMetadata: async (runId) => {
+      const url = new URL('/v1/layers/facility_density_adaptive/metadata', window.location.origin);
+      if (runId) url.searchParams.set('run_id', runId);
+      return tryLoadJson(`${url.pathname}?${url.searchParams.toString()}`);
+    },
+    loadRunStatus: async (runId) => (
+      runId
+        ? tryLoadJson(`/v1/runs/${encodeURIComponent(runId)}/status`)
+        : tryLoadJson('/v1/runs/latest/status')
+    ),
+    loadActiveStatus: async () => tryLoadJson('/v1/runs/active/status'),
+    loadCalibrationLatest: async () => tryLoadJson('/v1/calibration/latest'),
+    loadR7RouteOverlay: async () => {
+      const collections = await Promise.all(
+        routeCountries.map((country) => tryLoadJson(`/v1/r7-region-routes?country=${country}`))
+      );
+      return {
+        type: 'FeatureCollection',
+        features: collections.flatMap((collection) => featureCollectionFeatures(collection)),
+      };
+    },
+  };
+}
+
 function parseIntegerOrDefault(value, fallback) {
   const parsed = Number(value);
   return Number.isInteger(parsed) ? parsed : fallback;
+}
+
+function formatResolutionTag(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return '--';
+  return `r${parsed}`;
 }
 
 function buildAdaptiveResolutionBounds(adaptiveMetadata) {
@@ -37,22 +148,6 @@ function toNumeric(value) {
 
 const FACILITY_POINT_COLOR = '#f97316';
 const LANDING_POINT_COLOR = '#0ea5e9';
-const OSM_TRANSPORT_STYLES = {
-  rail: { color: '#374151', weight: 1.5, opacity: 0.9, dashArray: '7 4' },
-  motorway: { color: '#d73027', weight: 2.8, opacity: 0.95, dashArray: null },
-  motorway_link: { color: '#fc8d59', weight: 2.2, opacity: 0.9, dashArray: '6 3' },
-  trunk: { color: '#4575b4', weight: 2.2, opacity: 0.95, dashArray: '10 3' },
-  trunk_link: { color: '#91bfdb', weight: 1.8, opacity: 0.9, dashArray: '5 3' },
-  primary: { color: '#fdae61', weight: 2.0, opacity: 0.95, dashArray: '4 3' },
-  primary_link: { color: '#fee08b', weight: 1.8, opacity: 0.9, dashArray: '4 3' },
-  secondary: { color: '#1a9850', weight: 2.0, opacity: 0.95, dashArray: '4 3' },
-  secondary_link: { color: '#66bd63', weight: 1.8, opacity: 0.9, dashArray: '4 3' },
-  tertiary: { color: '#7b3294', weight: 1.8, opacity: 0.95, dashArray: '3 3' },
-  tertiary_link: { color: '#c2a5cf', weight: 1.6, opacity: 0.9, dashArray: '3 3' },
-  unclassified: { color: '#4d4d4d', weight: 1.6, opacity: 0.9, dashArray: '2 4' },
-  residential: { color: '#9e9e9e', weight: 1.4, opacity: 0.9, dashArray: '2 5' },
-};
-const OSM_GRAPH_EDGE_PALETTE = ['#e11d48', '#dc2626', '#ea580c', '#ca8a04', '#65a30d', '#16a34a', '#0891b2', '#2563eb', '#4f46e5', '#7c3aed', '#c026d3', '#db2777'];
 const BASEMAP_STYLES = {
   positron: {
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
@@ -60,13 +155,6 @@ const BASEMAP_STYLES = {
       maxZoom: 19,
       subdomains: 'abcd',
       attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    },
-  },
-  osm: {
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    options: {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors',
     },
   },
   dark: {
@@ -119,164 +207,73 @@ function getAdaptiveH3(properties) {
   return '';
 }
 
+function getRegionClusterId(properties) {
+  if (!properties) return '';
+  if (properties.cluster_id) return String(properties.cluster_id);
+  return '';
+}
+
+function hashString(value) {
+  const text = String(value || '');
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = (hash * 31 + text.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+const R7_REGION_COLORS = ['#0f766e', '#1d4ed8', '#7c3aed', '#b45309', '#be123c', '#4338ca'];
+const R7_ROUTE_COLORS = {
+  AR: '#dc2626',
+  TW: '#0891b2',
+};
+
+function getRegionClusterColor(clusterId) {
+  if (!clusterId) return R7_REGION_COLORS[0];
+  return R7_REGION_COLORS[hashString(clusterId) % R7_REGION_COLORS.length];
+}
+
+function getR7RouteColor(countryCode) {
+  const normalized = normalizeCountryCode(countryCode);
+  return R7_ROUTE_COLORS[normalized] || '#475569';
+}
+
+function formatDistanceKm(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '--';
+  return `${(numeric / 1000).toFixed(1)} km`;
+}
+
+function formatDurationMinutes(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '--';
+  return `${(numeric / 60).toFixed(1)} min`;
+}
+
+function buildUniqueR7RegionMarkers(features) {
+  const byCluster = new Map();
+  for (const feature of features || []) {
+    const p = feature?.properties || {};
+    const clusterId = getRegionClusterId(p);
+    const lat = Number(p.region_lat);
+    const lon = Number(p.region_lon);
+    if (!clusterId || !Number.isFinite(lat) || !Number.isFinite(lon) || byCluster.has(clusterId)) continue;
+    byCluster.set(clusterId, {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [lon, lat],
+      },
+      properties: {
+        ...p,
+      },
+    });
+  }
+  return Array.from(byCluster.values()).sort((a, b) => String(a.properties.cluster_id).localeCompare(String(b.properties.cluster_id)));
+}
+
 function featureCollectionFeatures(collection) {
   return Array.isArray(collection && collection.features) ? collection.features : [];
-}
-
-function normalizeOsmTransportSource(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'graph' || normalized === 'shapefile') return normalized;
-  return '';
-}
-
-function normalizeOsmGraphVariant(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (
-    normalized === 'raw' ||
-    normalized === 'collapsed' ||
-    normalized === 'adaptive' ||
-    normalized === 'adaptive_portal' ||
-    normalized === 'adaptive_portal_run'
-  ) {
-    return normalized;
-  }
-  return '';
-}
-
-function getBackendPreferredOsmTransportSource(osmTransportResponse) {
-  const candidates = [
-    osmTransportResponse?.source,
-    osmTransportResponse?.default_source,
-    osmTransportResponse?.selected_source,
-    osmTransportResponse?.metadata?.source,
-    osmTransportResponse?.metadata?.default_source,
-  ];
-  for (const candidate of candidates) {
-    const normalized = normalizeOsmTransportSource(candidate);
-    if (normalized) return normalized;
-  }
-  return 'shapefile';
-}
-
-function getBackendPreferredOsmGraphVariant(osmTransportResponse) {
-  const candidates = [
-    osmTransportResponse?.graph_variant,
-    osmTransportResponse?.default_graph_variant,
-    osmTransportResponse?.selected_graph_variant,
-    osmTransportResponse?.metadata?.graph_variant,
-    osmTransportResponse?.metadata?.default_graph_variant,
-  ];
-  for (const candidate of candidates) {
-    const normalized = normalizeOsmGraphVariant(candidate);
-    if (normalized) return normalized;
-  }
-  return 'raw';
-}
-
-function buildOsmTransportPath(source, includeNodes = false, graphVariant = 'raw', runId = '') {
-  const url = new URL('/v1/osm/transport', window.location.origin);
-  const selectedSource = normalizeOsmTransportSource(source) || 'shapefile';
-  url.searchParams.set('source', selectedSource);
-  if (selectedSource === 'graph') {
-    const selectedVariant = normalizeOsmGraphVariant(graphVariant) || 'raw';
-    url.searchParams.set('graph_variant', selectedVariant);
-    if (selectedVariant === 'adaptive_portal_run' && runId) {
-      url.searchParams.set('run_id', String(runId));
-    }
-  }
-  if (includeNodes) url.searchParams.set('include_nodes', 'true');
-  return `${url.pathname}?${url.searchParams.toString()}`;
-}
-
-function getGeometryType(feature) {
-  return String(feature?.geometry?.type || '').toLowerCase();
-}
-
-function isGraphEdgeFeature(feature) {
-  const featureType = String(feature?.properties?.graph_feature_type || '').toLowerCase();
-  if (featureType === 'edge') return true;
-  const geometryType = getGeometryType(feature);
-  return geometryType.includes('line');
-}
-
-function isGraphNodeFeature(feature) {
-  const featureType = String(feature?.properties?.graph_feature_type || '').toLowerCase();
-  if (featureType === 'node') return true;
-  return getGeometryType(feature) === 'point';
-}
-
-function getGraphEdgeKey(feature, fallbackIndex) {
-  const edgeId = feature?.properties?.edge_id;
-  if (edgeId) return String(edgeId);
-  return `edge_${fallbackIndex}`;
-}
-
-function getGraphNodeId(raw) {
-  if (raw === null || raw === undefined) return '';
-  return String(raw).trim();
-}
-
-function colorGraphEdgesByAdjacency(features) {
-  const graphEdges = [];
-  for (const feature of features || []) {
-    if (isGraphEdgeFeature(feature)) graphEdges.push(feature);
-  }
-  if (graphEdges.length === 0) return;
-
-  const edgeRecords = graphEdges.map((feature, index) => {
-    const p = feature?.properties || {};
-    const u = getGraphNodeId(p.u);
-    const v = getGraphNodeId(p.v);
-    return {
-      feature,
-      key: getGraphEdgeKey(feature, index),
-      u,
-      v,
-    };
-  });
-
-  const incident = new Map();
-  for (const record of edgeRecords) {
-    if (!record.u || !record.v) continue;
-    if (!incident.has(record.u)) incident.set(record.u, []);
-    if (!incident.has(record.v)) incident.set(record.v, []);
-    incident.get(record.u).push(record.key);
-    incident.get(record.v).push(record.key);
-  }
-
-  const recordByKey = new Map(edgeRecords.map((record) => [record.key, record]));
-  const order = [...edgeRecords].sort((a, b) => {
-    const aDegree = (incident.get(a.u)?.length || 0) + (incident.get(a.v)?.length || 0);
-    const bDegree = (incident.get(b.u)?.length || 0) + (incident.get(b.v)?.length || 0);
-    return bDegree - aDegree;
-  });
-
-  const assigned = new Map();
-  for (const record of order) {
-    const used = new Set();
-    for (const nodeId of [record.u, record.v]) {
-      const neighbors = incident.get(nodeId) || [];
-      for (const neighborKey of neighbors) {
-        const neighborColor = assigned.get(neighborKey);
-        if (neighborColor !== undefined) used.add(neighborColor);
-      }
-    }
-    let colorIndex = 0;
-    while (used.has(colorIndex) && colorIndex < OSM_GRAPH_EDGE_PALETTE.length) {
-      colorIndex += 1;
-    }
-    if (colorIndex >= OSM_GRAPH_EDGE_PALETTE.length) {
-      colorIndex = Math.abs(record.key.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)) % OSM_GRAPH_EDGE_PALETTE.length;
-    }
-    assigned.set(record.key, colorIndex);
-  }
-
-  for (const [key, colorIndex] of assigned.entries()) {
-    const record = recordByKey.get(key);
-    if (!record || !record.feature || !record.feature.properties) continue;
-    record.feature.properties.edge_palette_index = colorIndex;
-    record.feature.properties.edge_palette_color = OSM_GRAPH_EDGE_PALETTE[colorIndex];
-  }
 }
 
 function normalizeCountryCode(value) {
@@ -326,76 +323,26 @@ function buildAvailableCountries(countryFeatures) {
   return Array.from(countries).sort();
 }
 
-function buildCountryCellIndex(countryFeatures) {
-  const countryByMaskCell = new Map();
-  for (const feature of countryFeatures || []) {
-    const code = normalizeCountryCode(feature?.properties?.layer_value);
-    const cell = feature?.properties?.h3;
-    if (code && cell) {
-      countryByMaskCell.set(String(cell), code);
-    }
+function makeH3PolygonFeature(cell, baseProperties = {}) {
+  const boundary = h3.cellToBoundary(String(cell));
+  const ring = boundary.map(([lat, lon]) => [lon, lat]);
+  if (ring.length > 0) {
+    const first = ring[0];
+    const last = ring[ring.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) ring.push([first[0], first[1]]);
   }
-  return countryByMaskCell;
-}
-
-function inferCountryCodeFromCell(cell, countryByMaskCell) {
-  if (!cell || !countryByMaskCell || countryByMaskCell.size === 0 || !window.h3) return '';
-  let cursor = String(cell);
-  try {
-    let resolution = h3.getResolution(cursor);
-    while (resolution >= 0) {
-      const code = countryByMaskCell.get(cursor);
-      if (code) return code;
-      if (resolution === 0) break;
-      resolution -= 1;
-      cursor = h3.cellToParent(cursor, resolution);
-    }
-  } catch (_error) {
-    return '';
-  }
-  return '';
-}
-
-function getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet) {
-  const properties = feature?.properties || {};
-  const out = new Set();
-
-  for (const rawCountry of [
-    properties.layer_value,
-    properties.country_code,
-    properties.country,
-    properties.country_iso,
-    properties.country_iso2,
-  ]) {
-    const code = normalizeCountryCode(rawCountry);
-    if (code && (!availableCountriesSet || availableCountriesSet.has(code))) out.add(code);
-  }
-
-  for (const cell of getFeatureH3Candidates(properties)) {
-    const inferred = inferCountryCodeFromCell(cell, countryByMaskCell);
-    if (inferred && (!availableCountriesSet || availableCountriesSet.has(inferred))) out.add(inferred);
-  }
-
-  return out;
-}
-
-function countFeaturesByCountry(features, countryByMaskCell, availableCountriesSet, predicate = null) {
-  const counts = new Map();
-  for (const feature of features || []) {
-    if (predicate && !predicate(feature)) continue;
-    const candidates = getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet);
-    for (const code of candidates) {
-      counts.set(code, (counts.get(code) || 0) + 1);
-    }
-  }
-  return counts;
-}
-
-function filterFeaturesByCountry(features, countryCode, countryByMaskCell, availableCountriesSet, predicate = null) {
-  return (features || []).filter((feature) => {
-    if (predicate && !predicate(feature)) return false;
-    return getFeatureCountryCandidates(feature, countryByMaskCell, availableCountriesSet).has(countryCode);
-  });
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [ring],
+    },
+    properties: {
+      ...baseProperties,
+      h3: String(cell),
+      resolution: h3.getResolution(String(cell)),
+    },
+  };
 }
 
 function setupRunSelector(runCatalog, requestedRunId, effectiveRunId) {
@@ -425,9 +372,11 @@ function setupRunSelector(runCatalog, requestedRunId, effectiveRunId) {
 }
 
 async function init() {
+  const detectedDataSource = await detectDataSource();
+  const dataSource = createDataSource(detectedDataSource);
   const [ui, runCatalog] = await Promise.all([
-    loadJson('/v1/ui/config'),
-    tryLoadJson('/v1/runs/catalog'),
+    dataSource.loadUiConfig(),
+    dataSource.loadRunsCatalog(),
   ]);
   const requestedRunId = getRequestedRunId();
   const runs = Array.isArray(runCatalog?.runs) ? runCatalog.runs : [];
@@ -439,36 +388,30 @@ async function init() {
   }
   setupRunSelector(runCatalog, requestedRunId, effectiveRunId);
 
-  const withRun = (path) => {
-    if (!effectiveRunId) return path;
-    const url = new URL(path, window.location.origin);
-    url.searchParams.set('run_id', effectiveRunId);
-    return `${url.pathname}?${url.searchParams.toString()}`;
-  };
-
-  const [facilities, countryCells, adaptiveCells, adaptiveMetadata, runStatus, activeStatus, calibrationLatest, osmTransport] = await Promise.all([
-    loadJson(withRun('/v1/facilities?limit=50000')),
-    loadJson(withRun('/v1/layers/country_mask/cells')),
-    loadJson(withRun('/v1/layers/facility_density_adaptive/cells?limit=100000')),
-    tryLoadJson(withRun('/v1/layers/facility_density_adaptive/metadata')),
-    effectiveRunId ? tryLoadJson(`/v1/runs/${encodeURIComponent(effectiveRunId)}/status`) : tryLoadJson('/v1/runs/latest/status'),
-    tryLoadJson('/v1/runs/active/status'),
-    tryLoadJson('/v1/calibration/latest'),
-    tryLoadJson('/v1/osm/transport'),
+  const [facilities, countryCells, adaptiveCells, r7RegionCells, adaptiveMetadata, runStatus, activeStatus, calibrationLatest] = await Promise.all([
+    dataSource.loadFacilities(effectiveRunId),
+    dataSource.loadCountryCells(effectiveRunId),
+    dataSource.loadAdaptiveCells(effectiveRunId),
+    dataSource.loadR7RegionCells(effectiveRunId),
+    dataSource.loadAdaptiveMetadata(effectiveRunId),
+    dataSource.loadRunStatus(effectiveRunId),
+    dataSource.loadActiveStatus(),
+    dataSource.loadCalibrationLatest(),
   ]);
   const countryFeatures = featureCollectionFeatures(countryCells);
   const availableCountries = buildAvailableCountries(countryFeatures);
   const adaptiveResolutionBounds = buildAdaptiveResolutionBounds(adaptiveMetadata);
 
-  const facilitiesFeatures = featureCollectionFeatures(facilities);
   const adaptiveFeatures = featureCollectionFeatures(adaptiveCells);
-  let osmTransportEdgeFeatures = [];
-  let osmTransportNodeFeatures = [];
+  const r7RegionFeatures = featureCollectionFeatures(r7RegionCells);
+  const r7RegionMarkerFeatures = buildUniqueR7RegionMarkers(r7RegionFeatures);
   const effectiveAdaptiveFeatures = (adaptiveFeatures || []).filter(
     (feature) => isAdaptiveResolutionAllowed(feature?.properties || {}, adaptiveResolutionBounds)
   );
   const scopedFacilities = facilities;
   const scopedCountryCells = countryCells;
+  let r7RouteOverlay = null;
+  let r7RouteOverlayPromise = null;
 
   const adaptivePolicyName = adaptiveMetadata?.policy_name || adaptiveMetadata?.policy?.name || null;
   const policyVersion = adaptiveMetadata?.layer_version || runStatus?.adaptive_policy?.layer_version || '--';
@@ -488,7 +431,7 @@ async function init() {
   const availableCountriesLabel =
     availableCountries.length > 12 ? `${availableCountriesPreview}, ...` : (availableCountriesPreview || '--');
   displayScopeNode.textContent =
-    `Display scope: run=${effectiveRunId || '--'}; mode=all-countries; available countries (${availableCountries.length}): ${availableCountriesLabel}; ` +
+    `Display scope: run=${effectiveRunId || '--'}; source=${dataSource.mode}; mode=all-countries; available countries (${availableCountries.length}): ${availableCountriesLabel}; ` +
     `${featureCollectionFeatures(scopedCountryCells).length.toLocaleString()} country cells, ${effectiveAdaptiveFeatures.length.toLocaleString()} adaptive cells.`;
 
   const latestRunId = runStatus?.run_id || effectiveRunId || '--';
@@ -585,16 +528,15 @@ async function init() {
       );
     },
   }).addTo(map);
-
+  const facilityToggle = document.getElementById('toggle-facilities');
   function renderFacilities() {
     clearLayer(facilityLayer);
-    if (!document.getElementById('toggle-facilities').checked) return;
+    if (!facilityToggle || !facilityToggle.checked) return;
     facilityLayer.addData(scopedFacilities);
   }
-
   renderFacilities();
 
-  const countryLayer = L.geoJSON(scopedCountryCells, {
+  const countryLayer = L.geoJSON(null, {
     style: (feature) => {
       const p = feature.properties || {};
       const color = p.country_color_hex || '#1d4ed8';
@@ -607,11 +549,20 @@ async function init() {
     },
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
+      const cellResolution = formatResolutionTag(p.resolution);
       layer.bindTooltip(
-        `Layer: country_mask<br/>Country: ${p.layer_value || ''}<br/>Color: ${p.country_color ?? ''}<br/>H3: ${p.h3 || ''}`
+        `Layer: country_mask<br/>Country: ${p.layer_value || ''}<br/>Color: ${p.country_color ?? ''}<br/>H3: ${p.h3 || ''}` +
+        `<br/>Cell resolution: ${cellResolution}`
       );
     },
   }).addTo(map);
+  const countryToggle = document.getElementById('toggle-country');
+  function renderCountryCells() {
+    clearLayer(countryLayer);
+    if (!countryToggle || !countryToggle.checked) return;
+    countryLayer.addData(scopedCountryCells);
+  }
+  renderCountryCells();
 
   const adaptiveLayer = L.geoJSON(null, {
     style: (feature) => {
@@ -640,152 +591,144 @@ async function init() {
       );
     },
   }).addTo(map);
-
   const adaptiveToggle = document.getElementById('toggle-adaptive');
   function renderAdaptiveCells() {
     clearLayer(adaptiveLayer);
-    if (!adaptiveToggle.checked) return;
+    if (!adaptiveToggle || !adaptiveToggle.checked) return;
     adaptiveLayer.addData(effectiveAdaptiveFeatures);
   }
   renderAdaptiveCells();
 
-  const osmTransportEdgeLayer = L.geoJSON(null, {
+  const r7RegionLayer = L.geoJSON(null, {
     style: (feature) => {
-      const edgeColor = feature?.properties?.edge_palette_color;
-      if (edgeColor) {
-        return {
-          color: edgeColor,
-          weight: 2.4,
-          opacity: 0.92,
-          dashArray: null,
-        };
-      }
-      const transportClass =
-        String(feature?.properties?.transport_class || feature?.properties?.infrastructure_type || '').toLowerCase();
-      const style = OSM_TRANSPORT_STYLES[transportClass] || OSM_TRANSPORT_STYLES.trunk;
+      const p = feature?.properties || {};
+      const count = toNumeric(p.layer_value);
+      const color = getRegionClusterColor(getRegionClusterId(p));
       return {
-        color: style.color,
-        weight: style.weight,
-        opacity: style.opacity,
-        dashArray: style.dashArray || null,
+        color,
+        weight: 1.25,
+        fillColor: color,
+        fillOpacity: Math.min(0.38, 0.1 + Math.log10(Math.max(1, count + 1)) * 0.08),
       };
     },
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
-      const transportClass = String(p.transport_class || p.infrastructure_type || '').toLowerCase();
-      layer.bindTooltip(
-        `Layer: osm_transport<br/>Class: ${transportClass || '--'}<br/>Country: ${p.country_code || '--'}`
-      );
+      const tooltipLines = [
+        'Layer: facility_density_r7_regions',
+        `Cluster: ${getRegionClusterId(p) || '--'}`,
+        `Cluster size: ${toNumeric(p.cluster_cell_count).toLocaleString()} cells`,
+        `Leaf facility count proxy: ${toNumeric(p.layer_value).toLocaleString()}`,
+        `Region H3: ${p.region_h3 || '--'}`,
+        `Region coordinates: ${toNumeric(p.region_lat).toFixed(6)}, ${toNumeric(p.region_lon).toFixed(6)}`,
+        `Resolution: ${formatResolutionTag(p.resolution)}`,
+        `H3: ${p.h3 || ''}`,
+      ];
+      layer.bindTooltip(tooltipLines.join('<br/>'));
     },
   }).addTo(map);
-  const osmTransportNodeLayer = L.geoJSON(null, {
-    pointToLayer: (_feature, latlng) =>
-      L.circleMarker(latlng, {
-        radius: 2.8,
-        color: '#0f172a',
-        weight: 1,
-        fillColor: '#f8fafc',
+  const r7RegionMarkerLayer = L.geoJSON(null, {
+    pointToLayer: (feature, latlng) => {
+      const color = getRegionClusterColor(getRegionClusterId(feature?.properties || {}));
+      return L.circleMarker(latlng, {
+        radius: 5,
+        color,
+        weight: 2,
+        fillColor: color,
         fillOpacity: 0.95,
-      }),
+      });
+    },
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
-      layer.bindTooltip(
-        `Layer: osm_transport_graph_node<br/>Node ID: ${p.node_id ?? '--'}<br/>Country: ${p.country_code || '--'}`
-      );
+      const tooltipLines = [
+        'Layer: facility_density_r7_regions (region point)',
+        `Cluster: ${getRegionClusterId(p) || '--'}`,
+        `Cluster size: ${toNumeric(p.cluster_cell_count).toLocaleString()} cells`,
+        `Region H3: ${p.region_h3 || '--'}`,
+        `Region coordinates: ${toNumeric(p.region_lat).toFixed(6)}, ${toNumeric(p.region_lon).toFixed(6)}`,
+      ];
+      layer.bindTooltip(tooltipLines.join('<br/>'));
+    },
+  }).addTo(map);
+  const r7RegionsToggle = document.getElementById('toggle-r7-regions');
+  const r7RoutesToggle = document.getElementById('toggle-r7-routes');
+  function renderR7Regions() {
+    clearLayer(r7RegionLayer);
+    clearLayer(r7RegionMarkerLayer);
+    if (!r7RegionsToggle || !r7RegionsToggle.checked) return;
+    r7RegionLayer.addData(r7RegionFeatures);
+    r7RegionMarkerLayer.addData(r7RegionMarkerFeatures);
+  }
+  renderR7Regions();
+
+  const r7RouteLayer = L.geoJSON(null, {
+    style: (feature) => {
+      const countryCode = feature?.properties?.country_code;
+      return {
+        color: getR7RouteColor(countryCode),
+        weight: 1.5,
+        opacity: 0.2,
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const p = feature?.properties || {};
+      const tooltipLines = [
+        'Layer: r7_region_routes',
+        `Country: ${p.country_code || '--'}`,
+        `From: ${p.from_region_h3 || '--'}`,
+        `To: ${p.to_region_h3 || '--'}`,
+        `Distance: ${formatDistanceKm(p.distance_m)}`,
+        `Duration: ${formatDurationMinutes(p.duration_s)}`,
+      ];
+      layer.bindTooltip(tooltipLines.join('<br/>'));
     },
   }).addTo(map);
 
-  const osmTransportToggle = document.getElementById('toggle-osm-transport');
-  const osmTransportSourceSelect = document.getElementById('osm-transport-source');
-  const osmGraphVariantControl = document.getElementById('osm-graph-variant-control');
-  const osmGraphVariantSelect = document.getElementById('osm-graph-variant');
-  let selectedOsmTransportSource = getBackendPreferredOsmTransportSource(osmTransport);
-  let selectedOsmGraphVariant = getBackendPreferredOsmGraphVariant(osmTransport);
-  if (osmTransportSourceSelect) {
-    osmTransportSourceSelect.value = selectedOsmTransportSource;
-    if (osmTransportSourceSelect.value !== selectedOsmTransportSource) {
-      selectedOsmTransportSource = 'shapefile';
-      osmTransportSourceSelect.value = selectedOsmTransportSource;
+  async function loadR7RouteOverlay() {
+    if (r7RouteOverlay) return r7RouteOverlay;
+    if (!r7RouteOverlayPromise) {
+      r7RouteOverlayPromise = dataSource.loadR7RouteOverlay();
     }
-  }
-  if (osmGraphVariantSelect) {
-    osmGraphVariantSelect.value = selectedOsmGraphVariant;
-    if (osmGraphVariantSelect.value !== selectedOsmGraphVariant) {
-      selectedOsmGraphVariant = 'raw';
-      osmGraphVariantSelect.value = selectedOsmGraphVariant;
-    }
+    r7RouteOverlay = await r7RouteOverlayPromise;
+    return r7RouteOverlay;
   }
 
-  function syncOsmGraphVariantControl() {
-    const isGraphSource = selectedOsmTransportSource === 'graph';
-    if (osmGraphVariantControl) osmGraphVariantControl.hidden = !isGraphSource;
-    if (osmGraphVariantSelect) osmGraphVariantSelect.disabled = !isGraphSource;
+  async function renderR7Routes() {
+    clearLayer(r7RouteLayer);
+    if (!r7RoutesToggle || !r7RoutesToggle.checked) return;
+    const routeOverlay = await loadR7RouteOverlay();
+    if (!r7RoutesToggle.checked || !routeOverlay) return;
+    r7RouteLayer.addData(routeOverlay);
   }
+  await renderR7Routes();
 
-  function renderOsmTransport() {
-    clearLayer(osmTransportEdgeLayer);
-    clearLayer(osmTransportNodeLayer);
-    if (!osmTransportToggle || !osmTransportToggle.checked) return;
-    osmTransportEdgeLayer.addData(osmTransportEdgeFeatures);
-    osmTransportNodeLayer.addData(osmTransportNodeFeatures);
-  }
-
-  async function reloadOsmTransport() {
-    const selectedSource = normalizeOsmTransportSource(selectedOsmTransportSource) || 'shapefile';
-    const selectedVariant = normalizeOsmGraphVariant(selectedOsmGraphVariant) || 'raw';
-    const includeNodes = selectedSource === 'graph';
-    const payload = await tryLoadJson(buildOsmTransportPath(selectedSource, includeNodes, selectedVariant, effectiveRunId));
-    const features = featureCollectionFeatures(payload);
-    if (selectedSource === 'graph') {
-      colorGraphEdgesByAdjacency(features);
-      osmTransportEdgeFeatures = features.filter((feature) => isGraphEdgeFeature(feature));
-      osmTransportNodeFeatures = features.filter((feature) => isGraphNodeFeature(feature));
-    } else {
-      osmTransportEdgeFeatures = features;
-      osmTransportNodeFeatures = [];
-    }
-    renderOsmTransport();
-  }
-  syncOsmGraphVariantControl();
-  await reloadOsmTransport();
-
-  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer, osmTransportEdgeLayer, osmTransportNodeLayer]);
+  const combined = L.featureGroup([facilityLayer, countryLayer, adaptiveLayer, r7RegionLayer, r7RegionMarkerLayer]);
   if (combined.getBounds().isValid()) {
     map.fitBounds(combined.getBounds(), { padding: [20, 20] });
   }
 
-  document.getElementById('toggle-facilities').addEventListener('change', (e) => {
-    if (e.target.checked) {
+  if (facilityToggle) {
+    facilityToggle.addEventListener('change', () => {
       renderFacilities();
-      return;
-    }
-    clearLayer(facilityLayer);
-  });
-  document.getElementById('toggle-country').addEventListener('change', (e) => {
-    clearLayer(countryLayer);
-    if (e.target.checked) countryLayer.addData(scopedCountryCells);
-  });
-
-  adaptiveToggle.addEventListener('change', () => {
-    renderAdaptiveCells();
-  });
-  if (osmTransportToggle) {
-    osmTransportToggle.addEventListener('change', () => {
-      renderOsmTransport();
     });
   }
-  if (osmTransportSourceSelect) {
-    osmTransportSourceSelect.addEventListener('change', async () => {
-      selectedOsmTransportSource = normalizeOsmTransportSource(osmTransportSourceSelect.value) || 'shapefile';
-      syncOsmGraphVariantControl();
-      await reloadOsmTransport();
+  if (countryToggle) {
+    countryToggle.addEventListener('change', () => {
+      renderCountryCells();
     });
   }
-  if (osmGraphVariantSelect) {
-    osmGraphVariantSelect.addEventListener('change', async () => {
-      selectedOsmGraphVariant = normalizeOsmGraphVariant(osmGraphVariantSelect.value) || 'raw';
-      if (selectedOsmTransportSource !== 'graph') return;
-      await reloadOsmTransport();
+  if (adaptiveToggle) {
+    adaptiveToggle.addEventListener('change', () => {
+      renderAdaptiveCells();
+    });
+  }
+  if (r7RegionsToggle) {
+    r7RegionsToggle.addEventListener('change', () => {
+      renderR7Regions();
+    });
+  }
+  if (r7RoutesToggle) {
+    r7RoutesToggle.addEventListener('change', () => {
+      renderR7Routes();
     });
   }
 }
