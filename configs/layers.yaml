@@ -31,4 +31,11 @@ layers:
       min_output_resolution: 2
       empty_refine_boundary_band_k: 1
       empty_refine_near_occupied_k: 1
+      compact_empty_near_occupied: false
       max_neighbor_resolution_delta: 1
+  - name: facility_density_r7_regions
+    plugin: inframap.layers.facility_density_r7_regions:FacilityDensityR7RegionsLayer
+    version: v1
+    params:
+      source_layer: facility_density_adaptive
+      target_resolution: 7

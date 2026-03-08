@@ -107,3 +107,38 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Re-ran JSON validation with `python -c` reading from `sys.stdin`.
 - Prevention rule: For piped JSON checks, use `python -c` or `jq`; do not combine piped payloads with heredoc Python source mode.
 - Verification evidence: `curl -s 'http://127.0.0.1:8001/v1/osm/transport?...' | python -c "import json,sys; ..."` completed successfully.
+
+## 2026-03-07T07:23:00Z
+- Mistake: Appended markdown progress-log content using shell commands that allowed backtick interpolation, repeatedly corrupting progress entries.
+- Root cause: Used unsafe double-quoted heredoc/command patterns instead of interpolation-safe edits while including inline code markup.
+- Corrective action: Added append-only corrective entries in the affected progress log and switched log editing to `apply_patch` for this task.
+- Prevention rule: For progress/mistake logs containing markdown with backticks, use `apply_patch` or single-quoted heredocs only; avoid double-quoted shell append commands.
+- Verification evidence: `logs/progress/2026-03-07-adaptive-portal-graph.md` includes explicit correction entries and restored checklist snapshot.
+
+## 2026-03-07T08:37:55Z
+- Mistake: Appended markdown progress-log content via shell commands that still produced malformed entries due interpolation behavior.
+- Root cause: Continued using shell append flow for markdown-heavy log updates after prior interpolation incidents.
+- Corrective action: Switched this task's remaining log edits and ledger update back to apply_patch and recorded corrective append-only progress entries.
+- Prevention rule: Do not use shell append commands for progress logs that include markdown formatting; use apply_patch for all such updates.
+- Verification evidence: This ledger entry was added with apply_patch, and subsequent progress-log checklist updates were appended as plain text without shell-substituted fragments.
+
+## 2026-03-07T08:56:02Z
+- Mistake: Tried to append progress-log markdown using a double-quoted shell string that contained inline backticks, causing `zsh` command substitution errors.
+- Root cause: I used an unsafe shell append pattern instead of interpolation-safe editing for markdown content.
+- Corrective action: Re-ran the append with a single-quoted heredoc and placeholder timestamp replacement.
+- Prevention rule: For markdown logs with inline code, use `apply_patch` first; if shell append is required, use single-quoted heredoc delimiters only.
+- Verification evidence: `logs/progress/2026-03-07-add-primary-roads.md` now contains the corrected append entries without malformed command text.
+
+## 2026-03-08T04:40:00Z
+- Mistake: Initial empty near-occupied compaction patch removed the near-occupied veto but missed the separate empty-interior compaction cap, so the Taiwan run output did not change.
+- Root cause: I focused on the `is_near_occupied` guard and overlooked that `can_compact_parent()` also capped compaction at `empty_interior_max_resolution`, which blocked the real `r5`/`r6` Taiwan case.
+- Corrective action: Updated `can_compact_parent()` so enabled near-occupied compaction can merge above the normal empty-interior cap up to `facility_floor_resolution - 1`, then reran targeted tests and the Taiwan probe check.
+- Prevention rule: For policy changes with multiple gating conditions, verify the full decision predicate against a real example before assuming the first edited branch is sufficient.
+- Verification evidence: `python -m pytest tests/unit/test_facility_density_adaptive.py tests/unit/test_config_manifest.py tests/unit/test_invariants.py tests/golden/test_golden_regression.py::test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid_partition tests/integration/test_api.py`; Taiwan probe `854ba04bfffffff` now appears while child `864ba0487ffffff` no longer does.
+
+## 2026-03-08T07:27:00Z
+- Mistake: My first CSV rewrite overwrote the original two-letter `country` code column with the reverse-geocoded country name, which dropped existing data instead of preserving it.
+- Root cause: I updated the row's `country` key directly before confirming whether the geocoded value should replace or coexist with the original schema field.
+- Corrective action: Added a separate `country_code` column, restored `AR`/`TW` there, and kept reverse-geocoded country names in `country`.
+- Prevention rule: Before writing enrichment data back to CSV, explicitly distinguish between source columns being preserved and derived columns being appended or replaced.
+- Verification evidence: `artifacts/derived/2026-03-08-r7-regions-ar.csv` and `artifacts/derived/2026-03-08-r7-regions-tw.csv` now begin with `run_id,country_code,country,...,city,region`.

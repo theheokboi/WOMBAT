@@ -80,6 +80,7 @@ Primary workflow commands:
 - `make serve-dev`
 - `make ui-dev`
 - `make verify-dev`
+- `PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id <run-id>`
 
 Compatibility aliases:
 
@@ -112,11 +113,19 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - Include `run_id` and layer version context in responses.
 - Include lane/pointer context in run/health status payloads for dev visibility.
 - Preserve backward compatibility for additive updates.
-- `/v1/osm/transport` must keep default `source=shapefile` behavior and allow `source=graph` loading from per-country graph files with `graph_variant` support: `raw` uses `major_roads_edges.geojson`/`major_roads_nodes.geojson`, `collapsed` uses `major_roads_edges_collapsed.geojson`/`major_roads_nodes_collapsed.geojson`; support optional `include_nodes=true` by loading the variant-matched nodes file when present.
+- `/v1/osm/transport` must keep default `source=shapefile` behavior and allow `source=graph` loading from per-country graph files with `graph_variant` support: `raw` uses `major_roads_edges.geojson`/`major_roads_nodes.geojson`, `collapsed` uses `major_roads_edges_collapsed.geojson`/`major_roads_nodes_collapsed.geojson`, `adaptive` uses `major_roads_edges_adaptive.geojson`/`major_roads_nodes_adaptive.geojson`, and `adaptive_portal` uses `major_roads_edges_adaptive_portal.geojson`/`major_roads_nodes_adaptive_portal.geojson`; `adaptive_portal_run` uses run-scoped `data/runs/<run_id>/graph/<country>/major_roads_edges_adaptive_portal_run.geojson` and `major_roads_nodes_adaptive_portal_run.geojson`; support optional `include_nodes=true` by loading the variant-matched nodes file when present.
+- `/v1/populated-places` serves a static, run-agnostic Natural Earth populated-places point overlay from `data/populated_places/ne_10m_populated_places.shp` and supports optional `country` and `limit` query parameters.
+- `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features, prefers compact `artifacts/derived/*-r7-regions-*-routes-ui.geojson` visualization files when `include_self=false`, and supports optional `country` and `include_self` query parameters.
+- The frontend may also run in static demo mode from `frontend/demo-data/`, which must contain browser-ready JSON/GeoJSON snapshots exported from a published run.
 
 ## Visualization Rules
 
 - Always support facility points and H3 grid layers.
+- Support derived `facility_density_r7_regions` overlays as fixed-`r7` network-region envelopes when surfaced in the UI.
+- Support saved `r7` region route overlays as route-geometry references when surfaced in the UI.
+- Prefer compact visualization-specific route artifacts over full routing artifacts when the UI only needs display geometry.
+- Prefer static demo bundles over ad hoc raw-data copies when preparing a frontend-only demo deployment.
+- Support populated places as a lightweight static reference point overlay when surfaced in the UI.
 - Use config-driven zoom-to-H3 mapping.
 - Adaptive resolution display bounds must follow published layer metadata params (no hardcoded UI min/max).
 - Avoid heavy client-side geospatial joins.
@@ -128,6 +137,7 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - In fixed mode, include cells when `overlap_ratio > 0` (any positive overlap).
 - Keep deterministic one-cell ownership ordering across countries.
 - `facility_density_adaptive` must derive effective base resolution from `country_mask` fixed-resolution metadata when present.
+- Empty near-occupied sibling groups may compact above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied` is enabled; boundary-band empties must still remain non-compactable.
 
 ## Visual Verification Protocol
 
