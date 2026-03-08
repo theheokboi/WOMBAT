@@ -204,7 +204,12 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     layers_resp = client.get("/v1/layers")
     assert layers_resp.status_code == 200
     names = {entry["layer_name"] for entry in layers_resp.json()["layers"]}
-    assert {"metro_density_core", "country_mask", "facility_density_adaptive"}.issubset(names)
+    assert {
+        "metro_density_core",
+        "country_mask",
+        "facility_density_adaptive",
+        "facility_density_r7_regions",
+    }.issubset(names)
 
     meta = client.get("/v1/layers/metro_density_core/metadata")
     assert meta.status_code == 200
@@ -219,13 +224,23 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert adaptive_meta_json["coverage_domain"] == "country_mask_r2"
     assert adaptive_meta_json["params"]["base_resolution"] == 2
     assert adaptive_meta_json["params"]["empty_compact_min_resolution"] == 0
-    assert adaptive_meta_json["params"]["facility_floor_resolution"] == 9
-    assert adaptive_meta_json["params"]["facility_max_resolution"] == 9
+    assert adaptive_meta_json["params"]["facility_floor_resolution"] == 7
+    assert adaptive_meta_json["params"]["facility_max_resolution"] == 7
     assert adaptive_meta_json["params"]["target_facilities_per_leaf"] == 1
-    assert adaptive_meta_json["params"]["empty_interior_max_resolution"] == 5
+    assert adaptive_meta_json["params"]["empty_interior_max_resolution"] == 2
+    assert adaptive_meta_json["params"]["min_output_resolution"] == 2
     assert adaptive_meta_json["params"]["empty_refine_boundary_band_k"] == 1
     assert adaptive_meta_json["params"]["empty_refine_near_occupied_k"] == 1
+    assert adaptive_meta_json["params"]["compact_empty_near_occupied"] is False
     assert adaptive_meta_json["params"]["max_neighbor_resolution_delta"] == 1
+
+    r7_regions_meta = client.get("/v1/layers/facility_density_r7_regions/metadata")
+    assert r7_regions_meta.status_code == 200
+    r7_regions_meta_json = r7_regions_meta.json()
+    assert r7_regions_meta_json["layer_name"] == "facility_density_r7_regions"
+    assert r7_regions_meta_json["layer_version"] == "v1"
+    assert r7_regions_meta_json["source_layer"] == "facility_density_adaptive"
+    assert r7_regions_meta_json["params"]["target_resolution"] == 7
 
     metro_cells = client.get("/v1/layers/metro_density_core/cells")
     assert metro_cells.status_code == 200
@@ -243,13 +258,23 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     default_features = adaptive_cells_default.json()["features"]
     assert len(default_features) > 0
     default_resolutions = [int(feature["properties"]["resolution"]) for feature in default_features]
-    assert min(default_resolutions) >= 5
-    assert max(default_resolutions) <= 9
+    assert min(default_resolutions) >= 2
+    assert max(default_resolutions) <= 7
     assert "preview" not in adaptive_cells_default.json()
 
     adaptive_cells_fine = client.get("/v1/layers/facility_density_adaptive/cells?split_threshold=1")
     assert adaptive_cells_fine.status_code == 400
     assert "split_threshold preview is deprecated for facility_density_adaptive" in adaptive_cells_fine.json()["detail"]
+
+    r7_region_cells = client.get("/v1/layers/facility_density_r7_regions/cells")
+    assert r7_region_cells.status_code == 200
+    r7_region_features = r7_region_cells.json()["features"]
+    assert len(r7_region_features) > 0
+    assert all(int(feature["properties"]["resolution"]) == 7 for feature in r7_region_features)
+    assert all(feature["properties"]["cluster_id"].startswith("r7c:") for feature in r7_region_features)
+    assert all("region_h3" in feature["properties"] for feature in r7_region_features)
+    assert all("region_lat" in feature["properties"] for feature in r7_region_features)
+    assert all("region_lon" in feature["properties"] for feature in r7_region_features)
 
     facilities = client.get("/v1/facilities")
     assert facilities.status_code == 200

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -306,6 +307,48 @@ def _iter_geojson_features(path: Path):
             yield feature
 
 
+def _infer_country_code_from_route_artifact(path: Path, payload: dict[str, Any]) -> str:
+    country_code = str(payload.get("country_code", "") or "").strip().upper()
+    if len(country_code) == 2 and country_code.isalpha():
+        return country_code
+    match = re.search(r"-r7-regions-([a-z]{2})-routes\.json$", path.name, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    return ""
+
+
+def _iter_r7_region_route_ui_artifacts(artifacts_root: Path):
+    if not artifacts_root.exists():
+        return
+    for path in sorted(artifacts_root.glob("*-r7-regions-*-routes-ui.geojson")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        country_code = _infer_country_code_from_route_artifact(path, payload)
+        if not country_code:
+            continue
+        yield country_code, path, payload
+
+
+def _iter_r7_region_route_artifacts(artifacts_root: Path):
+    if not artifacts_root.exists():
+        return
+    for path in sorted(artifacts_root.glob("*-r7-regions-*-routes.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        country_code = _infer_country_code_from_route_artifact(path, payload)
+        if not country_code:
+            continue
+        yield country_code, path, payload
+
+
 @lru_cache(maxsize=16)
 def _osm_transport_features_for_country(country_code: str, country_root: Path) -> tuple[dict[str, Any], ...]:
     features: list[dict[str, Any]] = []
@@ -397,6 +440,31 @@ def _osm_transport_graph_components_for_country(
     return tuple(edge_features), tuple(node_features)
 
 
+@lru_cache(maxsize=4)
+def _populated_place_features(path: Path) -> tuple[dict[str, Any], ...]:
+    features: list[dict[str, Any]] = []
+    for properties, geometry in _iter_shape_records(path):
+        if str(geometry.get("type", "")).strip() != "Point":
+            continue
+        country_code = str(properties.get("ISO_A2", "") or "").strip().upper()
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geometry,
+                "properties": {
+                    "name": str(properties.get("NAME", "") or "").strip(),
+                    "name_ascii": str(properties.get("NAMEASCII", "") or "").strip(),
+                    "country_name": str(properties.get("ADM0NAME", "") or "").strip(),
+                    "country_code": country_code,
+                    "feature_class": str(properties.get("FEATURECLA", "") or "").strip(),
+                    "population_max": int(properties.get("POP_MAX") or 0),
+                    "min_zoom": float(properties.get("MIN_ZOOM") or 0.0),
+                },
+            }
+        )
+    return tuple(features)
+
+
 def create_app(
     runs_root: Path,
     published_root: Path,
@@ -430,6 +498,8 @@ def create_app(
         },
     }
     osm_root = openstreetmap_root or Path("data/openstreetmap")
+    populated_places_path = Path("data/populated_places/ne_10m_populated_places.shp")
+    derived_artifacts_root = Path("artifacts") / "derived"
 
     def build_run_status_payload(
         run_id: str,
@@ -626,9 +696,18 @@ def create_app(
                 "layer_value": str(row.get("layer_value", "")),
                 "resolution": int(row.get("resolution", 0)),
             }
-            for optional_key in ["country_name", "country_color", "country_color_hex"]:
-                if optional_key in row and pd.notna(row[optional_key]):
-                    props[optional_key] = row[optional_key]
+            for optional_key in cells.columns:
+                if optional_key in {"h3", "layer_value", "resolution"}:
+                    continue
+                value = row.get(optional_key)
+                if pd.isna(value):
+                    continue
+                if hasattr(value, "item"):
+                    try:
+                        value = value.item()
+                    except (TypeError, ValueError):
+                        pass
+                props[optional_key] = value
             features.append(
                 {
                     "type": "Feature",
@@ -701,7 +780,12 @@ def create_app(
             )
 
         h3_features = []
-        for layer_name in ["metro_density_core", "country_mask", "facility_density_adaptive"]:
+        for layer_name in [
+            "metro_density_core",
+            "country_mask",
+            "facility_density_adaptive",
+            "facility_density_r7_regions",
+        ]:
             layer_dirs = sorted((run_root / "layers" / layer_name).glob("*"))
             if not layer_dirs:
                 continue
@@ -754,6 +838,149 @@ def create_app(
             "zoom": system.ui.zoom,
             "drilldown_resolution": system.ui.drilldown_resolution,
             "zoom_to_h3_resolution": system.zoom_to_h3_resolution,
+        }
+
+    @app.get("/v1/populated-places")
+    def populated_places(
+        country: str | None = Query(default=None, min_length=2, max_length=2),
+        limit: int = Query(default=10000, ge=1, le=50000),
+    ) -> dict[str, Any]:
+        features = list(_populated_place_features(populated_places_path))
+        available_countries = sorted(
+            {
+                str(feature.get("properties", {}).get("country_code", "")).strip()
+                for feature in features
+                if str(feature.get("properties", {}).get("country_code", "")).strip()
+            }
+        )
+        selected_country = None
+        selected_features = features
+        if country:
+            selected_country = country.strip().upper()
+            if selected_country not in available_countries:
+                raise HTTPException(status_code=404, detail=f"Populated places unavailable for country: {selected_country}")
+            selected_features = [
+                feature
+                for feature in features
+                if feature.get("properties", {}).get("country_code") == selected_country
+            ]
+        selected_features = selected_features[:limit]
+        return {
+            "type": "FeatureCollection",
+            "run_agnostic": True,
+            "country": selected_country,
+            "available_countries": available_countries,
+            "feature_count": len(selected_features),
+            "features": selected_features,
+        }
+
+    @app.get("/v1/r7-region-routes")
+    def r7_region_routes(
+        country: str | None = Query(default=None, min_length=2, max_length=2),
+        include_self: bool = Query(default=False),
+    ) -> dict[str, Any]:
+        ui_artifacts = {country_code: (path, payload) for country_code, path, payload in _iter_r7_region_route_ui_artifacts(derived_artifacts_root)}
+        raw_artifacts = {country_code: (path, payload) for country_code, path, payload in _iter_r7_region_route_artifacts(derived_artifacts_root)}
+        available_countries = sorted(set(ui_artifacts) | set(raw_artifacts))
+        selected_country = None
+        if country:
+            selected_country = country.strip().upper()
+            if selected_country not in available_countries:
+                raise HTTPException(status_code=404, detail=f"R7 region routes unavailable for country: {selected_country}")
+            available_countries = [selected_country]
+
+        features: list[dict[str, Any]] = []
+        route_count_total = 0
+        self_route_count = 0
+        missing_geometry_count = 0
+        source_artifacts: list[str] = []
+        artifact_kind = "raw_routes"
+
+        target_countries = [selected_country] if selected_country else available_countries
+        for country_code in target_countries:
+            if not include_self and country_code in ui_artifacts:
+                artifact_path, payload = ui_artifacts[country_code]
+                artifact_kind = "ui_geojson"
+                source_artifacts.append(artifact_path.name)
+                route_count_total += int(payload.get("route_count_total", 0) or 0)
+                self_route_count += int(payload.get("self_route_count_excluded", 0) or 0)
+                missing_geometry_count += int(payload.get("null_geometry_count_excluded", 0) or 0)
+                ui_features = payload.get("features", [])
+                if not isinstance(ui_features, list):
+                    continue
+                for feature in ui_features:
+                    if not isinstance(feature, dict):
+                        continue
+                    properties = feature.get("properties", {})
+                    if not isinstance(properties, dict):
+                        properties = {}
+                    features.append(
+                        {
+                            "type": "Feature",
+                            "geometry": feature.get("geometry"),
+                            "properties": {
+                                **properties,
+                                "country_code": country_code,
+                                "source_artifact": payload.get("source_artifact", artifact_path.name),
+                            },
+                        }
+                    )
+                continue
+
+            raw_artifact = raw_artifacts.get(country_code)
+            if raw_artifact is None:
+                continue
+            artifact_path, payload = raw_artifact
+            source_artifacts.append(artifact_path.name)
+            routes = payload.get("routes", [])
+            if not isinstance(routes, list):
+                continue
+            for route in routes:
+                if not isinstance(route, dict):
+                    continue
+                route_count_total += 1
+                from_idx = route.get("from_idx")
+                to_idx = route.get("to_idx")
+                if from_idx == to_idx:
+                    self_route_count += 1
+                    if not include_self:
+                        continue
+                geometry = route.get("geometry")
+                if not isinstance(geometry, dict):
+                    missing_geometry_count += 1
+                    continue
+                if str(geometry.get("type", "")).strip() != "LineString":
+                    missing_geometry_count += 1
+                    continue
+                properties = {
+                    "country_code": country_code,
+                    "source_artifact": artifact_path.name,
+                    "from_idx": from_idx,
+                    "to_idx": to_idx,
+                    "from_region_h3": route.get("from_region_h3"),
+                    "to_region_h3": route.get("to_region_h3"),
+                    "distance_m": route.get("distance"),
+                    "duration_s": route.get("duration"),
+                }
+                features.append(
+                    {
+                        "type": "Feature",
+                        "geometry": geometry,
+                        "properties": properties,
+                    }
+                )
+
+        return {
+            "type": "FeatureCollection",
+            "artifact_kind": artifact_kind,
+            "country": selected_country,
+            "available_countries": available_countries,
+            "route_count_total": route_count_total,
+            "self_route_count": self_route_count,
+            "missing_geometry_count": missing_geometry_count,
+            "feature_count": len(features),
+            "source_artifacts": source_artifacts,
+            "features": features,
         }
 
     @app.get("/v1/osm/transport")
@@ -827,6 +1054,21 @@ def create_app(
             "feature_count": len(selected_features),
             "features": selected_features,
         }
+        if source == "graph" and graph_variant == "adaptive_portal":
+            adaptive_resolution = None
+            for feature in selected_features:
+                props = feature.get("properties", {})
+                if props.get("graph_feature_type") == "node":
+                    continue
+                value = props.get("adaptive_resolution")
+                if isinstance(value, int):
+                    adaptive_resolution = value
+                    break
+                if isinstance(value, str) and value.strip().isdigit():
+                    adaptive_resolution = int(value.strip())
+                    break
+            if adaptive_resolution is not None:
+                payload["adaptive_resolution"] = adaptive_resolution
         if source == "graph" and graph_variant == "adaptive_portal_run":
             payload["run_id"] = used_run_id
         return payload

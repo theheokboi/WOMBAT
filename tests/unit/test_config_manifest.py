@@ -14,19 +14,28 @@ def test_load_system_and_layers_config() -> None:
         "metro_density_core",
         "country_mask",
         "facility_density_adaptive",
+        "facility_density_r7_regions",
     }
     adaptive = next(layer for layer in layers.layers if layer.name == "facility_density_adaptive")
     assert adaptive.version == "v3"
     assert adaptive.params == {
-        "base_resolution": 4,
+        "base_resolution": 3,
         "empty_compact_min_resolution": 0,
-        "facility_floor_resolution": 9,
-        "facility_max_resolution": 9,
+        "facility_floor_resolution": 7,
+        "facility_max_resolution": 7,
         "target_facilities_per_leaf": 1,
-        "empty_interior_max_resolution": 5,
+        "empty_interior_max_resolution": 2,
+        "min_output_resolution": 2,
         "empty_refine_boundary_band_k": 1,
         "empty_refine_near_occupied_k": 1,
+        "compact_empty_near_occupied": False,
         "max_neighbor_resolution_delta": 1,
+    }
+    r7_regions = next(layer for layer in layers.layers if layer.name == "facility_density_r7_regions")
+    assert r7_regions.version == "v1"
+    assert r7_regions.params == {
+        "source_layer": "facility_density_adaptive",
+        "target_resolution": 7,
     }
 
 

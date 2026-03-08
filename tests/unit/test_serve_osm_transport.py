@@ -193,7 +193,7 @@ def _write_major_roads_edges_adaptive_portal_geojson(path: Path) -> None:
                     "type": "LineString",
                     "coordinates": [[122.0, 24.8], [122.1, 24.9]],
                 },
-                "properties": {"road_class": "trunk"},
+                "properties": {"road_class": "trunk", "adaptive_resolution": 3},
             }
         ],
     }
@@ -474,6 +474,7 @@ def test_osm_transport_overlay_source_graph_variant_adaptive_portal_loads_adapti
     assert payload["source"] == "graph"
     assert payload["available_countries"] == ["TW"]
     assert payload["classes"] == ["trunk"]
+    assert payload["adaptive_resolution"] == 3
     assert len(payload["features"]) == 1
     assert payload["features"][0]["properties"]["transport_class"] == "trunk"
 

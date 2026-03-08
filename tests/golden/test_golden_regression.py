@@ -123,6 +123,7 @@ def test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid
         "empty_interior_max_resolution": 7,
         "empty_refine_boundary_band_k": 1,
         "empty_refine_near_occupied_k": 1,
+        "compact_empty_near_occupied": True,
         "max_neighbor_resolution_delta": 1,
     }
     metadata_a, cells_a = adaptive.compute(
