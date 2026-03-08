@@ -16,8 +16,15 @@ artifacts/derived/*.json
 
 # large/generated data (do not add frontend/demo-data/ — required)
 data/openstreetmap/**/*.osm.pbf
+data/openstreetmap/**/*.shp
+data/openstreetmap/**/*.dbf
+data/openstreetmap/**/*.shx
+data/openstreetmap/**/*.cpg
+data/openstreetmap/**/*.prj
 data/populated_places/
 data/countries/
+data/facilities/*.tsv
+data/landing_points/
 
 # local env
 .venv/
