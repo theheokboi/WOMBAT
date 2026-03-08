@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+import heapq
 from collections import defaultdict
 from hashlib import sha256
 from pathlib import Path
@@ -11,11 +13,34 @@ import h3
 import osmium
 
 
-MAINLINE_CLASSES_COARSE = frozenset({"motorway", "trunk"})
-MAINLINE_CLASSES_FINE = frozenset(
-    {"motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential"}
+MAINLINE_ALLOWED_CLASSES = frozenset({"motorway", "trunk", "primary", "secondary"})
+MAINLINE_CLASS_PRIORITY: tuple[str, ...] = ("motorway", "trunk", "primary", "secondary")
+MAINLINE_CLASS_PRIORITY_RANK = {road_class: index for index, road_class in enumerate(MAINLINE_CLASS_PRIORITY)}
+ADAPTIVE_PORTAL_ALLOWED_CLASSES = frozenset(
+    {
+        "motorway",
+        "motorway_link",
+        "trunk",
+        "trunk_link",
+        "primary",
+        "primary_link",
+        "secondary",
+        "secondary_link",
+    }
 )
-MAINLINE_FINE_MIN_RESOLUTION = 6
+ADAPTIVE_PORTAL_CLASS_PRIORITY: tuple[str, ...] = (
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "trunk_link",
+    "primary",
+    "primary_link",
+    "secondary",
+    "secondary_link",
+)
+ADAPTIVE_PORTAL_CLASS_PRIORITY_RANK = {
+    road_class: index for index, road_class in enumerate(ADAPTIVE_PORTAL_CLASS_PRIORITY)
+}
 MAJOR_HIGHWAY_CLASSES = {
     "motorway",
     "trunk",
@@ -99,6 +124,502 @@ def _edge_coordinates(edge: dict[str, object]) -> list[list[float]]:
             continue
         normalized.append([float(coord[0]), float(coord[1])])
     return normalized
+
+
+def _haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    r = 6371000.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2.0) ** 2
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(max(0.0, 1.0 - a)))
+    return r * c
+
+
+def _edge_length_m(edge: dict[str, object]) -> float:
+    coords = _edge_coordinates(edge)
+    if len(coords) < 2:
+        return 0.0
+    total = 0.0
+    for start, end in zip(coords, coords[1:]):
+        total += _haversine_m(float(start[0]), float(start[1]), float(end[0]), float(end[1]))
+    return total
+
+
+def _road_class_penalty(road_class: str) -> float:
+    normalized = str(road_class).strip().lower()
+    if normalized in {"motorway", "motorway_link"}:
+        return 1.0
+    if normalized in {"trunk", "trunk_link"}:
+        return 1.1
+    if normalized in {"primary", "primary_link"}:
+        return 1.25
+    if normalized in {"secondary", "secondary_link"}:
+        return 1.5
+    return 2.0
+
+
+def _road_class_tier_rank(road_class: str) -> int:
+    normalized = str(road_class).strip().lower()
+    if normalized in {"motorway", "motorway_link"}:
+        return 0
+    if normalized in {"trunk", "trunk_link"}:
+        return 1
+    if normalized in {"primary", "primary_link"}:
+        return 2
+    if normalized in {"secondary", "secondary_link"}:
+        return 3
+    return 4
+
+
+def _oriented_coords_for_edge(edge: dict[str, object], from_node: int, to_node: int) -> list[list[float]]:
+    coords = _edge_coordinates(edge)
+    if len(coords) < 2:
+        return []
+    if int(edge["u"]) == from_node and int(edge["v"]) == to_node:
+        return coords
+    if int(edge["u"]) == to_node and int(edge["v"]) == from_node:
+        return _reverse_coordinates(coords)
+    return []
+
+
+def _cell_metric_proxy_edges(
+    edges: list[dict[str, object]],
+    terminal_nodes: set[int],
+) -> list[dict[str, object]]:
+    terminals = sorted({int(node_id) for node_id in terminal_nodes})
+    if len(terminals) < 2:
+        return []
+
+    adjacency: dict[int, list[tuple[int, dict[str, object], float]]] = defaultdict(list)
+    for edge in edges:
+        u = int(edge["u"])
+        v = int(edge["v"])
+        if u == v:
+            continue
+        length_m = _edge_length_m(edge)
+        if length_m <= 0:
+            continue
+        cost = length_m * _road_class_penalty(str(edge.get("road_class", "")))
+        adjacency[u].append((v, edge, cost))
+        adjacency[v].append((u, edge, cost))
+
+    proxy_edges: list[dict[str, object]] = []
+    for source_idx, source in enumerate(terminals):
+        distances: dict[int, float] = {source: 0.0}
+        previous: dict[int, tuple[int, dict[str, object]]] = {}
+        heap: list[tuple[float, int]] = [(0.0, source)]
+
+        while heap:
+            current_dist, node = heapq.heappop(heap)
+            if current_dist > distances.get(node, float("inf")):
+                continue
+            for neighbor, edge, step_cost in adjacency.get(node, []):
+                next_dist = current_dist + step_cost
+                if next_dist >= distances.get(neighbor, float("inf")):
+                    continue
+                distances[neighbor] = next_dist
+                previous[neighbor] = (node, edge)
+                heapq.heappush(heap, (next_dist, neighbor))
+
+        for target in terminals[source_idx + 1 :]:
+            if target not in previous:
+                continue
+            path_edges: list[dict[str, object]] = []
+            path_coords_rev: list[list[list[float]]] = []
+            path_road_classes: list[str] = []
+            cursor = target
+            while cursor != source:
+                step = previous.get(cursor)
+                if step is None:
+                    path_edges = []
+                    path_coords_rev = []
+                    break
+                parent, edge = step
+                oriented = _oriented_coords_for_edge(edge, parent, cursor)
+                if len(oriented) < 2:
+                    path_edges = []
+                    path_coords_rev = []
+                    break
+                path_edges.append(edge)
+                path_coords_rev.append(oriented)
+                path_road_classes.append(str(edge.get("road_class", "")))
+                cursor = parent
+            if not path_edges or not path_coords_rev:
+                continue
+
+            path_coords = list(path_coords_rev[-1])
+            for segment in reversed(path_coords_rev[:-1]):
+                path_coords.extend(segment[1:])
+            component_edge_ids = sorted({str(edge.get("edge_id", "")) for edge in path_edges if edge.get("edge_id")})
+            if not component_edge_ids:
+                continue
+            path_class = min(
+                path_road_classes,
+                key=lambda value: (_road_class_penalty(value), str(value).strip().lower()),
+            )
+
+            proxy_u = source
+            proxy_v = target
+            proxy_coords = path_coords
+            if proxy_u > proxy_v:
+                proxy_u, proxy_v = proxy_v, proxy_u
+                proxy_coords = _reverse_coordinates(proxy_coords)
+            proxy_edges.append(
+                {
+                    "edge_id": _build_contracted_edge_id(
+                        component_edge_ids=component_edge_ids,
+                        u=proxy_u,
+                        v=proxy_v,
+                        road_class=path_class,
+                        oneway=None,
+                        name=None,
+                        ref=None,
+                        coordinates=proxy_coords,
+                    ),
+                    "u": proxy_u,
+                    "v": proxy_v,
+                    "road_class": path_class,
+                    "oneway": None,
+                    "name": None,
+                    "ref": None,
+                    "geometry": {"type": "LineString", "coordinates": proxy_coords},
+                }
+            )
+
+    deduped: dict[tuple[int, int], dict[str, object]] = {}
+    for edge in sorted(proxy_edges, key=lambda item: str(item.get("edge_id", ""))):
+        key = (int(edge["u"]), int(edge["v"]))
+        existing = deduped.get(key)
+        if existing is None:
+            deduped[key] = edge
+            continue
+        if _edge_length_m(edge) < _edge_length_m(existing):
+            deduped[key] = edge
+    return sorted(deduped.values(), key=lambda item: str(item["edge_id"]))
+
+
+def _cell_metric_proxy_tree_edges(
+    edges: list[dict[str, object]],
+    terminal_nodes: set[int],
+) -> list[dict[str, object]]:
+    terminals = sorted({int(node_id) for node_id in terminal_nodes})
+    if len(terminals) < 2:
+        return []
+
+    adjacency: dict[int, list[tuple[int, dict[str, object], float]]] = defaultdict(list)
+    for edge in edges:
+        u = int(edge["u"])
+        v = int(edge["v"])
+        if u == v:
+            continue
+        length_m = _edge_length_m(edge)
+        if length_m <= 0:
+            continue
+        cost = length_m * _road_class_penalty(str(edge.get("road_class", "")))
+        adjacency[u].append((v, edge, cost))
+        adjacency[v].append((u, edge, cost))
+
+    path_lookup: dict[tuple[int, int], tuple[float, dict[int, tuple[int, dict[str, object]]]]] = {}
+    pair_candidates: list[tuple[float, int, int]] = []
+    for source_idx, source in enumerate(terminals):
+        distances: dict[int, float] = {source: 0.0}
+        previous: dict[int, tuple[int, dict[str, object]]] = {}
+        heap: list[tuple[float, int]] = [(0.0, source)]
+
+        while heap:
+            current_dist, node = heapq.heappop(heap)
+            if current_dist > distances.get(node, float("inf")):
+                continue
+            for neighbor, edge, step_cost in adjacency.get(node, []):
+                next_dist = current_dist + step_cost
+                if next_dist >= distances.get(neighbor, float("inf")):
+                    continue
+                distances[neighbor] = next_dist
+                previous[neighbor] = (node, edge)
+                heapq.heappush(heap, (next_dist, neighbor))
+
+        for target in terminals[source_idx + 1 :]:
+            distance = distances.get(target)
+            if distance is None:
+                continue
+            key = (source, target)
+            path_lookup[key] = (distance, previous)
+            pair_candidates.append((distance, source, target))
+
+    if not pair_candidates:
+        return []
+
+    parent = {terminal: terminal for terminal in terminals}
+
+    def find(node: int) -> int:
+        while parent[node] != node:
+            parent[node] = parent[parent[node]]
+            node = parent[node]
+        return node
+
+    def union(left: int, right: int) -> bool:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root == right_root:
+            return False
+        if left_root < right_root:
+            parent[right_root] = left_root
+        else:
+            parent[left_root] = right_root
+        return True
+
+    mst_pairs: list[tuple[int, int]] = []
+    for _distance, source, target in sorted(pair_candidates, key=lambda item: (item[0], item[1], item[2])):
+        if not union(source, target):
+            continue
+        mst_pairs.append((source, target))
+        if len(mst_pairs) == len(terminals) - 1:
+            break
+
+    proxy_edges: list[dict[str, object]] = []
+    for source, target in mst_pairs:
+        lookup = path_lookup.get((source, target))
+        if lookup is None:
+            continue
+        _distance, previous = lookup
+        path_edges: list[dict[str, object]] = []
+        path_coords_rev: list[list[list[float]]] = []
+        path_road_classes: list[str] = []
+        cursor = target
+        while cursor != source:
+            step = previous.get(cursor)
+            if step is None:
+                path_edges = []
+                path_coords_rev = []
+                break
+            parent_node, edge = step
+            oriented = _oriented_coords_for_edge(edge, parent_node, cursor)
+            if len(oriented) < 2:
+                path_edges = []
+                path_coords_rev = []
+                break
+            path_edges.append(edge)
+            path_coords_rev.append(oriented)
+            path_road_classes.append(str(edge.get("road_class", "")))
+            cursor = parent_node
+        if not path_edges or not path_coords_rev:
+            continue
+
+        path_coords = list(path_coords_rev[-1])
+        for segment in reversed(path_coords_rev[:-1]):
+            path_coords.extend(segment[1:])
+        component_edge_ids = sorted({str(edge.get("edge_id", "")) for edge in path_edges if edge.get("edge_id")})
+        if not component_edge_ids:
+            continue
+        path_class = min(
+            path_road_classes,
+            key=lambda value: (_road_class_penalty(value), str(value).strip().lower()),
+        )
+
+        proxy_u = source
+        proxy_v = target
+        proxy_coords = path_coords
+        if proxy_u > proxy_v:
+            proxy_u, proxy_v = proxy_v, proxy_u
+            proxy_coords = _reverse_coordinates(proxy_coords)
+        proxy_edges.append(
+            {
+                "edge_id": _build_contracted_edge_id(
+                    component_edge_ids=component_edge_ids,
+                    u=proxy_u,
+                    v=proxy_v,
+                    road_class=path_class,
+                    oneway=None,
+                    name=None,
+                    ref=None,
+                    coordinates=proxy_coords,
+                ),
+                "u": proxy_u,
+                "v": proxy_v,
+                "road_class": path_class,
+                "oneway": None,
+                "name": None,
+                "ref": None,
+                "geometry": {"type": "LineString", "coordinates": proxy_coords},
+            }
+        )
+
+    return sorted(proxy_edges, key=lambda item: str(item["edge_id"]))
+
+
+def _build_proxy_edge_from_previous(
+    source: int,
+    target: int,
+    previous: dict[int, tuple[int, dict[str, object]]],
+) -> dict[str, object] | None:
+    path_edges: list[dict[str, object]] = []
+    path_coords_rev: list[list[list[float]]] = []
+    path_road_classes: list[str] = []
+    cursor = target
+    while cursor != source:
+        step = previous.get(cursor)
+        if step is None:
+            return None
+        parent_node, edge = step
+        oriented = _oriented_coords_for_edge(edge, parent_node, cursor)
+        if len(oriented) < 2:
+            return None
+        path_edges.append(edge)
+        path_coords_rev.append(oriented)
+        path_road_classes.append(str(edge.get("road_class", "")))
+        cursor = parent_node
+
+    if not path_edges or not path_coords_rev:
+        return None
+
+    path_coords = list(path_coords_rev[-1])
+    for segment in reversed(path_coords_rev[:-1]):
+        path_coords.extend(segment[1:])
+    component_edge_ids = sorted({str(edge.get("edge_id", "")) for edge in path_edges if edge.get("edge_id")})
+    if not component_edge_ids:
+        return None
+    path_class = min(
+        path_road_classes,
+        key=lambda value: (_road_class_penalty(value), str(value).strip().lower()),
+    )
+
+    proxy_u = source
+    proxy_v = target
+    proxy_coords = path_coords
+    if proxy_u > proxy_v:
+        proxy_u, proxy_v = proxy_v, proxy_u
+        proxy_coords = _reverse_coordinates(proxy_coords)
+    return {
+        "edge_id": _build_contracted_edge_id(
+            component_edge_ids=component_edge_ids,
+            u=proxy_u,
+            v=proxy_v,
+            road_class=path_class,
+            oneway=None,
+            name=None,
+            ref=None,
+            coordinates=proxy_coords,
+        ),
+        "u": proxy_u,
+        "v": proxy_v,
+        "road_class": path_class,
+        "oneway": None,
+        "name": None,
+        "ref": None,
+        "geometry": {"type": "LineString", "coordinates": proxy_coords},
+    }
+
+
+def _nearest_target_proxy_edge(
+    edges: list[dict[str, object]],
+    source: int,
+    targets: set[int],
+    max_tier_rank: int,
+) -> dict[str, object] | None:
+    if not targets or source in targets:
+        return None
+
+    adjacency: dict[int, list[tuple[int, dict[str, object], float]]] = defaultdict(list)
+    for edge in edges:
+        if _road_class_tier_rank(str(edge.get("road_class", ""))) > max_tier_rank:
+            continue
+        u = int(edge["u"])
+        v = int(edge["v"])
+        if u == v:
+            continue
+        length_m = _edge_length_m(edge)
+        if length_m <= 0:
+            continue
+        cost = length_m * _road_class_penalty(str(edge.get("road_class", "")))
+        adjacency[u].append((v, edge, cost))
+        adjacency[v].append((u, edge, cost))
+
+    distances: dict[int, float] = {source: 0.0}
+    previous: dict[int, tuple[int, dict[str, object]]] = {}
+    heap: list[tuple[float, int]] = [(0.0, source)]
+    remaining_targets = set(int(node_id) for node_id in targets if int(node_id) != source)
+
+    while heap:
+        current_dist, node = heapq.heappop(heap)
+        if current_dist > distances.get(node, float("inf")):
+            continue
+        if node in remaining_targets:
+            return _build_proxy_edge_from_previous(source, node, previous)
+        for neighbor, edge, step_cost in adjacency.get(node, []):
+            next_dist = current_dist + step_cost
+            if next_dist >= distances.get(neighbor, float("inf")):
+                continue
+            distances[neighbor] = next_dist
+            previous[neighbor] = (node, edge)
+            heapq.heappush(heap, (next_dist, neighbor))
+    return None
+
+
+def _dedupe_proxy_edges(edges: list[dict[str, object]]) -> list[dict[str, object]]:
+    deduped: dict[tuple[int, int], dict[str, object]] = {}
+    for edge in sorted(edges, key=lambda item: str(item.get("edge_id", ""))):
+        key = (int(edge["u"]), int(edge["v"]))
+        existing = deduped.get(key)
+        if existing is None or _edge_length_m(edge) < _edge_length_m(existing):
+            deduped[key] = edge
+    return sorted(deduped.values(), key=lambda item: str(item["edge_id"]))
+
+
+def _cell_metric_feeder_proxy_edges(
+    edges: list[dict[str, object]],
+    terminal_nodes: set[int],
+) -> list[dict[str, object]]:
+    terminals = sorted({int(node_id) for node_id in terminal_nodes})
+    if len(terminals) < 2:
+        return []
+
+    portal_tier_rank: dict[int, int] = {}
+    for terminal in terminals:
+        incident_ranks = sorted(
+            {
+                _road_class_tier_rank(str(edge.get("road_class", "")))
+                for edge in edges
+                if int(edge["u"]) == terminal or int(edge["v"]) == terminal
+            }
+        )
+        if incident_ranks:
+            portal_tier_rank[terminal] = incident_ranks[0]
+
+    if len(portal_tier_rank) < 2:
+        return []
+
+    connected_portals: set[int] = set()
+    proxy_edges: list[dict[str, object]] = []
+    for rank in sorted(set(portal_tier_rank.values())):
+        rank_portals = sorted(node_id for node_id, node_rank in portal_tier_rank.items() if node_rank == rank)
+        if not rank_portals:
+            continue
+
+        if not connected_portals:
+            initial_edges = _cell_metric_proxy_tree_edges(
+                [edge for edge in edges if _road_class_tier_rank(str(edge.get("road_class", ""))) <= rank],
+                terminal_nodes=set(rank_portals),
+            )
+            proxy_edges.extend(initial_edges)
+            connected_portals.update(rank_portals)
+            continue
+
+        for portal in rank_portals:
+            feeder_edge = _nearest_target_proxy_edge(
+                edges,
+                source=portal,
+                targets=connected_portals,
+                max_tier_rank=rank,
+            )
+            if feeder_edge is None:
+                connected_portals.add(portal)
+                continue
+            proxy_edges.append(feeder_edge)
+            connected_portals.add(portal)
+
+    return _dedupe_proxy_edges(proxy_edges)
 
 
 def contract_degree2_undirected_edges(
@@ -417,9 +938,7 @@ def _filter_cross_cell_edges(
 
 
 def _mainline_classes_for_resolution(resolution: int) -> frozenset[str]:
-    if int(resolution) >= MAINLINE_FINE_MIN_RESOLUTION:
-        return MAINLINE_CLASSES_FINE
-    return MAINLINE_CLASSES_COARSE
+    return MAINLINE_ALLOWED_CLASSES
 
 
 def _filter_mainline_edges_for_fixed_resolution(edges: list[dict[str, object]], resolution: int) -> list[dict[str, object]]:
@@ -432,18 +951,147 @@ def _filter_mainline_edges_for_fixed_resolution(edges: list[dict[str, object]], 
     return filtered
 
 
+def _filter_mainline_edges_by_cell_priority(edges: list[dict[str, object]], resolution: int) -> list[dict[str, object]]:
+    _ = resolution
+    allowed = ADAPTIVE_PORTAL_ALLOWED_CLASSES
+    best_rank_by_cell: dict[str, int] = {}
+    max_rank_by_cell: dict[str, int] = {}
+    edge_records: list[tuple[dict[str, object], str, int, str, str]] = []
+    fallback_rank = len(ADAPTIVE_PORTAL_CLASS_PRIORITY_RANK)
+    cross_cells: set[str] = set()
+
+    for edge in edges:
+        road_class = str(edge.get("road_class", "")).strip().lower()
+        if road_class not in allowed:
+            continue
+        coords = _edge_coordinates(edge)
+        if len(coords) < 2:
+            continue
+        mid_lon = (float(coords[0][0]) + float(coords[-1][0])) / 2.0
+        mid_lat = (float(coords[0][1]) + float(coords[-1][1])) / 2.0
+        cell = str(h3.latlng_to_cell(mid_lat, mid_lon, resolution))
+        start_cell = str(h3.latlng_to_cell(float(coords[0][1]), float(coords[0][0]), resolution))
+        end_cell = str(h3.latlng_to_cell(float(coords[-1][1]), float(coords[-1][0]), resolution))
+        rank = ADAPTIVE_PORTAL_CLASS_PRIORITY_RANK.get(road_class, fallback_rank)
+        edge_records.append((edge, cell, rank, start_cell, end_cell))
+        current_best = best_rank_by_cell.get(cell)
+        if current_best is None or rank < current_best:
+            best_rank_by_cell[cell] = rank
+        current_max = max_rank_by_cell.get(cell)
+        if current_max is None or rank > current_max:
+            max_rank_by_cell[cell] = rank
+        if start_cell != end_cell:
+            cross_cells.add(start_cell)
+            cross_cells.add(end_cell)
+
+    if not edge_records:
+        return []
+
+    selected_rank_by_cell = dict(best_rank_by_cell)
+    if len(cross_cells) > 1:
+        # Start from strict per-cell highest-priority classes, then relax only where
+        # needed to bridge disconnected cross-cell components.
+        for _ in range(len(ADAPTIVE_PORTAL_CLASS_PRIORITY)):
+            parent: dict[str, str] = {cell: cell for cell in cross_cells}
+            size: dict[str, int] = {cell: 1 for cell in cross_cells}
+
+            def find(cell: str) -> str:
+                root = cell
+                while parent[root] != root:
+                    root = parent[root]
+                while parent[cell] != cell:
+                    next_cell = parent[cell]
+                    parent[cell] = root
+                    cell = next_cell
+                return root
+
+            def union(a: str, b: str) -> None:
+                root_a = find(a)
+                root_b = find(b)
+                if root_a == root_b:
+                    return
+                if size[root_a] < size[root_b]:
+                    root_a, root_b = root_b, root_a
+                parent[root_b] = root_a
+                size[root_a] += size[root_b]
+
+            for _edge, owner_cell, rank, start_cell, end_cell in edge_records:
+                if start_cell == end_cell:
+                    continue
+                if rank <= selected_rank_by_cell.get(owner_cell, fallback_rank):
+                    union(start_cell, end_cell)
+
+            roots = {find(cell) for cell in cross_cells}
+            if len(roots) <= 1:
+                break
+
+            cells_to_escalate: set[str] = set()
+            for _edge, owner_cell, rank, start_cell, end_cell in edge_records:
+                if start_cell == end_cell:
+                    continue
+                if find(start_cell) == find(end_cell):
+                    continue
+                current = selected_rank_by_cell.get(owner_cell)
+                max_rank = max_rank_by_cell.get(owner_cell)
+                if current is None or max_rank is None:
+                    continue
+                if rank > current and current < max_rank:
+                    cells_to_escalate.add(owner_cell)
+
+            if not cells_to_escalate:
+                break
+            for cell in sorted(cells_to_escalate):
+                selected_rank_by_cell[cell] = min(
+                    selected_rank_by_cell[cell] + 1,
+                    max_rank_by_cell.get(cell, selected_rank_by_cell[cell]),
+                )
+
+    filtered: list[dict[str, object]] = []
+    for edge, cell, rank, _start_cell, _end_cell in edge_records:
+        if rank <= selected_rank_by_cell.get(cell, fallback_rank):
+            filtered.append(edge)
+    return filtered
+
+
 def _filter_mainline_edges_for_adaptive_mask(
     edges: list[dict[str, object]],
     adaptive_mask_cells: set[str],
     occupied_cells: set[str] | None = None,
 ) -> list[dict[str, object]]:
     mask_cells_by_resolution = _adaptive_mask_cells_by_resolution(adaptive_mask_cells)
-    occupied = {str(cell) for cell in (occupied_cells or set())}
+    __ = occupied_cells
+
+    def allowed_classes_for_resolution(resolution: int) -> set[str]:
+        if int(resolution) <= 3:
+            return {"motorway", "motorway_link"}
+        if int(resolution) <= 6:
+            return {"motorway", "motorway_link", "trunk", "trunk_link"}
+        if int(resolution) <= 8:
+            return {"motorway", "motorway_link", "trunk", "trunk_link", "primary"}
+        return {
+            "motorway",
+            "motorway_link",
+            "trunk",
+            "trunk_link",
+            "primary",
+            "secondary",
+        }
+
+    def neighboring_resolution_for_uncovered_point(lon: float, lat: float) -> int | None:
+        neighbor_resolutions: list[int] = []
+        for resolution, cells in mask_cells_by_resolution.items():
+            center_cell = str(h3.latlng_to_cell(lat, lon, resolution))
+            neighbor_cells = {str(cell) for cell in h3.grid_disk(center_cell, 1)}
+            if neighbor_cells & cells:
+                neighbor_resolutions.append(int(resolution))
+        if not neighbor_resolutions:
+            return None
+        # Larger H3 cells have smaller resolution numbers.
+        return min(neighbor_resolutions)
+
     filtered: list[dict[str, object]] = []
     for edge in edges:
         road_class = str(edge.get("road_class", "")).strip().lower()
-        if road_class not in MAINLINE_CLASSES_FINE:
-            continue
         coords = _edge_coordinates(edge)
         if len(coords) < 2:
             continue
@@ -451,14 +1099,34 @@ def _filter_mainline_edges_for_adaptive_mask(
         mid_lat = (float(coords[0][1]) + float(coords[-1][1])) / 2.0
         mid_cell = _adaptive_mask_cell_for_point([mid_lon, mid_lat], mask_cells_by_resolution)
         if mid_cell is None:
-            allowed = MAINLINE_CLASSES_COARSE
-        elif h3.get_resolution(mid_cell) >= MAINLINE_FINE_MIN_RESOLUTION and mid_cell not in occupied:
-            allowed = MAINLINE_CLASSES_COARSE
+            neighbor_resolution = neighboring_resolution_for_uncovered_point(mid_lon, mid_lat)
+            if neighbor_resolution is None:
+                # No nearby mask context; keep strictest policy.
+                allowed_classes = allowed_classes_for_resolution(0)
+            else:
+                allowed_classes = allowed_classes_for_resolution(neighbor_resolution)
         else:
-            allowed = _mainline_classes_for_resolution(h3.get_resolution(mid_cell))
-        if road_class in allowed:
+            allowed_classes = allowed_classes_for_resolution(h3.get_resolution(mid_cell))
+        if road_class in allowed_classes:
             filtered.append(edge)
     return filtered
+
+
+def _filter_adaptive_portal_edges_post_contract(edges: list[dict[str, object]]) -> list[dict[str, object]]:
+    filtered: list[dict[str, object]] = []
+    for edge in edges:
+        road_class = str(edge.get("road_class", "")).strip().lower()
+        if road_class in ADAPTIVE_PORTAL_ALLOWED_CLASSES:
+            filtered.append(edge)
+    return filtered
+
+
+def _connected_node_ids(edges: list[dict[str, object]]) -> set[int]:
+    connected: set[int] = set()
+    for edge in edges:
+        connected.add(int(edge["u"]))
+        connected.add(int(edge["v"]))
+    return connected
 
 
 def _interpolate_point(start: list[float], end: list[float], fraction: float) -> list[float]:
@@ -479,7 +1147,8 @@ def _build_portal_node_id(lon: float, lat: float, resolution: int) -> int:
 
 
 def _build_portal_node_id_for_mask(lon: float, lat: float, from_cell: str | None, to_cell: str | None) -> int:
-    raw = f"{from_cell}|{to_cell}|{lon:.9f}|{lat:.9f}"
+    normalized_from, normalized_to = sorted((str(from_cell or ""), str(to_cell or "")))
+    raw = f"{normalized_from}|{normalized_to}|{lon:.9f}|{lat:.9f}"
     # Keep IDs within JavaScript safe integer range to avoid client-side collisions.
     return -int(sha256(raw.encode("utf-8")).hexdigest()[:13], 16)
 
@@ -781,13 +1450,19 @@ def contract_edges_within_cells_preserving_portals(
 
     contracted: list[dict[str, object]] = []
     for cell in sorted(cell_groups):
-        contracted.extend(
-            contract_degree2_undirected_edges(
-                sorted(cell_groups[cell], key=lambda item: str(item["edge_id"])),
-                protected_nodes=protected_nodes,
-                merge_by_topology_only=merge_by_topology_only,
+        grouped_edges = sorted(cell_groups[cell], key=lambda item: str(item["edge_id"]))
+        group_nodes = {int(edge["u"]) for edge in grouped_edges} | {int(edge["v"]) for edge in grouped_edges}
+        group_portal_nodes = group_nodes & set(portal_node_ids)
+        if len(group_portal_nodes) >= 2:
+            contracted.extend(_cell_metric_proxy_edges(grouped_edges, terminal_nodes=group_portal_nodes))
+        else:
+            contracted.extend(
+                contract_degree2_undirected_edges(
+                    grouped_edges,
+                    protected_nodes=protected_nodes,
+                    merge_by_topology_only=merge_by_topology_only,
+                )
             )
-        )
     if prune_all_leaves:
         contracted = _prune_all_leaf_edges(contracted)
         contracted = contract_degree2_undirected_edges(
@@ -812,6 +1487,7 @@ def contract_edges_within_adaptive_mask_preserving_portals(
     merge_by_topology_only: bool = True,
     prune_non_anchor_leaves: bool = False,
     prune_all_leaves: bool = False,
+    cell_progress_callback: Callable[[int, int], None] | None = None,
 ) -> list[dict[str, object]]:
     degree: dict[int, int] = defaultdict(int)
     for edge in split_edges:
@@ -822,6 +1498,7 @@ def contract_edges_within_adaptive_mask_preserving_portals(
     mask_cells_by_resolution = _adaptive_mask_cells_by_resolution(adaptive_mask_cells)
 
     cell_groups: dict[str, list[dict[str, object]]] = defaultdict(list)
+    uncovered_edges: list[dict[str, object]] = []
     for edge in split_edges:
         coords = _edge_coordinates(edge)
         if len(coords) < 2:
@@ -830,18 +1507,30 @@ def contract_edges_within_adaptive_mask_preserving_portals(
         mid_lat = (float(coords[0][1]) + float(coords[-1][1])) / 2.0
         cell = _adaptive_mask_cell_for_point([mid_lon, mid_lat], mask_cells_by_resolution)
         if cell is None:
+            uncovered_edges.append(edge)
             continue
         cell_groups[cell].append(edge)
 
     contracted: list[dict[str, object]] = []
-    for cell in sorted(cell_groups):
-        contracted.extend(
-            contract_degree2_undirected_edges(
-                sorted(cell_groups[cell], key=lambda item: str(item["edge_id"])),
-                protected_nodes=protected_nodes,
-                merge_by_topology_only=merge_by_topology_only,
+    total_cells = len(cell_groups)
+    for index, cell in enumerate(sorted(cell_groups), start=1):
+        grouped_edges = sorted(cell_groups[cell], key=lambda item: str(item["edge_id"]))
+        group_nodes = {int(edge["u"]) for edge in grouped_edges} | {int(edge["v"]) for edge in grouped_edges}
+        group_portal_nodes = group_nodes & set(portal_node_ids)
+        if len(group_portal_nodes) >= 2:
+            contracted.extend(_cell_metric_feeder_proxy_edges(grouped_edges, terminal_nodes=group_portal_nodes))
+        else:
+            contracted.extend(
+                contract_degree2_undirected_edges(
+                    grouped_edges,
+                    protected_nodes=protected_nodes,
+                    merge_by_topology_only=merge_by_topology_only,
+                )
             )
-        )
+        if cell_progress_callback is not None:
+            cell_progress_callback(index, total_cells)
+    if uncovered_edges:
+        contracted.extend(sorted(uncovered_edges, key=lambda item: str(item["edge_id"])))
     if prune_all_leaves:
         contracted = _prune_all_leaf_edges(contracted)
         contracted = contract_degree2_undirected_edges(
@@ -970,6 +1659,19 @@ def build_major_road_graph_variants(
         fn()
         notify("phase_end", stage, {"elapsed_seconds": perf_counter() - started})
 
+    def run_substep(stage: str, step: str, fn: Callable[[], Any]) -> Any:
+        started = perf_counter()
+        result = fn()
+        notify(
+            "phase_update",
+            stage,
+            {
+                "step": step,
+                "elapsed_seconds": perf_counter() - started,
+            },
+        )
+        return result
+
     requested = tuple(dict.fromkeys(variants))
     if ("adaptive" in requested or "adaptive_portal" in requested) and adaptive_resolution is None:
         raise ValueError("adaptive_resolution is required when adaptive or adaptive_portal graph variant is requested")
@@ -1039,25 +1741,40 @@ def build_major_road_graph_variants(
 
     if "adaptive_portal" in requested:
         def write_adaptive_portal() -> None:
-            split_edges, split_nodes, portal_nodes = split_edges_with_adaptive_portals(
-                builder.edges,
-                builder.nodes,
-                adaptive_resolution,
+            split_edges, split_nodes, portal_nodes = run_substep(
+                "write_adaptive_portal",
+                "split_edges_with_portals",
+                lambda: split_edges_with_adaptive_portals(
+                    builder.edges,
+                    builder.nodes,
+                    adaptive_resolution,
+                ),
             )
-            adaptive_portal_edges = contract_edges_within_cells_preserving_portals(
-                split_edges=split_edges,
-                portal_node_ids=portal_nodes,
-                resolution=adaptive_resolution,
+            notify(
+                "phase_update",
+                "write_adaptive_portal",
+                {
+                    "step": "split_edges_with_portals_counts",
+                    "split_edges": len(split_edges),
+                    "portal_nodes": len(portal_nodes),
+                },
             )
-            adaptive_portal_edges = _filter_mainline_edges_for_fixed_resolution(
-                adaptive_portal_edges, resolution=adaptive_resolution
-            )
-            adaptive_portal_node_ids = sorted(_adaptive_portal_anchor_node_ids(adaptive_portal_edges, portal_nodes))
+            adaptive_portal_edges = split_edges
+            adaptive_portal_connected_nodes = _connected_node_ids(adaptive_portal_edges)
+            adaptive_portal_node_ids = sorted(adaptive_portal_connected_nodes)
             adaptive_portal_node_items = [
                 (node_id, split_nodes[node_id]) for node_id in adaptive_portal_node_ids if node_id in split_nodes
             ]
             adaptive_portal_edge_features = _to_edge_features(adaptive_portal_edges)
             adaptive_portal_node_features = _to_node_features(adaptive_portal_node_items)
+            for feature in adaptive_portal_edge_features:
+                props = feature.get("properties")
+                if isinstance(props, dict):
+                    props["adaptive_resolution"] = int(adaptive_resolution)
+            for feature in adaptive_portal_node_features:
+                props = feature.get("properties")
+                if isinstance(props, dict):
+                    props["adaptive_resolution"] = int(adaptive_resolution)
             adaptive_portal_edges_name, adaptive_portal_nodes_name = _variant_filenames("adaptive_portal")
             adaptive_portal_edges_path = output_dir / adaptive_portal_edges_name
             adaptive_portal_nodes_path = output_dir / adaptive_portal_nodes_name
@@ -1069,22 +1786,56 @@ def build_major_road_graph_variants(
 
     if "adaptive_portal_run" in requested:
         def write_adaptive_portal_run() -> None:
-            split_edges, split_nodes, portal_nodes = split_edges_with_adaptive_mask_portals(
-                builder.edges,
-                builder.nodes,
-                adaptive_mask_cells or set(),
+            split_edges, split_nodes, portal_nodes = run_substep(
+                "write_adaptive_portal_run",
+                "split_edges_with_adaptive_mask_portals",
+                lambda: split_edges_with_adaptive_mask_portals(
+                    builder.edges,
+                    builder.nodes,
+                    adaptive_mask_cells or set(),
+                ),
             )
-            adaptive_portal_run_edges = contract_edges_within_adaptive_mask_preserving_portals(
-                split_edges=split_edges,
-                portal_node_ids=portal_nodes,
-                adaptive_mask_cells=adaptive_mask_cells or set(),
+            notify(
+                "phase_update",
+                "write_adaptive_portal_run",
+                {
+                    "step": "split_edges_with_adaptive_mask_portals_counts",
+                    "split_edges": len(split_edges),
+                    "portal_nodes": len(portal_nodes),
+                },
             )
-            adaptive_portal_run_edges = _filter_mainline_edges_for_adaptive_mask(
-                adaptive_portal_run_edges,
-                adaptive_mask_cells=adaptive_mask_cells or set(),
-                occupied_cells=adaptive_occupied_cells or set(),
+            adaptive_portal_run_edges = run_substep(
+                "write_adaptive_portal_run",
+                "contract_within_adaptive_mask_preserving_portals",
+                lambda: contract_edges_within_adaptive_mask_preserving_portals(
+                    split_edges=split_edges,
+                    portal_node_ids=portal_nodes,
+                    adaptive_mask_cells=adaptive_mask_cells or set(),
+                    cell_progress_callback=lambda processed, total: notify(
+                        "phase_update",
+                        "write_adaptive_portal_run",
+                        {
+                            "step": "contract_cells_progress",
+                            "processed_cells": int(processed),
+                            "total_cells": int(total),
+                        },
+                    ),
+                ),
             )
-            adaptive_portal_run_node_ids = sorted(_adaptive_portal_anchor_node_ids(adaptive_portal_run_edges, portal_nodes))
+            adaptive_portal_run_edges = run_substep(
+                "write_adaptive_portal_run",
+                "post_contract_mainline_filter",
+                lambda: _filter_mainline_edges_for_adaptive_mask(
+                    adaptive_portal_run_edges,
+                    adaptive_mask_cells=adaptive_mask_cells or set(),
+                    occupied_cells=adaptive_occupied_cells or set(),
+                ),
+            )
+            adaptive_portal_run_connected_nodes = _connected_node_ids(adaptive_portal_run_edges)
+            adaptive_portal_run_node_ids = sorted(
+                _adaptive_portal_anchor_node_ids(adaptive_portal_run_edges, portal_nodes)
+                & adaptive_portal_run_connected_nodes
+            )
             adaptive_portal_run_node_items = [
                 (node_id, split_nodes[node_id]) for node_id in adaptive_portal_run_node_ids if node_id in split_nodes
             ]

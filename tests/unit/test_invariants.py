@@ -6,7 +6,7 @@ from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLay
 from inframap.validation.invariants import run_invariants
 
 
-def _adaptive_v3_params() -> dict[str, int]:
+def _adaptive_v3_params() -> dict[str, int | bool]:
     return {
         "base_resolution": 4,
         "min_output_resolution": 5,
@@ -17,6 +17,7 @@ def _adaptive_v3_params() -> dict[str, int]:
         "empty_interior_max_resolution": 7,
         "empty_refine_boundary_band_k": 1,
         "empty_refine_near_occupied_k": 1,
+        "compact_empty_near_occupied": True,
         "max_neighbor_resolution_delta": 1,
     }
 

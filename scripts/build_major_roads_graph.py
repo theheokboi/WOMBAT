@@ -64,6 +64,27 @@ class ProgressReporter:
             index = self._stages.index(stage) + 1 if stage in self._stages else 0
             print(f"[{index}/{len(self._stages)}] {label}...")
             return
+        if event == "phase_update":
+            step = str(payload.get("step", "") or "").strip()
+            if not step:
+                return
+            if "processed_cells" in payload and "total_cells" in payload:
+                processed = int(payload.get("processed_cells", 0) or 0)
+                total = max(1, int(payload.get("total_cells", 0) or 0))
+                fraction = min(max(processed / total, 0.0), 1.0)
+                print(
+                    f"    - {step}: {_progress_bar(fraction, width=18)} "
+                    f"{processed}/{total} ({fraction * 100:4.1f}%)"
+                )
+                return
+            elapsed = float(payload.get("elapsed_seconds", 0.0) or 0.0)
+            extras = []
+            for key in ("input_edges", "retained_edges", "split_edges", "portal_nodes"):
+                if key in payload:
+                    extras.append(f"{key}={payload[key]}")
+            extras_label = f" | {' '.join(extras)}" if extras else ""
+            print(f"    - {step}: {_format_seconds(elapsed)}{extras_label}")
+            return
         if event == "phase_end":
             elapsed_stage = float(payload.get("elapsed_seconds", 0.0) or 0.0)
             self._elapsed += max(0.0, elapsed_stage)
@@ -109,7 +130,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--adaptive-resolution",
         type=int,
-        default=6,
+        default=3,
         help="Adaptive H3 resolution used when graph_variant includes adaptive",
     )
     parser.add_argument("--run-id", default=None, help="Run ID used for graph_variant=adaptive_portal_run")

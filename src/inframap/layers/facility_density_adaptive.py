@@ -32,6 +32,7 @@ class FacilityDensityAdaptiveLayer:
                 "empty_interior_max_resolution",
                 "empty_refine_boundary_band_k",
                 "empty_refine_near_occupied_k",
+                "compact_empty_near_occupied",
                 "max_neighbor_resolution_delta",
             ],
         }
@@ -51,6 +52,7 @@ class FacilityDensityAdaptiveLayer:
         empty_interior_max_resolution = int(params["empty_interior_max_resolution"])
         empty_refine_boundary_band_k = int(params["empty_refine_boundary_band_k"])
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
+        compact_empty_near_occupied = bool(params.get("compact_empty_near_occupied", False))
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
 
         if not (0 <= min_output_resolution <= 9):
@@ -115,6 +117,7 @@ class FacilityDensityAdaptiveLayer:
                     "empty_interior_max_resolution": empty_interior_max_resolution,
                     "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
                     "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
+                    "compact_empty_near_occupied": compact_empty_near_occupied,
                     "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
                 },
                 counters={
@@ -360,6 +363,19 @@ class FacilityDensityAdaptiveLayer:
             if not refined:
                 break
 
+        leaves = self._compact_empty_sibling_leaves(
+            leaves=leaves,
+            min_output_resolution=min_output_resolution,
+            base_resolution=base_resolution,
+            empty_interior_max_resolution=empty_interior_max_resolution,
+            facility_floor_resolution=facility_floor_resolution,
+            max_neighbor_resolution_delta=max_neighbor_resolution_delta,
+            intersects_domain=intersects_domain,
+            is_boundary_band=is_boundary_band,
+            is_near_occupied=is_near_occupied,
+            compact_empty_near_occupied=compact_empty_near_occupied,
+        )
+
         adjacency_counters = self._adjacency_counters(
             leaves=leaves,
             max_neighbor_resolution_delta=max_neighbor_resolution_delta,
@@ -404,6 +420,7 @@ class FacilityDensityAdaptiveLayer:
                 "empty_interior_max_resolution": empty_interior_max_resolution,
                 "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
                 "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
+                "compact_empty_near_occupied": compact_empty_near_occupied,
                 "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
             },
             counters=adjacency_counters,
@@ -412,6 +429,121 @@ class FacilityDensityAdaptiveLayer:
         metadata["country_intersection_filter_applied"] = bool(country_intersection_filter_applied)
         metadata["country_intersection_cells_dropped"] = country_intersection_cells_dropped
         return metadata, output
+
+    def _compact_empty_sibling_leaves(
+        self,
+        leaves: dict[str, int],
+        *,
+        min_output_resolution: int,
+        base_resolution: int,
+        empty_interior_max_resolution: int,
+        facility_floor_resolution: int,
+        max_neighbor_resolution_delta: int,
+        intersects_domain: Any,
+        is_boundary_band: Any,
+        is_near_occupied: Any,
+        compact_empty_near_occupied: bool,
+    ) -> dict[str, int]:
+        leaves = dict(leaves)
+        parent_cache: dict[tuple[str, int], str] = {}
+
+        def parent_cell(cell: str, resolution: int) -> str:
+            key = (cell, resolution)
+            cached = parent_cache.get(key)
+            if cached is not None:
+                return cached
+            if h3.get_resolution(cell) == resolution:
+                parent_cache[key] = cell
+            else:
+                parent_cache[key] = h3.cell_to_parent(cell, resolution)
+            return parent_cache[key]
+
+        def can_compact_parent(cell: str, resolution: int, facility_count: int) -> bool:
+            if facility_count > 0:
+                return False
+            if resolution < min_output_resolution:
+                return False
+            if resolution < base_resolution:
+                return False
+            if is_boundary_band(cell, resolution):
+                return False
+            if is_near_occupied(cell, resolution):
+                if not compact_empty_near_occupied:
+                    return False
+                return resolution <= facility_floor_resolution - 1
+            return resolution <= min(empty_interior_max_resolution, facility_floor_resolution - 1)
+
+        def affected_cells_for_compaction(candidate_parent: str) -> set[str]:
+            parent_resolution = h3.get_resolution(candidate_parent)
+            parent_ring = {str(cell) for cell in h3.grid_disk(candidate_parent, 1)}
+            coarse_ring_by_resolution: dict[int, set[str]] = {}
+            affected: set[str] = set()
+            for leaf_cell in leaves:
+                resolution = h3.get_resolution(leaf_cell)
+                if resolution >= parent_resolution:
+                    if parent_cell(leaf_cell, parent_resolution) in parent_ring:
+                        affected.add(leaf_cell)
+                    continue
+                ring = coarse_ring_by_resolution.get(resolution)
+                if ring is None:
+                    ring = {str(cell) for cell in h3.grid_disk(parent_cell(candidate_parent, resolution), 1)}
+                    coarse_ring_by_resolution[resolution] = ring
+                if leaf_cell in ring:
+                    affected.add(leaf_cell)
+            return affected
+
+        # Deterministic post-pass compaction: merge fully covered empty sibling sets back to
+        # their parent when doing so preserves the existing refinement and smoothing rules.
+        while True:
+            compacted = False
+            leaves_by_resolution: dict[int, set[str]] = {resolution: set() for resolution in range(14)}
+            for leaf_cell in leaves:
+                leaves_by_resolution[h3.get_resolution(leaf_cell)].add(leaf_cell)
+
+            for resolution in range(facility_floor_resolution - 1, min_output_resolution, -1):
+                candidate_parents: set[str] = set()
+                for leaf_cell in sorted(leaves_by_resolution[resolution]):
+                    candidate_parents.add(parent_cell(leaf_cell, resolution - 1))
+
+                for candidate_parent in sorted(candidate_parents):
+                    if not intersects_domain(candidate_parent, resolution - 1):
+                        continue
+                    children = [
+                        str(child)
+                        for child in sorted(h3.cell_to_children(candidate_parent, resolution))
+                        if intersects_domain(str(child), resolution)
+                    ]
+                    if len(children) < 2:
+                        continue
+                    if any(child not in leaves for child in children):
+                        continue
+                    facility_count = sum(int(leaves[child]) for child in children)
+                    if not can_compact_parent(candidate_parent, resolution - 1, facility_count):
+                        continue
+
+                    original_children = {child: leaves[child] for child in children}
+                    for child in children:
+                        del leaves[child]
+                    leaves[candidate_parent] = facility_count
+
+                    counters = self._adjacency_counters(
+                        leaves=leaves,
+                        max_neighbor_resolution_delta=max_neighbor_resolution_delta,
+                        candidate_cells=affected_cells_for_compaction(candidate_parent),
+                    )
+                    if counters["violating_neighbor_pairs"] > 0:
+                        del leaves[candidate_parent]
+                        leaves.update(original_children)
+                        continue
+
+                    compacted = True
+                    break
+                if compacted:
+                    break
+            if not compacted:
+                break
+
+        return leaves
 
     def _filter_to_country_intersection(
         self,
@@ -517,7 +649,12 @@ class FacilityDensityAdaptiveLayer:
             return 0.0
         return float(cell_poly.intersection(geometry).area / cell_poly.area)
 
-    def _adjacency_counters(self, leaves: dict[str, int], max_neighbor_resolution_delta: int) -> dict[str, int]:
+    def _adjacency_counters(
+        self,
+        leaves: dict[str, int],
+        max_neighbor_resolution_delta: int,
+        candidate_cells: set[str] | None = None,
+    ) -> dict[str, int]:
         if not leaves:
             return {
                 "adjacency_checks": 0,
@@ -553,7 +690,10 @@ class FacilityDensityAdaptiveLayer:
         adjacency_checks = 0
         violating_neighbor_pairs = 0
         max_neighbor_delta_observed = 0
-        for cell in sorted(leaves, key=lambda value: (resolution_by_leaf[value], value)):
+        ordered_cells = sorted(leaves, key=lambda value: (resolution_by_leaf[value], value))
+        if candidate_cells is not None:
+            ordered_cells = [cell for cell in ordered_cells if cell in candidate_cells]
+        for cell in ordered_cells:
             resolution = resolution_by_leaf[cell]
             for neighbor in sorted(str(value) for value in h3.grid_disk(cell, 1)):
                 if neighbor == cell:
