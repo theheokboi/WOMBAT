@@ -18,6 +18,8 @@ inputs:
     source_name: PeeringDB
   - path: data/landing_points/std_landing_points.tsv
     source_name: LandingPoints
+  - path: data/datacenters/datacenters_geocoded.tsv
+    source_name: DataCenterMap
 paths:
   runs_root: data/runs
   staging_root: data/staging

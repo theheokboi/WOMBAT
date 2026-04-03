@@ -104,3 +104,26 @@ def test_ingest_normalizes_landing_points_schema_uses_latitude_longitude(tmp_pat
     assert facilities.iloc[0]["lon"] == 103.987015
     assert facilities.iloc[0]["country_label"] == "Singapore"
     assert facilities.iloc[0]["asof_date"] == "2022-09-14"
+
+
+def test_ingest_normalizes_datacenters_geocoded_schema(tmp_path: Path) -> None:
+    path = tmp_path / "datacenters_geocoded.tsv"
+    path.write_text(
+        "id\tsource_country_key\tsource_region_key\tdatacenter_name\taddress\tsource_path\tlatitude\tlongitude\textracted_at\n"
+        "11\tindia\tbangalore\tMicronova Data Center\t#17, Bull Temple Road\thttps://www.datacentermap.com/india/bangalore/micronova-infotex/\t12.9474019\t77.5679723\t2026-03-09 11:32:36.204592 +00:00\n",
+        encoding="utf-8",
+    )
+
+    facilities, organizations, invalid_count = ingest_and_normalize(
+        [(path, "DataCenterMap")], canonical_h3_resolutions=[5]
+    )
+
+    assert invalid_count == 0
+    assert len(facilities) == 1
+    assert len(organizations) == 1
+    assert facilities.iloc[0]["source_name"] == "DataCenterMap"
+    assert facilities.iloc[0]["source_facility_name"] == "Micronova Data Center"
+    assert facilities.iloc[0]["org_name"] == "datacentermap"
+    assert facilities.iloc[0]["city_label"] == "bangalore"
+    assert facilities.iloc[0]["country_label"] == "india"
+    assert facilities.iloc[0]["asof_date"] == "2026-03-09"

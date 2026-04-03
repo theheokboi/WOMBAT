@@ -60,6 +60,7 @@ Published run directories are immutable after pointer update.
 
 - Geometry is authoritative. Do not infer spatial membership from free text.
 - `country_mask` is the coverage authority for country-scoped runs.
+- Canonical facility ingest accepts explicit geocoded point sources, including `data/facilities/peeringdb_facility.tsv`, `data/landing_points/std_landing_points.tsv`, and `data/datacenters/datacenters_geocoded.tsv`; each source must normalize into the same canonical facility shape without free-text spatial inference.
 - `facility_density_adaptive` is a published run-scoped layer and must derive its effective base resolution from fixed-resolution `country_mask` metadata when present.
 - `facility_density_r7_regions` is an additive published run-scoped layer derived from `facility_density_adaptive`; it emits only `resolution == 7` cells from the published adaptive output, assigns deterministic connected-component `cluster_id` values over H3 adjacency, and includes a representative region coordinate chosen as the member-cell center nearest to the cluster centroid.
 - Published adaptive layer output must preserve metadata-backed resolution bounds and neighbor smoothing guarantees.

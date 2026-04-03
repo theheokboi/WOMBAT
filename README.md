@@ -23,6 +23,9 @@ make ui-dev
 make verify-dev
 ```
 
+The backend serves the UI at `http://localhost:8000/ui/` and the root path `/`
+redirects there. A quick backend check is `http://localhost:8000/v1/health`.
+
 Compatibility aliases are preserved:
 
 - `make run` -> `make run-dev`
@@ -51,6 +54,7 @@ When multiple runs exist, UI run selector (`Run / r-level`) can switch between p
 For each selected run, the UI now renders all countries included in that run scope (no per-country selector).
 
 Canonical ingest now supports a landing-points TSV schema (`city_name`, `state_province`, `country`, `latitude`, `longitude`, `asof_date`, ...). Landing points are normalized into canonical facilities using `latitude/longitude` (not `standard_latitude/standard_longitude`), so they participate in adaptive H3 partitioning the same way as facilities.
+Canonical ingest also supports the geocoded datacenter TSV at `data/datacenters/datacenters_geocoded.tsv` (`datacenter_name`, `source_country_key`, `source_region_key`, `latitude`, `longitude`, `extracted_at`, ...). Those rows are normalized as a `DataCenterMap` source with the datacenter name as the facility label.
 In the UI, landing points are rendered with a distinct point color from regular facility points.
 
 Default country-mask policy in `configs/layers.yaml` is:
@@ -100,6 +104,8 @@ Screenshot path convention:
 
 Read endpoints remain under `/v1`.
 Run-oriented responses now include pointer/lane context for dev visibility.
+If you open the local server directly, use `http://localhost:8000/ui/` for the
+frontend, not the API root.
 OSM transport overlay data is available from the run-agnostic endpoint `/v1/osm/transport` (no `run_id` coupling).
 `/v1/osm/transport` supports `source=shapefile` (default) and `source=graph`; graph mode supports `graph_variant=raw|collapsed|adaptive|adaptive_portal|adaptive_portal_run` (default `raw`).
 `graph_variant=raw` reads `major_roads_edges.geojson` (and optional `major_roads_nodes.geojson` when `include_nodes=true`).

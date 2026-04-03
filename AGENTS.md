@@ -117,6 +117,7 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - `/v1/populated-places` serves a static, run-agnostic Natural Earth populated-places point overlay from `data/populated_places/ne_10m_populated_places.shp` and supports optional `country` and `limit` query parameters.
 - `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features, prefers compact `artifacts/derived/*-r7-regions-*-routes-ui.geojson` visualization files when `include_self=false`, and supports optional `country` and `include_self` query parameters.
 - The frontend may also run in static demo mode from `frontend/demo-data/`, which must contain browser-ready JSON/GeoJSON snapshots exported from a published run.
+- Canonical facility ingest may include `data/datacenters/datacenters_geocoded.tsv` as an explicit geocoded point source; register it in `configs/system.yaml` and normalize it through a schema adapter instead of inferring membership from text.
 
 ## Visualization Rules
 

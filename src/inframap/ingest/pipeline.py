@@ -68,6 +68,19 @@ def _looks_like_landing_points_schema(columns: Iterable[str]) -> bool:
     return required.issubset(cols)
 
 
+def _looks_like_datacenters_geocoded_schema(columns: Iterable[str]) -> bool:
+    cols = set(columns)
+    required = {
+        "datacenter_name",
+        "source_country_key",
+        "source_region_key",
+        "latitude",
+        "longitude",
+        "extracted_at",
+    }
+    return required.issubset(cols)
+
+
 def _normalize_peeringdb_facility_row(
     row: dict[str, str | None], source_name: str
 ) -> dict[str, str | None]:
@@ -112,6 +125,23 @@ def _normalize_landing_point_row(
     return normalized
 
 
+def _normalize_datacenters_geocoded_row(
+    row: dict[str, str | None], source_name: str
+) -> dict[str, str | None]:
+    normalized: dict[str, str | None] = {
+        "ORGANIZATION": "datacentermap",
+        "NODE_NAME": _clean(row.get("datacenter_name")),
+        "LATITUDE": _clean(row.get("latitude")),
+        "LONGITUDE": _clean(row.get("longitude")),
+        "CITY": _clean(row.get("source_region_key")),
+        "STATE": None,
+        "COUNTRY": _clean(row.get("source_country_key")),
+        "SOURCE": _clean(row.get("source")) or source_name,
+        "ASOF_DATE": _extract_asof_date(row.get("extracted_at")),
+    }
+    return normalized
+
+
 def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
     delimiter = _detect_delimiter(path)
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -120,12 +150,15 @@ def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
             raise ValueError(f"Input file has no header: {path}")
         use_peeringdb_adapter = False
         use_landing_points_adapter = False
+        use_datacenters_geocoded_adapter = False
         if REQUIRED_INPUT_COLUMNS.issubset(set(reader.fieldnames)):
             _validate_required_columns(reader.fieldnames)
         elif _looks_like_peeringdb_facility_schema(reader.fieldnames):
             use_peeringdb_adapter = True
         elif _looks_like_landing_points_schema(reader.fieldnames):
             use_landing_points_adapter = True
+        elif _looks_like_datacenters_geocoded_schema(reader.fieldnames):
+            use_datacenters_geocoded_adapter = True
         else:
             _validate_required_columns(reader.fieldnames)
         rows: list[dict[str, str | None]] = []
@@ -136,6 +169,9 @@ def _parse_file(path: Path, source_name: str) -> list[dict[str, str | None]]:
                 continue
             if use_landing_points_adapter:
                 rows.append(_normalize_landing_point_row(row, source_name))
+                continue
+            if use_datacenters_geocoded_adapter:
+                rows.append(_normalize_datacenters_geocoded_row(row, source_name))
                 continue
             if not _clean(row.get("SOURCE")):
                 row["SOURCE"] = source_name
