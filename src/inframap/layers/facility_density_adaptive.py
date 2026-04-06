@@ -363,12 +363,13 @@ class FacilityDensityAdaptiveLayer:
             if not refined:
                 break
 
-        leaves = self._compact_empty_sibling_leaves(
+        leaves = self._compact_sparse_sibling_leaves(
             leaves=leaves,
             min_output_resolution=min_output_resolution,
             base_resolution=base_resolution,
             empty_interior_max_resolution=empty_interior_max_resolution,
             facility_floor_resolution=facility_floor_resolution,
+            facility_max_resolution=facility_max_resolution,
             max_neighbor_resolution_delta=max_neighbor_resolution_delta,
             intersects_domain=intersects_domain,
             is_boundary_band=is_boundary_band,
@@ -430,7 +431,7 @@ class FacilityDensityAdaptiveLayer:
         metadata["country_intersection_cells_dropped"] = country_intersection_cells_dropped
         return metadata, output
 
-    def _compact_empty_sibling_leaves(
+    def _compact_sparse_sibling_leaves(
         self,
         leaves: dict[str, int],
         *,
@@ -438,6 +439,7 @@ class FacilityDensityAdaptiveLayer:
         base_resolution: int,
         empty_interior_max_resolution: int,
         facility_floor_resolution: int,
+        facility_max_resolution: int,
         max_neighbor_resolution_delta: int,
         intersects_domain: Any,
         is_boundary_band: Any,
@@ -459,7 +461,7 @@ class FacilityDensityAdaptiveLayer:
             return parent_cache[key]
 
         def can_compact_parent(cell: str, resolution: int, facility_count: int) -> bool:
-            if facility_count > 0:
+            if facility_count > 1:
                 return False
             if resolution < min_output_resolution:
                 return False
@@ -467,6 +469,8 @@ class FacilityDensityAdaptiveLayer:
                 return False
             if is_boundary_band(cell, resolution):
                 return False
+            if facility_count == 1:
+                return resolution <= facility_max_resolution - 1
             if is_near_occupied(cell, resolution):
                 if not compact_empty_near_occupied:
                     return False
@@ -492,7 +496,7 @@ class FacilityDensityAdaptiveLayer:
                     affected.add(leaf_cell)
             return affected
 
-        # Deterministic post-pass compaction: merge fully covered empty sibling sets back to
+        # Deterministic post-pass compaction: merge fully covered sparse sibling sets back to
         # their parent when doing so preserves the existing refinement and smoothing rules.
         while True:
             compacted = False
@@ -500,7 +504,7 @@ class FacilityDensityAdaptiveLayer:
             for leaf_cell in leaves:
                 leaves_by_resolution[h3.get_resolution(leaf_cell)].add(leaf_cell)
 
-            for resolution in range(facility_floor_resolution - 1, min_output_resolution, -1):
+            for resolution in range(facility_max_resolution, min_output_resolution, -1):
                 candidate_parents: set[str] = set()
                 for leaf_cell in sorted(leaves_by_resolution[resolution]):
                     candidate_parents.add(parent_cell(leaf_cell, resolution - 1))
@@ -753,6 +757,13 @@ class FacilityDensityAdaptiveLayer:
                     "target_facilities_per_leaf": params["target_facilities_per_leaf"],
                     "max_resolution": params["facility_max_resolution"],
                 },
+                "post_compaction": {
+                    "rule": "merge_full_sibling_groups_when_safe",
+                    "occupied_parent_max_facility_count": 1,
+                    "empty_near_occupied_enabled": params["compact_empty_near_occupied"],
+                    "respects_boundary_band": True,
+                    "respects_near_occupied_for_singletons": False,
+                },
                 "neighbor_smoothing": {
                     "rule": "refine_coarser_side_until_delta_or_cap",
                     "max_neighbor_resolution_delta": params["max_neighbor_resolution_delta"],
@@ -790,13 +801,6 @@ class FacilityDensityAdaptiveLayer:
 
         if (cells["layer_value"] < 0).any():
             raise ValueError("Adaptive facility layer has negative facility counts")
-
-        facility_floor_resolution = int(metadata_params.get("facility_floor_resolution", 9))
-        facility_bearing = cells[cells["layer_value"] > 0]
-        if not facility_bearing.empty and (facility_bearing["resolution"] < facility_floor_resolution).any():
-            raise ValueError(
-                f"Adaptive facility layer has facility-bearing cells coarser than r{facility_floor_resolution}"
-            )
 
         cell_set = {str(cell) for cell in cells["h3"].astype(str).tolist()}
         for cell in sorted(cell_set, key=lambda value: h3.get_resolution(value)):

@@ -80,7 +80,9 @@ Primary workflow commands:
 - `make serve-dev`
 - `make ui-dev`
 - `make verify-dev`
+- `make export-facilities-sqlite`
 - `PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id <run-id>`
+- `PYTHONPATH=src python scripts/export_facilities_sqlite.py --output <sqlite-path>`
 
 Compatibility aliases:
 
@@ -118,6 +120,7 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features, prefers compact `artifacts/derived/*-r7-regions-*-routes-ui.geojson` visualization files when `include_self=false`, and supports optional `country` and `include_self` query parameters.
 - The frontend may also run in static demo mode from `frontend/demo-data/`, which must contain browser-ready JSON/GeoJSON snapshots exported from a published run.
 - Canonical facility ingest may include `data/datacenters/datacenters_geocoded.tsv` as an explicit geocoded point source; register it in `configs/system.yaml` and normalize it through a schema adapter instead of inferring membership from text.
+- External SQLite exports should reuse canonical facility normalization and emit one flat `facilities` table with source provenance preserved in-row.
 
 ## Visualization Rules
 
@@ -139,6 +142,7 @@ Non-blocking reporting remains required for perf/monitoring checks.
 - Keep deterministic one-cell ownership ordering across countries.
 - `facility_density_adaptive` must derive effective base resolution from `country_mask` fixed-resolution metadata when present.
 - Empty near-occupied sibling groups may compact above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied` is enabled; boundary-band empties must still remain non-compactable.
+- Fully covered singleton occupied sibling groups may compact back to their parent when the merged parent remains outside the boundary band and still satisfies neighbor-delta validation, even if the parent is near another occupied region.
 
 ## Visual Verification Protocol
 

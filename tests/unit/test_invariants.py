@@ -117,6 +117,37 @@ def test_invariants_pass_for_adaptive_mixed_resolution_partition_without_overlap
     run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
 
 
+def test_invariants_pass_for_coarse_facility_bearing_adaptive_leaf() -> None:
+    facilities = pd.DataFrame(
+        [
+            {"facility_id": "f1", "lat": 41.0, "lon": -87.0, "h3_r5": "852664c7fffffff"},
+        ]
+    )
+    layer_artifacts = {
+        "facility_density_adaptive": {
+            "metadata": {
+                "layer_name": "facility_density_adaptive",
+                "layer_version": "v3",
+                "policy_name": "facility_hierarchical_partition_v3",
+                "coverage_domain": "country_mask_r4",
+                "params": {"max_neighbor_resolution_delta": 1},
+            },
+            "cells": pd.DataFrame(
+                [
+                    {
+                        "h3": "852664c3fffffff",
+                        "resolution": 5,
+                        "layer_value": 1,
+                        "layer_id": "facility_density_adaptive:v3",
+                    },
+                ]
+            ),
+        }
+    }
+
+    run_invariants(facilities, layer_artifacts, required_h3_resolutions=[5])
+
+
 def test_invariants_fail_on_adaptive_ancestor_descendant_overlap() -> None:
     parent = h3.latlng_to_cell(41.0, -87.0, 9)
     child = sorted(h3.cell_to_children(parent, 10))[0]

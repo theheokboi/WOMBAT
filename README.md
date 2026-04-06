@@ -21,6 +21,7 @@ COUNTRIES=TW make run-dev
 make serve-dev
 make ui-dev
 make verify-dev
+make export-facilities-sqlite
 ```
 
 The backend serves the UI at `http://localhost:8000/ui/` and the root path `/`
@@ -67,6 +68,7 @@ Default country-mask policy in `configs/layers.yaml` is:
 Adaptive facility partitioning derives its effective base resolution from country-mask metadata when fixed mode is active, so `coverage_domain` follows the active mask resolution (for example, `country_mask_r2`).
 Adaptive output bounds are config-driven: set `facility_density_adaptive.params.min_output_resolution` (and `facility_max_resolution`) in `configs/layers.yaml`; UI filtering reads these bounds from published adaptive metadata.
 Empty near-occupied sibling groups can now compact back to their parent above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied` is enabled; boundary-band protection and neighbor-delta validation still apply.
+Fully covered singleton occupied sibling groups may also compact back to their parent when the merged parent is outside the boundary band and still passes neighbor-delta validation, even if that parent is near another occupied region.
 `facility_density_r7_regions` is an additive published layer derived from `facility_density_adaptive`; it keeps only `r7` cells from the adaptive output, assigns deterministic connected-component `cluster_id` values, and publishes a representative region point chosen as the member-cell center nearest to the cluster centroid so downstream tools can label or summarize each network region without using administrative boundaries.
 
 `make run-dev` now prints live stage progress while the pipeline runs.  
@@ -79,6 +81,16 @@ PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id "$(cat data/
 ```
 
 This writes browser-ready JSON/GeoJSON files under `frontend/demo-data/`. The frontend now prefers live `/v1/*` APIs when available and automatically falls back to `demo-data/` when hosted as plain static files without the backend.
+
+SQLite facility export for external consumers:
+
+```bash
+make export-facilities-sqlite
+# or
+PYTHONPATH=src python scripts/export_facilities_sqlite.py --output artifacts/exports/facilities.sqlite
+```
+
+This writes a single `facilities` table containing the normalized rows from the configured `PeeringDB`, `LandingPoints`, and `DataCenterMap` inputs.
 
 Screenshot path convention:
 

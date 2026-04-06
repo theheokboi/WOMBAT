@@ -260,22 +260,29 @@ def test_adaptive_v3_uses_fixed_country_mask_resolution_as_base() -> None:
     assert int(metadata["params"]["configured_base_resolution"]) == 4
 
 
-def test_adaptive_v3_enforces_occupied_floor_r9() -> None:
-    base = h3.latlng_to_cell(41.8781, -87.6298, 4)
-    child = sorted(h3.cell_to_children(base, 9))[0]
-    facilities = _facilities_from_cells([child])
-    params = _v3_params()
-
+def test_adaptive_v3_validate_allows_facility_bearing_leaf_below_floor_when_other_rules_hold() -> None:
     layer = FacilityDensityAdaptiveLayer(version="v3")
-    _, cells = layer.compute(
-        canonical_store={"facilities": facilities},
-        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"])),
-        params=params,
-    )
+    artifacts = {
+        "metadata": {
+            "params": {
+                "min_output_resolution": 5,
+                "facility_floor_resolution": 9,
+            }
+        },
+        "cells": pd.DataFrame(
+            [
+                {
+                    "h3": "852664c3fffffff",
+                    "resolution": 5,
+                    "layer_value": 1,
+                    "layer_id": "facility_density_adaptive:v3",
+                    "asof_date": "2026-02-28",
+                }
+            ]
+        ),
+    }
 
-    occupied = cells[cells["layer_value"] > 0]
-    assert not occupied.empty
-    assert int(occupied["resolution"].min()) >= int(params["facility_floor_resolution"])
+    layer.validate(artifacts)
 
 
 def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r9_cap() -> None:
@@ -304,7 +311,7 @@ def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r9_cap() -> None:
     assert violating.empty
 
 
-def test_adaptive_v3_boundary_near_occupied_cells_refine_to_floor() -> None:
+def test_adaptive_v3_singleton_occupied_region_may_compact_below_floor() -> None:
     base = h3.latlng_to_cell(41.8781, -87.6298, 4)
     occupied_r9 = sorted(h3.cell_to_children(base, 9))[0]
     facilities = _facilities_from_cells([occupied_r9])
@@ -317,18 +324,9 @@ def test_adaptive_v3_boundary_near_occupied_cells_refine_to_floor() -> None:
         params=params,
     )
 
-    floor_resolution = int(params["facility_floor_resolution"])
-    occupied_floor = cells[(cells["resolution"] == floor_resolution) & (cells["layer_value"] > 0)]
-    assert len(occupied_floor) == 1
-    occupied_cell_r9 = str(occupied_floor.iloc[0]["h3"])
-    occupied_parent_r8 = h3.cell_to_parent(occupied_cell_r9, floor_resolution - 1)
-
-    near_empty_r8 = cells[
-        (cells["resolution"] == floor_resolution - 1)
-        & (cells["layer_value"] == 0)
-        & cells["h3"].astype(str).isin({str(n) for n in h3.grid_disk(occupied_parent_r8, 1)})
-    ]
-    assert not near_empty_r8.empty
+    occupied = cells[cells["layer_value"] > 0]
+    assert len(occupied) == 1
+    assert int(occupied.iloc[0]["resolution"]) < int(params["facility_floor_resolution"])
 
 
 def test_adaptive_v3_final_partition_has_no_ancestor_descendant_overlap() -> None:
@@ -409,12 +407,13 @@ def test_adaptive_v3_compacts_full_empty_sibling_group_to_parent() -> None:
     parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
     children = {str(child): 0 for child in sorted(h3.cell_to_children(parent, 6))}
 
-    compacted = layer._compact_empty_sibling_leaves(
+    compacted = layer._compact_sparse_sibling_leaves(
         leaves=children,
         min_output_resolution=5,
         base_resolution=4,
         empty_interior_max_resolution=7,
         facility_floor_resolution=9,
+        facility_max_resolution=9,
         max_neighbor_resolution_delta=1,
         intersects_domain=lambda cell, resolution: True,
         is_boundary_band=lambda cell, resolution: False,
@@ -425,17 +424,67 @@ def test_adaptive_v3_compacts_full_empty_sibling_group_to_parent() -> None:
     assert compacted == {parent: 0}
 
 
+def test_adaptive_v3_compacts_singleton_occupied_sibling_group_to_parent() -> None:
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
+    children_list = [str(child) for child in sorted(h3.cell_to_children(parent, 6))]
+    children = {child: 0 for child in children_list}
+    children[children_list[0]] = 1
+
+    compacted = layer._compact_sparse_sibling_leaves(
+        leaves=children,
+        min_output_resolution=5,
+        base_resolution=4,
+        empty_interior_max_resolution=7,
+        facility_floor_resolution=9,
+        facility_max_resolution=9,
+        max_neighbor_resolution_delta=1,
+        intersects_domain=lambda cell, resolution: True,
+        is_boundary_band=lambda cell, resolution: False,
+        is_near_occupied=lambda cell, resolution: False,
+        compact_empty_near_occupied=True,
+    )
+
+    assert compacted == {parent: 1}
+
+
+def test_adaptive_v3_does_not_compact_two_facility_sibling_group() -> None:
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
+    children_list = [str(child) for child in sorted(h3.cell_to_children(parent, 6))]
+    children = {child: 0 for child in children_list}
+    children[children_list[0]] = 1
+    children[children_list[1]] = 1
+
+    compacted = layer._compact_sparse_sibling_leaves(
+        leaves=children,
+        min_output_resolution=5,
+        base_resolution=4,
+        empty_interior_max_resolution=7,
+        facility_floor_resolution=9,
+        facility_max_resolution=9,
+        max_neighbor_resolution_delta=1,
+        intersects_domain=lambda cell, resolution: True,
+        is_boundary_band=lambda cell, resolution: False,
+        is_near_occupied=lambda cell, resolution: False,
+        compact_empty_near_occupied=True,
+    )
+
+    assert compacted == children
+
+
 def test_adaptive_v3_compacts_empty_near_occupied_sibling_group_when_enabled() -> None:
     layer = FacilityDensityAdaptiveLayer(version="v3")
     parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
     children = {str(child): 0 for child in sorted(h3.cell_to_children(parent, 6))}
 
-    compacted = layer._compact_empty_sibling_leaves(
+    compacted = layer._compact_sparse_sibling_leaves(
         leaves=children,
         min_output_resolution=5,
         base_resolution=4,
         empty_interior_max_resolution=4,
         facility_floor_resolution=9,
+        facility_max_resolution=9,
         max_neighbor_resolution_delta=1,
         intersects_domain=lambda cell, resolution: True,
         is_boundary_band=lambda cell, resolution: False,
@@ -451,12 +500,13 @@ def test_adaptive_v3_does_not_compact_empty_near_occupied_sibling_group_when_dis
     parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
     children = {str(child): 0 for child in sorted(h3.cell_to_children(parent, 6))}
 
-    compacted = layer._compact_empty_sibling_leaves(
+    compacted = layer._compact_sparse_sibling_leaves(
         leaves=children,
         min_output_resolution=5,
         base_resolution=4,
         empty_interior_max_resolution=4,
         facility_floor_resolution=9,
+        facility_max_resolution=9,
         max_neighbor_resolution_delta=1,
         intersects_domain=lambda cell, resolution: True,
         is_boundary_band=lambda cell, resolution: False,
@@ -472,12 +522,13 @@ def test_adaptive_v3_does_not_compact_boundary_sibling_group() -> None:
     parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
     children = {str(child): 0 for child in sorted(h3.cell_to_children(parent, 6))}
 
-    compacted = layer._compact_empty_sibling_leaves(
+    compacted = layer._compact_sparse_sibling_leaves(
         leaves=children,
         min_output_resolution=5,
         base_resolution=4,
         empty_interior_max_resolution=7,
         facility_floor_resolution=9,
+        facility_max_resolution=9,
         max_neighbor_resolution_delta=1,
         intersects_domain=lambda cell, resolution: True,
         is_boundary_band=lambda cell, resolution: cell == parent,
@@ -486,6 +537,30 @@ def test_adaptive_v3_does_not_compact_boundary_sibling_group() -> None:
     )
 
     assert compacted == children
+
+
+def test_adaptive_v3_compacts_singleton_occupied_near_occupied_sibling_group() -> None:
+    layer = FacilityDensityAdaptiveLayer(version="v3")
+    parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
+    children_list = [str(child) for child in sorted(h3.cell_to_children(parent, 6))]
+    children = {child: 0 for child in children_list}
+    children[children_list[0]] = 1
+
+    compacted = layer._compact_sparse_sibling_leaves(
+        leaves=children,
+        min_output_resolution=5,
+        base_resolution=4,
+        empty_interior_max_resolution=7,
+        facility_floor_resolution=9,
+        facility_max_resolution=9,
+        max_neighbor_resolution_delta=1,
+        intersects_domain=lambda cell, resolution: True,
+        is_boundary_band=lambda cell, resolution: False,
+        is_near_occupied=lambda cell, resolution: cell == parent,
+        compact_empty_near_occupied=True,
+    )
+
+    assert compacted == {parent: 1}
 
 
 def test_adaptive_v3_does_not_compact_when_merge_would_violate_neighbor_delta() -> None:
@@ -506,12 +581,13 @@ def test_adaptive_v3_does_not_compact_when_merge_would_violate_neighbor_delta() 
         leaves[child] = 0
     leaves.update({str(child): 0 for child in sorted(h3.cell_to_children(split_neighbor, 7))})
 
-    compacted = layer._compact_empty_sibling_leaves(
+    compacted = layer._compact_sparse_sibling_leaves(
         leaves=leaves,
         min_output_resolution=5,
         base_resolution=4,
         empty_interior_max_resolution=4,
         facility_floor_resolution=9,
+        facility_max_resolution=9,
         max_neighbor_resolution_delta=1,
         intersects_domain=lambda cell, resolution: True,
         is_boundary_band=lambda cell, resolution: False,

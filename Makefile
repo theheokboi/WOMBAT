@@ -1,4 +1,4 @@
-.PHONY: run-dev serve-dev ui-dev verify-dev test-dev test-dev-blocking test-dev-nonblocking run calibrate calibrate-argentina-best-fit serve ui test test-blocking test-nonblocking
+.PHONY: run-dev serve-dev ui-dev verify-dev test-dev test-dev-blocking test-dev-nonblocking run calibrate calibrate-argentina-best-fit serve ui export-facilities-sqlite test test-blocking test-nonblocking
 
 run-dev:
 	python -m inframap.agent.cli
@@ -20,6 +20,9 @@ ui-dev:
 	@echo "Open http://localhost:8000/ui/index.html after running 'make serve-dev'"
 
 ui: ui-dev
+
+export-facilities-sqlite:
+	PYTHONPATH=src python scripts/export_facilities_sqlite.py
 
 verify-dev:
 	pytest -q tests/unit/test_ingest_normalize.py tests/integration/test_atomic_publish.py tests/integration/test_api.py

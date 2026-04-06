@@ -80,10 +80,6 @@ def run_invariants(
             encoded_resolution = cells["h3"].astype(str).map(h3.get_resolution)
             if not encoded_resolution.equals(cells["resolution"].astype(int)):
                 raise ValueError("Invariant failed: adaptive layer has h3/resolution mismatch")
-            if "layer_value" in cells.columns:
-                occupied = cells[cells["layer_value"].astype(int) > 0]
-                if not occupied.empty and (occupied["resolution"].astype(int) < 9).any():
-                    raise ValueError("Invariant failed: adaptive occupied cells must be at least r9")
             adaptive_cells = {str(cell) for cell in cells["h3"].astype(str).tolist()}
             parent_cache: dict[tuple[str, int], str] = {}
 

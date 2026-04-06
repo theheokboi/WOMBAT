@@ -23,6 +23,7 @@ Primary development commands:
 - `make serve-dev`
 - `make ui-dev`
 - `make verify-dev`
+- `make export-facilities-sqlite`
 
 Compatibility aliases:
 
@@ -35,6 +36,7 @@ Compatibility aliases:
 Static demo export command:
 
 - `PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id <run-id>`
+- `PYTHONPATH=src python scripts/export_facilities_sqlite.py --output <sqlite-path>`
 
 ## Reproducibility Backbone
 
@@ -61,10 +63,12 @@ Published run directories are immutable after pointer update.
 - Geometry is authoritative. Do not infer spatial membership from free text.
 - `country_mask` is the coverage authority for country-scoped runs.
 - Canonical facility ingest accepts explicit geocoded point sources, including `data/facilities/peeringdb_facility.tsv`, `data/landing_points/std_landing_points.tsv`, and `data/datacenters/datacenters_geocoded.tsv`; each source must normalize into the same canonical facility shape without free-text spatial inference.
+- External sharing may export those normalized rows to a single SQLite `facilities` table; the export must preserve source provenance via `source_name` instead of splitting by source-specific schemas.
 - `facility_density_adaptive` is a published run-scoped layer and must derive its effective base resolution from fixed-resolution `country_mask` metadata when present.
 - `facility_density_r7_regions` is an additive published run-scoped layer derived from `facility_density_adaptive`; it emits only `resolution == 7` cells from the published adaptive output, assigns deterministic connected-component `cluster_id` values over H3 adjacency, and includes a representative region coordinate chosen as the member-cell center nearest to the cluster centroid.
 - Published adaptive layer output must preserve metadata-backed resolution bounds and neighbor smoothing guarantees.
 - Empty near-occupied sibling groups may compact back to their parent above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied=true`; boundary-band empties remain non-compactable.
+- Fully covered singleton occupied sibling groups may also compact back to their parent when the merged parent remains outside the boundary band and still satisfies neighbor-delta validation, even if the parent is near another occupied region.
 
 ## Transport Graph Contract
 

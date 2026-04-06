@@ -148,5 +148,5 @@ def test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid
     assert int(cells_a["resolution"].max()) <= 13
     occupied = cells_a[cells_a["layer_value"] > 0]
     assert not occupied.empty
-    assert int(occupied["resolution"].min()) >= 9
+    assert int(occupied["resolution"].min()) >= int(metadata_a["params"]["min_output_resolution"])
     assert not _has_ancestor_descendant_overlap(subset_a)

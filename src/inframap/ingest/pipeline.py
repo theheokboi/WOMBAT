@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import sqlite3
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -302,3 +303,34 @@ def write_canonical_outputs(
     out_dir.mkdir(parents=True, exist_ok=True)
     facilities.to_parquet(out_dir / "facilities.parquet", index=False)
     organizations.to_parquet(out_dir / "organizations.parquet", index=False)
+
+
+SQLITE_EXPORT_COLUMNS = [
+    "facility_id",
+    "org_id",
+    "org_name",
+    "source_name",
+    "source_facility_name",
+    "lat",
+    "lon",
+    "city",
+    "state",
+    "country",
+    "asof_date",
+]
+
+
+def write_facilities_sqlite_output(sqlite_path: Path, facilities: pd.DataFrame) -> None:
+    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+    export_frame = (
+        facilities.rename(
+            columns={
+                "city_label": "city",
+                "state_label": "state",
+                "country_label": "country",
+            }
+        )[SQLITE_EXPORT_COLUMNS]
+        .copy()
+    )
+    with sqlite3.connect(sqlite_path) as conn:
+        export_frame.to_sql("facilities", conn, if_exists="replace", index=False)
