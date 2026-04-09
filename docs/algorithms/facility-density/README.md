@@ -21,3 +21,4 @@ Each version note should capture:
 Current documented version:
 
 - [v3 behavior](./v3.md)
+- [v4 behavior](./v4.md)

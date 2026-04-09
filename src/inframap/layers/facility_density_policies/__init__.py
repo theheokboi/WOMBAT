@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from inframap.layers.facility_density_policies.base import FacilityDensityAdaptivePolicy
 from inframap.layers.facility_density_policies.v3 import FacilityDensityAdaptiveV3Policy, _AdaptiveCoverageIndex
+from inframap.layers.facility_density_policies.v4 import FacilityDensityAdaptiveV4Policy
 
 
 def build_adaptive_policy(version: str) -> FacilityDensityAdaptivePolicy:
     policies = {
         "v3": FacilityDensityAdaptiveV3Policy,
+        "v4": FacilityDensityAdaptiveV4Policy,
     }
     try:
         policy_cls = policies[version]
@@ -18,6 +20,7 @@ def build_adaptive_policy(version: str) -> FacilityDensityAdaptivePolicy:
 __all__ = [
     "FacilityDensityAdaptivePolicy",
     "FacilityDensityAdaptiveV3Policy",
+    "FacilityDensityAdaptiveV4Policy",
     "_AdaptiveCoverageIndex",
     "build_adaptive_policy",
 ]

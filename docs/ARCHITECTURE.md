@@ -38,7 +38,7 @@ Layer registration is driven by [src/inframap/layers/registry.py](/Users/hyes921
 The adaptive layer in [src/inframap/layers/facility_density_adaptive.py](/Users/hyes92121/Desktop/h3-experiment/src/inframap/layers/facility_density_adaptive.py) works in four stages:
 
 1. Build the coverage domain from `country_mask`.
-2. Recursively split cells based on occupancy, facility floor, boundary-band rules, and near-occupied rules.
+2. Recursively split cells under the active facility-density policy.
 3. Smooth neighbor resolution jumps to satisfy `max_neighbor_resolution_delta`.
 4. Compact eligible sibling groups and then filter the final output against country geometry.
 
@@ -46,7 +46,7 @@ Important implication:
 
 - Geometry is authoritative.
 - `country_mask` is the coverage authority.
-- Adaptive output is constrained by both density rules and geometry-backed boundary rules.
+- Adaptive output is constrained by both policy-driven density rules and geometry-backed boundary rules.
 - Version-specific facility-density behavior notes live under [docs/algorithms/facility-density/README.md](/Users/hyes92121/Desktop/h3-experiment/docs/algorithms/facility-density/README.md).
 
 Versioned algorithm notes for the facility-density behavior live under [docs/algorithms/facility-density/README.md](/Users/hyes92121/Desktop/h3-experiment/docs/algorithms/facility-density/README.md).
