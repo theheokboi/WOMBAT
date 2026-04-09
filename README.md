@@ -40,7 +40,7 @@ Generated runtime state such as `data/runs/`, `data/staging/`, `data/published/`
 3. `make ui-dev`
 4. `make verify-dev`
 
-Country selection is controlled by `COUNTRIES` as a comma-separated ISO A2 list.
+Country selection is controlled by `COUNTRIES` as a comma-separated ISO A2 list. `COUNTRY` is only a compatibility fallback for older single-country workflows.
 
 Compatibility aliases remain:
 

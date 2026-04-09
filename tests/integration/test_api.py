@@ -211,13 +211,6 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     assert active_status_live_body["latest_progress_event"]["stage"] == "invariants"
     assert "not yet published" in active_status_live_body["published_note"]
 
-    calibration_latest_missing = client.get("/v1/calibration/latest")
-    assert calibration_latest_missing.status_code == 404
-    calibration_tw_missing = client.get("/v1/calibration/estimates/gb")
-    assert calibration_tw_missing.status_code == 404
-    calibration_world_missing = client.get("/v1/calibration/estimates/world")
-    assert calibration_world_missing.status_code == 404
-
     layers_resp = client.get("/v1/layers")
     assert layers_resp.status_code == 200
     names = {entry["layer_name"] for entry in layers_resp.json()["layers"]}
@@ -333,59 +326,3 @@ def test_api_endpoints_and_tiles(tmp_path: Path, monkeypatch) -> None:
     demo_slash = client.get("/demo/", follow_redirects=False)
     assert demo_slash.status_code == 307
     assert demo_slash.headers["location"] == "/ui/?country=DEMO"
-
-    calibration_dir = tmp_path / "artifacts" / "calibration"
-    old_report_dir = calibration_dir / "20260228T010000Z"
-    latest_report_dir = calibration_dir / "20260228T020000Z"
-    old_report_dir.mkdir(parents=True, exist_ok=True)
-    latest_report_dir.mkdir(parents=True, exist_ok=True)
-    (old_report_dir / "report.json").write_text(
-        json.dumps({"calibration_id": "old", "country": "TW", "runtime_seconds": 10.0, "facility_count_total": 10}),
-        encoding="utf-8",
-    )
-    (latest_report_dir / "report.json").write_text(
-        json.dumps(
-            {
-                "country": "TW",
-                "runtime_seconds": 60.0,
-                "facility_count_total": 100,
-                "adaptive_counters": {
-                    "initial_recursion_seconds": 1.0,
-                    "neighbor_smoothing_seconds": 2.0,
-                    "post_compaction_seconds": 3.0,
-                    "country_intersection_filter_seconds": 4.0,
-                    "covering_leaf_lookup_count": 5,
-                    "parent_cell_lookup_count": 6,
-                    "smoothing_candidate_count": 7,
-                    "smoothing_refinement_count": 8,
-                    "compaction_candidate_count": 9,
-                    "compaction_accept_count": 10,
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-
-    calibration_latest = client.get("/v1/calibration/latest")
-    assert calibration_latest.status_code == 200
-    calibration_latest_body = calibration_latest.json()
-    assert calibration_latest_body["country"] == "TW"
-    assert calibration_latest_body["calibration_id"] == "20260228T020000Z"
-    assert calibration_latest_body["adaptive_counters"]["smoothing_candidate_count"] == 7
-
-    calibration_tw = client.get("/v1/calibration/estimates/gb")
-    assert calibration_tw.status_code == 200
-    calibration_tw_body = calibration_tw.json()
-    assert calibration_tw_body["calibration_id"] == "20260228T020000Z"
-    assert calibration_tw_body["country"] == "TW"
-    assert calibration_tw_body["estimate_basis"] == "latest_calibration_report"
-    assert "estimate" in calibration_tw_body
-    assert calibration_tw_body["source_snapshot"]["adaptive_counters"]["compaction_accept_count"] == 10
-
-    calibration_world = client.get("/v1/calibration/estimates/world")
-    assert calibration_world.status_code == 200
-    calibration_world_body = calibration_world.json()
-    assert calibration_world_body["calibration_id"] == "20260228T020000Z"
-    assert calibration_world_body["country"] == "TW"
-    assert calibration_world_body["deprecated"] is True
-    assert calibration_world_body["deprecated_alias_for"] == "/v1/calibration/estimates/gb"

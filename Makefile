@@ -1,15 +1,9 @@
-.PHONY: run-dev serve-dev ui-dev verify-dev verify-fast verify-ui verify-full verify-experimental test-dev test-dev-blocking test-dev-nonblocking run calibrate calibrate-argentina-best-fit serve ui export-facilities-sqlite archive-progress-logs test test-blocking test-nonblocking
+.PHONY: run-dev serve-dev ui-dev verify-dev verify-fast verify-ui verify-full verify-experimental test-dev test-dev-blocking test-dev-nonblocking run serve ui export-facilities-sqlite archive-progress-logs test test-blocking test-nonblocking
 
 run-dev:
 	python -m inframap.agent.cli
 
 run: run-dev
-
-calibrate:
-	python -m inframap.agent.calibrate
-
-calibrate-argentina-best-fit:
-	COUNTRY=AR python -m inframap.agent.calibrate
 
 serve-dev:
 	python -m inframap.serve

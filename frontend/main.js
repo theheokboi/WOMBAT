@@ -37,7 +37,6 @@ function createDataSource({ mode, staticManifest, liveUiConfig }) {
       loadAdaptiveMetadata: async () => tryLoadJson('demo-data/facility-density-adaptive-metadata.json'),
       loadRunStatus: async (_runId) => tryLoadJson('demo-data/run-status.json'),
       loadActiveStatus: async () => tryLoadJson('demo-data/active-status.json'),
-      loadCalibrationLatest: async () => tryLoadJson('demo-data/calibration-latest.json'),
       loadR7RouteOverlay: async () => {
         const collections = await Promise.all(
           routeCountries.map((country) => tryLoadJson(`demo-data/r7-region-routes-${country}.json`))
@@ -85,7 +84,6 @@ function createDataSource({ mode, staticManifest, liveUiConfig }) {
         : tryLoadJson('/v1/runs/latest/status')
     ),
     loadActiveStatus: async () => tryLoadJson('/v1/runs/active/status'),
-    loadCalibrationLatest: async () => tryLoadJson('/v1/calibration/latest'),
     loadR7RouteOverlay: async () => {
       const collections = await Promise.all(
         routeCountries.map((country) => tryLoadJson(`/v1/r7-region-routes?country=${country}`))
@@ -369,7 +367,7 @@ async function init() {
   }
   setupRunSelector(runCatalog, requestedRunId, effectiveRunId);
 
-  const [facilities, countryCells, adaptiveCells, r7RegionCells, adaptiveMetadata, runStatus, activeStatus, calibrationLatest] = await Promise.all([
+  const [facilities, countryCells, adaptiveCells, r7RegionCells, adaptiveMetadata, runStatus, activeStatus] = await Promise.all([
     dataSource.loadFacilities(effectiveRunId),
     dataSource.loadCountryCells(effectiveRunId),
     dataSource.loadAdaptiveCells(effectiveRunId),
@@ -377,7 +375,6 @@ async function init() {
     dataSource.loadAdaptiveMetadata(effectiveRunId),
     dataSource.loadRunStatus(effectiveRunId),
     dataSource.loadActiveStatus(),
-    dataSource.loadCalibrationLatest(),
   ]);
   const countryFeatures = featureCollectionFeatures(countryCells);
   const availableCountries = buildAvailableCountries(countryFeatures);
@@ -409,7 +406,6 @@ async function init() {
   const runtimeExpectationNode = document.getElementById('runtime-expectation');
   const latestRunRuntimeNode = document.getElementById('latest-run-runtime');
   const activeRunStatusNode = document.getElementById('active-run-status');
-  const calibrationBasisNode = document.getElementById('calibration-basis');
   const adaptiveScoreModeLabelNode = document.getElementById('adaptive-score-mode-label');
   const adaptiveScoreLambdaValueNode = document.getElementById('adaptive-score-lambda-value');
   const adaptiveScoreIterationsValueNode = document.getElementById('adaptive-score-iterations-value');
@@ -451,19 +447,6 @@ async function init() {
     activeRunStatusNode.textContent = `Active run: in progress (${stage}, elapsed ${elapsedLabel})`;
   } else {
     activeRunStatusNode.textContent = 'Active run: none';
-  }
-
-  if (calibrationLatest) {
-    const calibrationId = calibrationLatest.calibration_id || '--';
-    const basisCountry = calibrationLatest.country || calibrationLatest.country_code || calibrationLatest.scope?.country || '--';
-    const basisRuntime =
-      calibrationLatest.runtime_seconds
-      ?? calibrationLatest.run_duration_seconds
-      ?? calibrationLatest.metrics?.run_duration_seconds;
-    const runtimeLabel = typeof basisRuntime === 'number' ? `${basisRuntime.toFixed(2)}s` : '--';
-    calibrationBasisNode.textContent = `Calibration basis: ${basisCountry} (${calibrationId}), runtime ${runtimeLabel}`;
-  } else {
-    calibrationBasisNode.textContent = 'Calibration basis: unavailable';
   }
 
   const adaptiveScoreControls = {

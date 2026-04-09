@@ -21,8 +21,6 @@ from inframap.serve.redirects import register_ui_redirects
 from inframap.serve.runtime import (
     DataStore,
     build_run_status_payload,
-    estimate_runtime_from_calibration,
-    latest_calibration_report,
     latest_layer_metadata_for,
     load_layer_metadata,
     read_json_if_exists,
@@ -404,37 +402,6 @@ def create_app(
             "active_status": active,
             "latest_progress_event": latest_progress,
             "published_note": "This status is from staging and not yet published.",
-        }
-
-    @app.get("/v1/calibration/latest")
-    def calibration_latest() -> dict[str, Any]:
-        latest = latest_calibration_report()
-        if latest is None:
-            raise HTTPException(status_code=404, detail="No calibration report found")
-        _, report = latest
-        return report
-
-    @app.get("/v1/calibration/estimates/gb")
-    def calibration_gb_estimate() -> dict[str, Any]:
-        latest = latest_calibration_report()
-        if latest is None:
-            raise HTTPException(status_code=404, detail="No calibration report found")
-        calibration_id, report = latest
-        return {
-            "calibration_id": calibration_id,
-            "country": "GB",
-            "estimate_basis": "latest_calibration_report",
-            "estimate": estimate_runtime_from_calibration(report=report),
-        }
-
-    @app.get("/v1/calibration/estimates/world")
-    def calibration_world_estimate() -> dict[str, Any]:
-        # Backward-compatible alias retained for existing clients.
-        payload = calibration_gb_estimate()
-        return {
-            **payload,
-            "deprecated": True,
-            "deprecated_alias_for": "/v1/calibration/estimates/gb",
         }
 
     @app.get("/v1/layers")

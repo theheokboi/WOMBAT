@@ -6,8 +6,6 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from inframap.agent.runtime_estimator import estimate_world_runtime
-
 
 class DataStore:
     def __init__(self, runs_root: Path, published_root: Path, staging_root: Path | None = None):
@@ -136,65 +134,6 @@ def adaptive_adjacency_health(adaptive_metadata: dict[str, Any] | None) -> dict[
         "violation_rate": violation_rate,
         "sample": sample,
     }
-
-
-def latest_calibration_report() -> tuple[str, dict[str, Any]] | None:
-    calibration_root = Path("artifacts") / "calibration"
-    if not calibration_root.exists():
-        return None
-    candidates = sorted(
-        directory
-        for directory in calibration_root.iterdir()
-        if directory.is_dir() and (directory / "report.json").exists()
-    )
-    if not candidates:
-        return None
-    latest = candidates[-1]
-    payload = json.loads((latest / "report.json").read_text(encoding="utf-8"))
-    if "calibration_id" not in payload:
-        payload = {"calibration_id": latest.name, **payload}
-    return latest.name, payload
-
-
-def estimate_runtime_from_calibration(report: dict[str, Any]) -> dict[str, Any]:
-    calibration_report = {
-        "facilities": int(report.get("facility_count", report.get("facility_count_total", 0)) or 0),
-        "domain_r4_cell_count": int(report.get("domain_r4_cell_count", 0) or 0),
-        "adaptive_leaf_count": int(
-            report.get("adaptive_leaf_count")
-            or ((report.get("adaptive_counters") or {}).get("leaf_count_total", 0))
-            or 0
-        ),
-        "smoothing_iterations": int(
-            report.get("smoothing_iterations")
-            or ((report.get("adaptive_counters") or {}).get("smoothing_iterations", 0))
-            or 0
-        ),
-        "adjacency_checks": int(
-            report.get("adjacency_checks")
-            or ((report.get("invariant_counters") or {}).get("adjacency_checks", 0))
-            or 0
-        ),
-        "adaptive_counters": report.get("adaptive_counters") or {},
-        "runtime_seconds": float(
-            report.get("runtime_seconds")
-            or report.get("run_duration_seconds")
-            or (report.get("stage_durations_seconds") or {}).get("total", 0)
-            or 0.0
-        ),
-    }
-    driver_snapshot = {
-        "facilities": calibration_report["facilities"],
-        "domain_r4_cell_count": calibration_report["domain_r4_cell_count"],
-        "adaptive_leaf_count": calibration_report["adaptive_leaf_count"],
-        "smoothing_iterations": calibration_report["smoothing_iterations"],
-        "adjacency_checks": calibration_report["adjacency_checks"],
-        "adaptive_counters": calibration_report["adaptive_counters"],
-    }
-    return estimate_world_runtime(
-        calibration_reports=[calibration_report],
-        world_driver_snapshot=driver_snapshot,
-    )
 
 
 def build_run_status_payload(

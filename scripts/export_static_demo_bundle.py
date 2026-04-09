@@ -82,7 +82,6 @@ def export_bundle(run_id: str | None, output_dir: Path) -> None:
         ),
         "run-status.json": f"/v1/runs/{effective_run_id}/status",
         "active-status.json": "/v1/runs/active/status",
-        "calibration-latest.json": "/v1/calibration/latest",
     }
     for filename, endpoint in static_exports.items():
         payload = get_json(client, endpoint)

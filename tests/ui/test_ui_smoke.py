@@ -82,9 +82,6 @@ def test_ui_static_smoke() -> None:
     assert "latest-adaptive-version" in response.text
     assert "adaptive-policy" in response.text
     assert "runtime-expectation" in response.text
-    assert "calibration-basis" in response.text
-    assert "calibration-world-estimate" not in response.text
-    assert "TW-calibrated world runtime estimate" not in response.text
     assert "toggle-metro" not in response.text
     assert "toggle-global-h3" not in response.text
     assert "facility-style" not in response.text
@@ -125,7 +122,6 @@ def test_ui_static_smoke() -> None:
     assert "/v1/runs/catalog" in script_response.text
     assert "/v1/runs/latest/status" in script_response.text
     assert "/v1/runs/active/status" in script_response.text
-    assert "/v1/calibration/latest" in script_response.text
     assert "buildAdaptiveResolutionBounds" in script_response.text
     assert "min_output_resolution" in script_response.text
     assert "facility_max_resolution" in script_response.text
@@ -166,7 +162,6 @@ def test_ui_static_smoke() -> None:
     assert "/v1/osm/transport" not in script_response.text
     assert "graph_variant" not in script_response.text
     assert "adaptive_portal" not in script_response.text
-    assert "/v1/calibration/estimates/world" not in script_response.text
 
 
 @pytest.mark.ui_smoke
