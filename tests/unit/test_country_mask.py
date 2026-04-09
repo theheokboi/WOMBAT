@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 import h3
 import pytest
+from shapely.geometry import Polygon
 
 from inframap.layers.country_mask import CountryMaskLayer
 
@@ -237,3 +238,52 @@ def test_country_mask_fixed_overlap_ratio_selects_any_positive_overlap(tmp_path:
         "layer_id",
         "asof_date",
     ]
+
+    counters = metadata["country_mask_counters"]
+    fixed_counters = counters["fixed_resolution"]
+    assert counters["polygon_count"] == 1
+    assert counters["polygon_load_seconds"] >= 0.0
+    assert fixed_counters["candidate_generation_seconds"] >= 0.0
+    assert fixed_counters["overlap_filter_seconds"] >= 0.0
+    assert fixed_counters["candidate_cell_count"] >= fixed_counters["accepted_cell_count"]
+    assert fixed_counters["accepted_cell_count"] == len(cells)
+    assert len(fixed_counters["per_polygon"]) == 1
+    per_polygon = fixed_counters["per_polygon"][0]
+    assert per_polygon["iso_a2"] == "TW"
+    assert per_polygon["country_name"] == "TW"
+    assert per_polygon["candidate_cell_count"] >= per_polygon["accepted_cell_count"] > 0
+    assert per_polygon["candidate_generation_seconds"] >= 0.0
+    assert per_polygon["overlap_filter_seconds"] >= 0.0
+    assert fixed_counters["hottest_overlap_filter_polygon"]["iso_a2"] == "TW"
+
+
+def test_country_mask_positive_overlap_predicate_rejects_touch_only_cells() -> None:
+    layer = CountryMaskLayer(version="v1")
+    cell = h3.latlng_to_cell(35.6764, 139.6500, 2)
+    cell_polygon = layer._cell_polygon(cell)
+    min_lon, min_lat, max_lon, max_lat = cell_polygon.bounds
+    sliver = max(max_lon - min_lon, max_lat - min_lat) / 100.0
+
+    touch_only_polygon = Polygon(
+        [
+            (max_lon, min_lat),
+            (max_lon + sliver, min_lat),
+            (max_lon + sliver, max_lat),
+            (max_lon, max_lat),
+            (max_lon, min_lat),
+        ]
+    )
+    positive_overlap_polygon = Polygon(
+        [
+            (max_lon - sliver, min_lat),
+            (max_lon + sliver, min_lat),
+            (max_lon + sliver, max_lat),
+            (max_lon - sliver, max_lat),
+            (max_lon - sliver, min_lat),
+        ]
+    )
+
+    assert layer._overlap_ratio(cell, touch_only_polygon) == 0.0
+    assert layer._has_positive_area_overlap(cell, touch_only_polygon) is False
+    assert layer._overlap_ratio(cell, positive_overlap_polygon) > 0.0
+    assert layer._has_positive_area_overlap(cell, positive_overlap_polygon) is True

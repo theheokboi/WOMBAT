@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Callable
 import warnings
 
 import h3
 import pandas as pd
 from shapely.geometry import Polygon, shape
+from shapely.prepared import prep
 
 
 @dataclass
@@ -68,6 +70,7 @@ class CountryMaskLayer:
         dataset_is_legacy_world = False
         selected_datasets: list[str] = []
         dataset_source = "geojson_file"
+        polygon_load_started = perf_counter()
 
         if isinstance(dataset_dir, str):
             if not include_iso:
@@ -107,24 +110,75 @@ class CountryMaskLayer:
             raise ValueError(
                 "country_mask requires either polygon_dataset or polygon_dataset_dir"
             )
+        polygon_load_seconds = perf_counter() - polygon_load_started
 
         # Deterministic rule: first country in sorted ISO order claims each cell.
         cell_to_country: dict[str, tuple[str, str]] = {}
         total_polygons = len(polygons)
+        country_mask_counters: dict[str, Any] = {
+            "polygon_count": int(total_polygons),
+            "polygon_load_seconds": round(polygon_load_seconds, 6),
+        }
         if progress_cb is not None and total_polygons > 0:
             progress_cb(f"polygons loaded: {total_polygons}")
         if mode == "fixed_resolution":
             resolution = int(params["resolution"])
+            fixed_counters: dict[str, Any] = {
+                "candidate_generation_seconds": 0.0,
+                "overlap_filter_seconds": 0.0,
+                "candidate_cell_count": 0,
+                "accepted_cell_count": 0,
+                "per_polygon": [],
+            }
             for idx, (iso, name, polygon) in enumerate(polygons, start=1):
                 if progress_cb is not None:
                     progress_cb(f"polygon {idx}/{total_polygons} iso={iso} mode={mode}")
-                candidate_cells = sorted(
-                    self._polygon_to_cells_fixed(polygon, resolution, rule)
+                candidate_cells, polygon_counters = self._polygon_to_cells_fixed(
+                    polygon, resolution, rule
+                )
+                fixed_counters["candidate_generation_seconds"] = round(
+                    float(fixed_counters["candidate_generation_seconds"])
+                    + float(polygon_counters["candidate_generation_seconds"]),
+                    6,
+                )
+                fixed_counters["overlap_filter_seconds"] = round(
+                    float(fixed_counters["overlap_filter_seconds"])
+                    + float(polygon_counters["overlap_filter_seconds"]),
+                    6,
+                )
+                fixed_counters["candidate_cell_count"] = int(
+                    fixed_counters["candidate_cell_count"]
+                ) + int(polygon_counters["candidate_cell_count"])
+                fixed_counters["accepted_cell_count"] = int(
+                    fixed_counters["accepted_cell_count"]
+                ) + int(polygon_counters["accepted_cell_count"])
+                fixed_counters["per_polygon"].append(
+                    {
+                        "polygon_index": idx,
+                        "iso_a2": iso,
+                        "country_name": name,
+                        **polygon_counters,
+                    }
                 )
                 for cell in candidate_cells:
                     if cell in cell_to_country:
                         continue
                     cell_to_country[cell] = (iso, name)
+            if fixed_counters["per_polygon"]:
+                hottest_polygon = max(
+                    fixed_counters["per_polygon"],
+                    key=lambda item: float(item["overlap_filter_seconds"]),
+                )
+                fixed_counters["hottest_overlap_filter_polygon"] = {
+                    "polygon_index": int(hottest_polygon["polygon_index"]),
+                    "iso_a2": str(hottest_polygon["iso_a2"]),
+                    "country_name": str(hottest_polygon["country_name"]),
+                    "overlap_filter_seconds": float(
+                        hottest_polygon["overlap_filter_seconds"]
+                    ),
+                    "candidate_cell_count": int(hottest_polygon["candidate_cell_count"]),
+                }
+            country_mask_counters["fixed_resolution"] = fixed_counters
             base_resolution = None
             max_resolution = resolution
             base_contain = None
@@ -249,26 +303,44 @@ class CountryMaskLayer:
             "country_color_map": {
                 iso: idx for iso, idx in sorted(country_colors.items())
             },
+            "country_mask_counters": country_mask_counters,
         }
         return metadata, cells
 
     def _polygon_to_cells_fixed(
         self, polygon: Any, resolution: int, rule: str
-    ) -> list[str]:
+    ) -> tuple[list[str], dict[str, Any]]:
         if rule != "overlap_ratio":
             raise ValueError(f"Unsupported membership rule: {rule}")
         # Fixed mode applies deterministic overlap-ratio membership at one resolution.
+        candidate_started = perf_counter()
         candidates = self._shape_to_cells(
             polygon=polygon,
             resolution=resolution,
             contain="overlap",
         )
+        candidate_generation_seconds = perf_counter() - candidate_started
+        overlap_started = perf_counter()
+        prepared_polygon = prep(polygon)
         selected = [
             str(cell)
             for cell in sorted(candidates)
-            if self._overlap_ratio(cell=str(cell), polygon=polygon) > 0.0
+            if self._has_positive_area_overlap(
+                cell=str(cell),
+                polygon=polygon,
+                prepared_polygon=prepared_polygon,
+            )
         ]
-        return selected
+        overlap_filter_seconds = perf_counter() - overlap_started
+        return selected, {
+            "candidate_generation_seconds": round(candidate_generation_seconds, 6),
+            "overlap_filter_seconds": round(overlap_filter_seconds, 6),
+            "candidate_cell_count": int(len(candidates)),
+            "accepted_cell_count": int(len(selected)),
+            "total_seconds": round(
+                candidate_generation_seconds + overlap_filter_seconds, 6
+            ),
+        }
 
     def _polygon_to_cells_quadtree_classify_split(
         self,
@@ -365,6 +437,17 @@ class CountryMaskLayer:
         if poly.is_empty or poly.area == 0:
             return 0.0
         return float(poly.intersection(polygon).area / poly.area)
+
+    def _has_positive_area_overlap(
+        self, cell: str, polygon: Any, prepared_polygon: Any | None = None
+    ) -> bool:
+        cell_polygon = self._cell_polygon(cell)
+        if cell_polygon.is_empty or cell_polygon.area == 0:
+            return False
+        prepared = prepared_polygon if prepared_polygon is not None else prep(polygon)
+        if not prepared.intersects(cell_polygon):
+            return False
+        return not prepared.touches(cell_polygon)
 
     def _load_polygons_from_dataset(
         self, path: str, exclude_iso: set[str]

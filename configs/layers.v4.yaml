@@ -23,12 +23,12 @@ layers:
     version: v4
     params:
       base_resolution: 2
-      facility_floor_resolution: 7
+      facility_floor_resolution: 8
       # Derived sparse/topology cap = facility_floor_resolution - facility_floor_offset.
       facility_floor_offset: 2
-      facility_max_resolution: 7
+      facility_max_resolution: 8
       # Sparse means facility_count <= this value at a branch; denser branches keep splitting.
-      target_facilities_per_leaf: 4
+      target_facilities_per_leaf: 3
       empty_compact_min_resolution: 0
       empty_interior_max_resolution: 2
       min_output_resolution: 2
