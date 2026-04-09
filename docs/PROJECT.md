@@ -9,11 +9,8 @@ Deliver fast, country-scoped, visual iteration for infrastructure mapping while 
 The repository currently runs in dev-only mode.
 
 - Exploration speed is prioritized.
-- Strict promotion and hard blocking gates are deferred to a future hardening phase.
+- Strict promotion and hard blocking gates are deferred.
 - Day-to-day commands and docs must not assume strict or production-only workflows.
-- The pipeline defaults to dev semantics.
-- Strict blocking enforcement is disabled in the active path.
-- The invariant gate is skipped by default in dev runs.
 
 ## Command Surface
 
@@ -23,17 +20,15 @@ Primary development commands:
 - `make serve-dev`
 - `make ui-dev`
 - `make verify-dev`
-- `make export-facilities-sqlite`
 
 Compatibility aliases:
 
 - `make run` -> `make run-dev`
 - `make serve` -> `make serve-dev`
 - `make ui` -> `make ui-dev`
+- `make verify-dev` -> `make verify-fast`
 
-`COUNTRIES` accepts one ISO A2 code or a comma-separated list of ISO A2 codes.
-
-Static demo export command:
+Advanced workflows remain supported but are not part of the default inner loop:
 
 - `PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id <run-id>`
 - `PYTHONPATH=src python scripts/export_facilities_sqlite.py --output <sqlite-path>`
@@ -62,70 +57,59 @@ Published run directories are immutable after pointer update.
 
 - Geometry is authoritative. Do not infer spatial membership from free text.
 - `country_mask` is the coverage authority for country-scoped runs.
-- Canonical facility ingest accepts explicit geocoded point sources, including `data/facilities/peeringdb_facility.tsv`, `data/landing_points/std_landing_points.tsv`, and `data/datacenters/datacenters_geocoded.tsv`; each source must normalize into the same canonical facility shape without free-text spatial inference.
-- External sharing may export those normalized rows to a single SQLite `facilities` table; the export must preserve source provenance via `source_name` instead of splitting by source-specific schemas.
+- Canonical facility ingest accepts explicit geocoded point sources, including `data/facilities/peeringdb_facility.tsv`, `data/landing_points/std_landing_points.tsv`, and `data/datacenters/datacenters_geocoded.tsv`.
+- External sharing may export normalized rows to one SQLite `facilities` table with source provenance preserved in-row.
 - `facility_density_adaptive` is a published run-scoped layer and must derive its effective base resolution from fixed-resolution `country_mask` metadata when present.
-- `facility_density_r7_regions` is an additive published run-scoped layer derived from `facility_density_adaptive`; it emits only `resolution == 7` cells from the published adaptive output, assigns deterministic connected-component `cluster_id` values over H3 adjacency, and includes a representative region coordinate chosen as the member-cell center nearest to the cluster centroid.
+- `facility_density_r7_regions` is an additive published run-scoped layer derived from `facility_density_adaptive`; it emits only `resolution == 7` cells from the published adaptive output and includes deterministic `cluster_id` values plus a representative region coordinate.
 - Published adaptive layer output must preserve metadata-backed resolution bounds and neighbor smoothing guarantees.
-- Empty near-occupied sibling groups may compact back to their parent above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied=true`; boundary-band empties remain non-compactable.
-- Fully covered singleton occupied sibling groups may also compact back to their parent when the merged parent remains outside the boundary band and still satisfies neighbor-delta validation, even if the parent is near another occupied region.
+- Adaptive layer metadata may expose additive `adaptive_counters` without changing existing top-level report keys.
+- Empty near-occupied sibling groups may compact above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied=true`; boundary-band empties remain non-compactable.
+- Fully covered singleton occupied sibling groups may compact back to their parent when the merged parent remains outside the boundary band and still satisfies neighbor-delta validation.
 
 ## Transport Graph Contract
 
 - `/v1/osm/transport` remains under the `/v1` prefix.
 - Default behavior is `source=shapefile`.
-- `source=graph` loads per-country major-road graph artifacts from `data/openstreetmap/<country>/`.
-- `graph_variant=raw` uses `major_roads_edges.geojson` and `major_roads_nodes.geojson`.
-- `graph_variant=collapsed` uses `major_roads_edges_collapsed.geojson` and `major_roads_nodes_collapsed.geojson`.
-- `graph_variant=adaptive` uses `major_roads_edges_adaptive.geojson` and `major_roads_nodes_adaptive.geojson`, produced by protected-node contraction at fixed H3 resolution (cross-cell endpoints are preserved).
-- `graph_variant=adaptive_portal` uses `major_roads_edges_adaptive_portal.geojson` and `major_roads_nodes_adaptive_portal.geojson`, produced by fixed-resolution boundary splitting with explicit portal/interface nodes and per-cell topology contraction; class filtering keeps `motorway`/`trunk`/`primary`/`secondary` plus `motorway_link`/`trunk_link`/`primary_link`/`secondary_link`, starts with early per-cell priority (motorway mainline first, then link, then trunk mainline/link, primary mainline/link, secondary mainline/link) before portal splitting, then escalates classes only on cells needed to bridge disconnected cross-cell components, and nodes are anchor-only (portal + junction nodes) after pruning nodes not connected to any retained edge.
-- `graph_variant=adaptive_portal_run` uses run-scoped files under `data/runs/<run_id>/graph/<country>/`: `major_roads_edges_adaptive_portal_run.geojson` and `major_roads_nodes_adaptive_portal_run.geojson`; this variant uses `facility_density_adaptive` run cells as a variable-resolution mask, applies `motorway`/`trunk`/`primary`/`secondary` filtering, and contracts covered cell interiors to a per-cell hierarchical portal backbone where higher-class portals stay on higher-class roads and lower-class portals attach upward as feeders before connected-anchor node pruning.
+- `source=graph` loads per-country major-road graph artifacts.
+- `graph_variant=raw|collapsed|adaptive|adaptive_portal|adaptive_portal_run` must remain supported.
 - `include_nodes=true` loads the node file that matches the selected graph variant when present.
 - Graph artifacts are run-agnostic except `adaptive_portal_run`, which is run-scoped.
-- `scripts/evaluate_major_roads_graph.py` compares `raw` vs `collapsed` edge artifacts using connectivity and path-length-ratio metrics for cable-corridor plausibility checks; its report is a static OSM graph analysis artifact (not a run-scoped published layer artifact).
-
-## Graph And Layer Roles
-
-- The major-road graph is the base network artifact.
-- The adaptive H3 layer is a run-scoped published spatial abstraction layer.
-- The `facility_density_r7_regions` layer is a run-scoped derived visualization layer for network-region envelopes at fixed `r7`.
-- Artifacts derived from adaptive-cell output must be treated as run-scoped published data unless the project explicitly redefines them as static country-level assets.
-- Visualization artifacts and routing artifacts must be documented separately when they diverge in semantics.
-- Saved `r7` region route artifacts may be exposed as static derived overlays when they are generated outside the publish pipeline; those overlays must preserve source artifact provenance and country scoping.
-- Visualization-oriented route overlays should prefer separate compact GeoJSON artifacts (for example `*-routes-ui.geojson`) with simplified lines, rounded coordinates, no self-routes, no null geometries, and optional reverse-pair deduplication.
-- Static demo bundles are frontend-only snapshots derived from the current published run and should contain browser-ready JSON/GeoJSON rather than internal parquet-backed data products.
-
-## Verification Contract
-
-`make verify-dev` must cover:
-
-- input and schema sanity
-- layer compute no-crash
-- API payload non-empty for selected scope
-- UI smoke
-
-Non-blocking reporting remains required for performance or monitoring checks.
 
 ## API Response Expectations
 
 - Keep the `/v1` versioned path prefix.
 - Include `run_id` in run-backed responses.
-- Include pointer and lane context in run and health status payloads for dev visibility.
+- Include pointer and lane context in run and health payloads for dev visibility.
 - Preserve backward compatibility for additive updates.
-- `/v1/populated-places` is a static, run-agnostic Natural Earth reference overlay backed by `data/populated_places/ne_10m_populated_places.shp`; it returns GeoJSON point features and supports optional `country` and `limit` query parameters.
-- `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features with optional `country` and `include_self` query parameters; when `include_self=false`, it should prefer compact visualization artifacts from `artifacts/derived/*-r7-regions-*-routes-ui.geojson` and fall back to full `*-routes.json` artifacts otherwise. Feature properties must retain country code, source artifact name, source/destination region identifiers, and route distance/duration metrics.
+- The main frontend remains available under `/ui/`.
+- The k-rings experiment page is exposed at `/k-rings` via redirect to `/ui/k-rings.html` and must honor the same `run` and `data=static|api` query semantics as the main frontend.
+- `/v1/populated-places` is a static, run-agnostic Natural Earth overlay with optional `country` and `limit` filters.
+- `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features with optional `country` and `include_self` filters.
 - When no live backend is available, the frontend may load equivalent browser-ready static snapshots from `frontend/demo-data/`.
+
+## Verification Contract
+
+`make verify-fast` must cover:
+
+- input and schema sanity
+- publish or run-state sanity for the affected path
+- API payload non-empty for a selected scope
+- UI smoke
+
+`make verify-dev` is a compatibility alias to `make verify-fast`.
+
+Non-blocking reporting remains required for performance or monitoring checks.
 
 ## Documentation Policy
 
 - `docs/PROJECT.md` is the authoritative contract document.
-- `README.md` is the operator and contributor quick-start guide.
+- `README.md` is the quick-start guide.
 - `AGENTS.md` defines contributor and coding-agent workflow rules.
-- Workflow, contract, tooling, or command changes must update all affected docs in the same change.
+- Workflow, contract, tooling, or command changes must update the owning docs in the same change.
 
 ## Log Retention
 
 - `logs/mistakes.md` remains a live append-only ledger.
-- `logs/progress/` is for active and recent task logs.
-- Completed progress logs older than 7 days should be moved to `archive/logs/progress/` instead of being deleted.
-- Historical logs should be archived before any deletion policy is considered.
+- `logs/progress/` is for committed milestone, contract, or handoff logs.
+- Routine local task notes may remain untracked.
+- Completed committed progress logs older than 7 days should be moved to `archive/logs/progress/`.

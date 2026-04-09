@@ -132,6 +132,7 @@ def run_pipeline(
         registry = build_layer_registry(layers)
         layer_artifacts: dict[str, dict[str, object]] = {}
         layer_duration_seconds: dict[str, float] = {}
+        layer_adaptive_counters: dict[str, dict[str, object]] = {}
         for layer_cfg in layers.layers:
             stage_name = f"layer:{layer_cfg.name}"
             mark_stage_start(stage_name)
@@ -149,6 +150,9 @@ def run_pipeline(
                 params=layer_params,
             )
             plugin.validate({"metadata": metadata, "cells": cells})
+            adaptive_counters = metadata.get("adaptive_counters")
+            if isinstance(adaptive_counters, dict):
+                layer_adaptive_counters[layer_cfg.name] = adaptive_counters
 
             layer_path = layers_dir / layer_cfg.name / layer_cfg.version
             _mkdir(layer_path)
@@ -180,6 +184,7 @@ def run_pipeline(
             },
             "invalid_record_count": int(invalid_count),
             "layer_compute_duration_seconds": layer_duration_seconds,
+            "layer_adaptive_counters": layer_adaptive_counters,
             "stage_duration_seconds": {k: round(v, 6) for k, v in sorted(stage_duration_seconds.items())},
             "expected_runtime_seconds": expected_runtime_seconds,
             "publish_timestamp": manifest.run_id,

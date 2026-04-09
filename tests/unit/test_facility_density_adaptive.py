@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 from shapely.geometry import Polygon, shape
 
-from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer
+from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer, _AdaptiveCoverageIndex
 
 
 def _v3_params() -> dict[str, int | bool]:
@@ -109,6 +109,65 @@ def _max_neighbor_resolution_delta(cells: pd.DataFrame) -> int:
     return max_delta
 
 
+def _assert_adaptive_counters_present(metadata: dict[str, Any]) -> dict[str, Any]:
+    counters = metadata["adaptive_counters"]
+    assert isinstance(counters, dict)
+    required = {
+        "initial_recursion_seconds",
+        "neighbor_smoothing_seconds",
+        "post_compaction_seconds",
+        "country_intersection_filter_seconds",
+        "covering_leaf_lookup_count",
+        "parent_cell_lookup_count",
+        "smoothing_candidate_count",
+        "smoothing_refinement_count",
+        "compaction_candidate_count",
+        "compaction_accept_count",
+        "leaf_count_total",
+        "adjacency_checks",
+        "violating_neighbor_pairs",
+        "max_neighbor_delta_observed",
+        "smoothing_iterations",
+    }
+    assert required.issubset(counters.keys())
+    for key in (
+        "initial_recursion_seconds",
+        "neighbor_smoothing_seconds",
+        "post_compaction_seconds",
+        "country_intersection_filter_seconds",
+    ):
+        assert float(counters[key]) >= 0.0
+    for key in (
+        "covering_leaf_lookup_count",
+        "parent_cell_lookup_count",
+        "smoothing_candidate_count",
+        "smoothing_refinement_count",
+        "compaction_candidate_count",
+        "compaction_accept_count",
+        "leaf_count_total",
+        "adjacency_checks",
+        "violating_neighbor_pairs",
+        "max_neighbor_delta_observed",
+        "smoothing_iterations",
+    ):
+        assert int(counters[key]) >= 0
+    return counters
+
+
+def _stable_adaptive_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    stable = dict(metadata)
+    counters = dict(stable.get("adaptive_counters", {}))
+    for key in (
+        "initial_recursion_seconds",
+        "neighbor_smoothing_seconds",
+        "post_compaction_seconds",
+        "country_intersection_filter_seconds",
+    ):
+        counters.pop(key, None)
+    stable["adaptive_counters"] = counters
+    return stable
+
+
 def _cell_overlap_ratio(cell: str, polygon: Any) -> float:
     ring = []
     prev_lon: float | None = None
@@ -143,6 +202,7 @@ def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     assert metadata["layer_version"] == "v3"
     assert metadata["policy_name"] == "facility_hierarchical_partition_v3"
     assert metadata["coverage_domain"] == "country_mask_r4"
+    _assert_adaptive_counters_present(metadata)
     assert int(cells["resolution"].min()) >= int(params["min_output_resolution"])
     assert int(cells["resolution"].max()) <= int(params["facility_floor_resolution"]) - 1
     assert (cells["resolution"] == int(params["min_output_resolution"])).any()
@@ -161,6 +221,7 @@ def test_adaptive_v3_accepts_configurable_min_output_resolution_below_r5() -> No
     )
 
     assert int(metadata["params"]["min_output_resolution"]) == 3
+    _assert_adaptive_counters_present(metadata)
     assert int(cells["resolution"].min()) >= 3
     assert int(cells["resolution"].min()) < 5
 
@@ -230,6 +291,7 @@ def test_adaptive_v3_filters_non_intersecting_cells_from_country_polygon(tmp_pat
 
     assert metadata["country_intersection_filter_applied"] is True
     assert int(metadata["country_intersection_cells_dropped"]) > 0
+    _assert_adaptive_counters_present(metadata)
     assert not cells.empty
     assert all(_cell_overlap_ratio(str(cell), polygon) > 0.0 for cell in cells["h3"].astype(str).tolist())
 
@@ -258,6 +320,7 @@ def test_adaptive_v3_uses_fixed_country_mask_resolution_as_base() -> None:
     assert metadata["coverage_domain"] == "country_mask_r2"
     assert int(metadata["params"]["base_resolution"]) == 2
     assert int(metadata["params"]["configured_base_resolution"]) == 4
+    _assert_adaptive_counters_present(metadata)
 
 
 def test_adaptive_v3_validate_allows_facility_bearing_leaf_below_floor_when_other_rules_hold() -> None:
@@ -295,7 +358,7 @@ def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r9_cap() -> None:
     params = _v3_params()
 
     layer = FacilityDensityAdaptiveLayer(version="v3")
-    _, cells = layer.compute(
+    metadata, cells = layer.compute(
         canonical_store={"facilities": facilities},
         layer_store=_country_mask_store(base_resolution=int(params["base_resolution"])),
         params=params,
@@ -309,6 +372,7 @@ def test_adaptive_v3_collision_splits_to_singleton_or_stops_at_r9_cap() -> None:
         & (occupied["resolution"] < int(params["facility_max_resolution"]))
     ]
     assert violating.empty
+    _assert_adaptive_counters_present(metadata)
 
 
 def test_adaptive_v3_singleton_occupied_region_may_compact_below_floor() -> None:
@@ -318,7 +382,7 @@ def test_adaptive_v3_singleton_occupied_region_may_compact_below_floor() -> None
     params = _v3_params()
 
     layer = FacilityDensityAdaptiveLayer(version="v3")
-    _, cells = layer.compute(
+    metadata, cells = layer.compute(
         canonical_store={"facilities": facilities},
         layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=1),
         params=params,
@@ -327,6 +391,7 @@ def test_adaptive_v3_singleton_occupied_region_may_compact_below_floor() -> None
     occupied = cells[cells["layer_value"] > 0]
     assert len(occupied) == 1
     assert int(occupied.iloc[0]["resolution"]) < int(params["facility_floor_resolution"])
+    _assert_adaptive_counters_present(metadata)
 
 
 def test_adaptive_v3_final_partition_has_no_ancestor_descendant_overlap() -> None:
@@ -364,10 +429,61 @@ def test_adaptive_v3_repeat_runs_are_deterministic() -> None:
         params=params,
     )
 
-    assert metadata_a == metadata_b
+    assert _stable_adaptive_metadata(metadata_a) == _stable_adaptive_metadata(metadata_b)
     subset_a = cells_a[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).reset_index(drop=True)
     subset_b = cells_b[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).reset_index(drop=True)
     pd.testing.assert_frame_equal(subset_a, subset_b, check_like=False)
+    _assert_adaptive_counters_present(metadata_a)
+
+
+def test_adaptive_v3_coverage_index_matches_ancestor_walk_and_updates_locally() -> None:
+    def parent_cell(cell: str, resolution: int, cache: dict[tuple[str, int], str]) -> str:
+        key = (cell, resolution)
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+        if h3.get_resolution(cell) == resolution:
+            cache[key] = cell
+        else:
+            cache[key] = h3.cell_to_parent(cell, resolution)
+        return cache[key]
+
+    def old_lookup(cell: str, resolution: int, leaves: dict[str, int]) -> tuple[str, int] | None:
+        by_resolution: dict[int, set[str]] = {r: set() for r in range(14)}
+        for leaf in leaves:
+            by_resolution[h3.get_resolution(leaf)].add(leaf)
+        cache: dict[tuple[str, int], str] = {}
+        for ancestor_resolution in range(resolution, -1, -1):
+            ancestor = parent_cell(cell, ancestor_resolution, cache)
+            if ancestor in by_resolution[ancestor_resolution]:
+                return ancestor, ancestor_resolution
+        return None
+
+    coarse_leaf = str(h3.latlng_to_cell(41.8781, -87.6298, 5))
+    distant_leaf = str(h3.latlng_to_cell(34.0522, -118.2437, 5))
+    leaves = {coarse_leaf: 0, distant_leaf: 0}
+    cache: dict[tuple[str, int], str] = {}
+    index = _AdaptiveCoverageIndex.from_leaves(leaves, lambda cell, resolution: parent_cell(cell, resolution, cache))
+
+    samples = [str(cell) for cell in h3.grid_disk(coarse_leaf, 1) if h3.get_resolution(str(cell)) == 5]
+    for sample in sorted(samples):
+        assert index.covering_leaf_for_neighbor(sample, 5, lambda cell, resolution: parent_cell(cell, resolution, cache)) == old_lookup(
+            sample, 5, leaves
+        )
+
+    leaves_after_refine = dict(leaves)
+    index.remove_leaf(coarse_leaf, 5, lambda cell, resolution: parent_cell(cell, resolution, cache))
+    leaves_after_refine.pop(coarse_leaf)
+    refined_children = [str(cell) for cell in sorted(h3.cell_to_children(coarse_leaf, 6))]
+    for child in refined_children:
+        leaves_after_refine[child] = 0
+        index.add_leaf(child, 6, lambda cell, resolution: parent_cell(cell, resolution, cache))
+
+    distant_samples = [str(cell) for cell in h3.grid_disk(distant_leaf, 1) if h3.get_resolution(str(cell)) == 5]
+    for sample in sorted(distant_samples):
+        assert index.covering_leaf_for_neighbor(sample, 5, lambda cell, resolution: parent_cell(cell, resolution, cache)) == old_lookup(
+            sample, 5, leaves_after_refine
+        )
 
 
 def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_case() -> None:
@@ -389,6 +505,7 @@ def test_adaptive_v3_neighbor_delta_respects_configured_limit_for_dense_local_ca
     assert int(metadata["violating_neighbor_pairs"]) == 0
     assert int(metadata["max_neighbor_delta_observed"]) == observed_max_delta
     assert int(metadata["smoothing_iterations"]) >= 0
+    _assert_adaptive_counters_present(metadata)
 
 
 def test_adaptive_v3_adjacency_counters_detect_violating_pair() -> None:
@@ -419,6 +536,7 @@ def test_adaptive_v3_compacts_full_empty_sibling_group_to_parent() -> None:
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: False,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == {parent: 0}
@@ -443,6 +561,7 @@ def test_adaptive_v3_compacts_singleton_occupied_sibling_group_to_parent() -> No
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: False,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == {parent: 1}
@@ -468,6 +587,7 @@ def test_adaptive_v3_does_not_compact_two_facility_sibling_group() -> None:
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: False,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == children
@@ -490,6 +610,7 @@ def test_adaptive_v3_compacts_empty_near_occupied_sibling_group_when_enabled() -
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: cell == parent,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == {parent: 0}
@@ -512,6 +633,7 @@ def test_adaptive_v3_does_not_compact_empty_near_occupied_sibling_group_when_dis
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: cell == parent,
         compact_empty_near_occupied=False,
+        adaptive_counters={},
     )
 
     assert compacted == children
@@ -534,6 +656,7 @@ def test_adaptive_v3_does_not_compact_boundary_sibling_group() -> None:
         is_boundary_band=lambda cell, resolution: cell == parent,
         is_near_occupied=lambda cell, resolution: False,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == children
@@ -558,6 +681,7 @@ def test_adaptive_v3_compacts_singleton_occupied_near_occupied_sibling_group() -
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: cell == parent,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == {parent: 1}
@@ -593,6 +717,7 @@ def test_adaptive_v3_does_not_compact_when_merge_would_violate_neighbor_delta() 
         is_boundary_band=lambda cell, resolution: False,
         is_near_occupied=lambda cell, resolution: cell == parent,
         compact_empty_near_occupied=True,
+        adaptive_counters={},
     )
 
     assert compacted == leaves

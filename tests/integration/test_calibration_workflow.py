@@ -59,6 +59,7 @@ def test_calibration_produces_report_without_publish_mutation(tmp_path: Path, la
             "layer_durations_seconds",
             "stage_durations_seconds",
             "invariant_stage_duration_seconds",
+            "adaptive_counters",
         }
         assert required.issubset(report.keys())
         assert report["country_code"] == "TW"
@@ -67,6 +68,21 @@ def test_calibration_produces_report_without_publish_mutation(tmp_path: Path, la
         assert isinstance(report["layer_durations_seconds"], dict)
         assert isinstance(report["stage_durations_seconds"], dict)
         assert report["invariant_stage_duration_seconds"] >= 0.0
+        expected_adaptive_keys = {
+            "initial_recursion_seconds",
+            "neighbor_smoothing_seconds",
+            "post_compaction_seconds",
+            "country_intersection_filter_seconds",
+            "covering_leaf_lookup_count",
+            "parent_cell_lookup_count",
+            "smoothing_candidate_count",
+            "smoothing_refinement_count",
+            "compaction_candidate_count",
+            "compaction_accept_count",
+        }
+        assert expected_adaptive_keys.issubset(report["adaptive_counters"].keys())
+        for key in expected_adaptive_keys:
+            assert report["adaptive_counters"][key] >= 0
 
         if before_state[0] == "exists":
             assert latest_path.exists()

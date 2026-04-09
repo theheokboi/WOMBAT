@@ -10,6 +10,10 @@
   <body>
     <div id="panel">
       <h1>Infrastructure Layers</h1>
+      <nav class="page-nav" aria-label="Frontend pages">
+        <a class="page-nav__link page-nav__link--active" href="./index.html">Main map</a>
+        <a class="page-nav__link" href="./k-rings.html">K-rings</a>
+      </nav>
       <div class="controls">
         <label for="run-selector">Run / r-level</label>
         <select id="run-selector"></select>
@@ -25,6 +29,31 @@
         <label><input type="checkbox" id="toggle-adaptive" /> Adaptive Facility H3</label>
         <label><input type="checkbox" id="toggle-r7-regions" checked /> R7 Network Regions</label>
         <label><input type="checkbox" id="toggle-r7-routes" checked /> R7 Region Routes</label>
+      </div>
+      <div id="adaptive-score-controls">
+        <div class="control-title">Adaptive Score</div>
+        <div class="score-mode" role="group" aria-label="Adaptive score mode">
+          <label><input type="radio" name="adaptive-score-mode" id="score-mode-raw" checked /> Raw score</label>
+          <label><input type="radio" name="adaptive-score-mode" id="score-mode-smoothed" /> Smoothed score</label>
+        </div>
+        <label for="score-lambda">Lambda <span id="adaptive-score-lambda-value">0.50</span></label>
+        <input type="range" id="score-lambda" min="0" max="1" step="0.05" value="0.50" />
+        <label for="score-iterations">Iterations <span id="adaptive-score-iterations-value">1</span></label>
+        <input type="range" id="score-iterations" min="1" max="3" step="1" value="1" />
+        <label for="score-threshold">Threshold <span id="adaptive-score-threshold-value">0</span></label>
+        <input type="range" id="score-threshold" min="0" max="1" step="0.001" value="0" />
+        <div id="adaptive-score-legend">
+          <div class="score-legend-row">
+            <div id="adaptive-score-mode-label">Raw score</div>
+            <div id="adaptive-score-range">-- / --</div>
+          </div>
+          <div id="adaptive-score-legend-subtitle">Log-scaled color ramp and threshold highlight</div>
+          <div id="adaptive-score-gradient" class="score-gradient"></div>
+          <div class="score-legend-scale">
+            <span id="adaptive-score-legend-min">--</span>
+            <span id="adaptive-score-legend-max">--</span>
+          </div>
+        </div>
       </div>
       <div id="display-scope">Display scope: loading...</div>
       <div id="stats">
@@ -48,6 +77,8 @@
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script src="./adaptive-score.js"></script>
     <script src="./main.js"></script>
   </body>
 </html>

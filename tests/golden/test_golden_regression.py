@@ -139,10 +139,24 @@ def test_golden_facility_density_adaptive_v3_fixture_is_deterministic_with_valid
 
     assert metadata_a["layer_version"] == "v3"
     assert metadata_a["coverage_domain"] == "country_mask_r4"
-    assert metadata_a == metadata_b
+    stable_a = dict(metadata_a)
+    stable_b = dict(metadata_b)
+    stable_a["adaptive_counters"] = dict(stable_a.get("adaptive_counters", {}))
+    stable_b["adaptive_counters"] = dict(stable_b.get("adaptive_counters", {}))
+    for key in (
+        "initial_recursion_seconds",
+        "neighbor_smoothing_seconds",
+        "post_compaction_seconds",
+        "country_intersection_filter_seconds",
+    ):
+        stable_a["adaptive_counters"].pop(key, None)
+        stable_b["adaptive_counters"].pop(key, None)
+    assert stable_a == stable_b
     subset_a = cells_a[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).to_dict("records")
     subset_b = cells_b[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).to_dict("records")
     assert subset_a == subset_b
+    expected = json.loads(Path("tests/golden/facility_density_adaptive_v3_fixture_records.json").read_text(encoding="utf-8"))
+    assert subset_a == expected
     assert cells_a["h3"].is_unique
     assert int(cells_a["resolution"].min()) >= 0
     assert int(cells_a["resolution"].max()) <= 13

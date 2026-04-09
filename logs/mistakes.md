@@ -142,3 +142,24 @@ Append-only log of agent mistakes and prevention rules.
 - Corrective action: Added a separate `country_code` column, restored `AR`/`TW` there, and kept reverse-geocoded country names in `country`.
 - Prevention rule: Before writing enrichment data back to CSV, explicitly distinguish between source columns being preserved and derived columns being appended or replaced.
 - Verification evidence: `artifacts/derived/2026-03-08-r7-regions-ar.csv` and `artifacts/derived/2026-03-08-r7-regions-tw.csv` now begin with `run_id,country_code,country,...,city,region`.
+
+## 2026-04-06T05:17:02Z
+- Mistake: The first screenshot capture centered on a sparse map region and the adaptive polygons were not legible, so the score field did not read as a visual proof.
+- Root cause: I used the live map's default viewport instead of steering the browser to a dense adaptive cell before taking the screenshot.
+- Corrective action: Exposed a small browser debug handle for the Leaflet map and the adaptive feature collection, then recaptured the screenshot centered on the densest non-zero adaptive cell.
+- Prevention rule: For UI verification, always center the camera on a representative high-signal feature before saving a proof screenshot; do not rely on the default fit-bounds view.
+- Verification evidence: `frontend/main.js` debug handles, and `artifacts/screenshots/2026-04-06-h3-score-smoothing-prototype.png`.
+
+## 2026-04-07T03:05:35Z
+- Mistake: The first k-rings screenshot captured a 404 response instead of the new page.
+- Root cause: I assumed the existing local server on port 8000 reflected the current worktree, but it was serving older app state without the new `/k-rings` route.
+- Corrective action: Started a fresh local app instance on a dedicated port and re-ran the screenshot capture against that server.
+- Prevention rule: Before using an existing local server for visual verification, confirm it is serving the current worktree and route set, or use a fresh dedicated port.
+- Verification evidence: `artifacts/screenshots/2026-04-06-k-rings.png` captured from `http://127.0.0.1:8765/k-rings?data=static`.
+
+## 2026-04-07T03:24:11Z
+- Mistake: The first verification serve attempt failed because port `8000` was already occupied by a stale `inframap.serve` process.
+- Root cause: I assumed `make serve-dev` could bind the default port immediately after running `make run-dev`, but an older local server instance was still alive from earlier work.
+- Corrective action: Identified the lingering PID with `lsof`, terminated it, and restarted `make serve-dev` against the current worktree before taking the screenshot.
+- Prevention rule: Before starting a fresh dev server for UI verification, check whether port `8000` is already bound and clear any stale local server first.
+- Verification evidence: `lsof -nP -iTCP:8000 -sTCP:LISTEN` showed PID `57050`; `kill 57050`; subsequent `make serve-dev` succeeded on `http://0.0.0.0:8000`.

@@ -2,19 +2,28 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .hypothesis/
-node_modules/ 
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+node_modules/
 
 # runtime artifacts
 data/runs/
 data/staging/
 data/published/
 data/openstreetmap/**/major_roads*.geojson
+artifacts/calibration/
+artifacts/eval/
+artifacts/exports/
 artifacts/screenshots/
 artifacts/derived/*.geojson
 artifacts/derived/*.csv
 artifacts/derived/*.json
+logs/progress/*.md
 
-# large/generated data (do not add frontend/demo-data/ — required)
+# large/generated data
 data/openstreetmap/**/*.osm.pbf
 data/openstreetmap/**/*.shp
 data/openstreetmap/**/*.dbf

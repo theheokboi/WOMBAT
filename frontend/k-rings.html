@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Infrastructure Map - K Rings</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="panel">
+      <nav class="page-nav" aria-label="Frontend pages">
+        <a class="page-nav__link" href="./index.html">Main map</a>
+        <a class="page-nav__link page-nav__link--active" href="./k-rings.html">K-rings</a>
+      </nav>
+      <h1>K-Rings Experiment</h1>
+      <div class="page-intro">
+        Expand each facility from its point geometry into a parameterized H3 coverage disk, then group adjacent cells into contiguous regions.
+      </div>
+      <div class="controls">
+        <label for="run-selector">Run / r-level</label>
+        <select id="run-selector"></select>
+        <label for="basemap-selector">Basemap</label>
+        <select id="basemap-selector">
+          <option value="positron">CARTO Positron</option>
+          <option value="dark">CARTO Dark</option>
+        </select>
+      </div>
+      <div class="controls controls--ranges">
+        <div class="control-field">
+          <label for="resolution-control">Resolution</label>
+          <div class="range-control">
+            <input id="resolution-control" type="range" min="5" max="8" step="1" value="7" />
+            <output id="resolution-value" for="resolution-control">r7</output>
+          </div>
+        </div>
+        <div class="control-field">
+          <label for="datacenter-k-control">Datacenter k</label>
+          <div class="range-control">
+            <input id="datacenter-k-control" type="range" min="0" max="4" step="1" value="2" />
+            <output id="datacenter-k-value" for="datacenter-k-control">2</output>
+          </div>
+        </div>
+        <div class="control-field">
+          <label for="landing-k-control">Landing-point k</label>
+          <div class="range-control">
+            <input id="landing-k-control" type="range" min="0" max="4" step="1" value="1" />
+            <output id="landing-k-value" for="landing-k-control">1</output>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <label><input type="checkbox" id="toggle-facilities" checked /> Facility / landing points</label>
+        <label><input type="checkbox" id="toggle-k-rings" checked /> K-ring regions</label>
+      </div>
+      <div id="k-rings-summary" aria-live="polite"></div>
+      <div id="display-scope">Display scope: loading...</div>
+      <div id="stats">
+        <div id="param-count">Current parameters: --</div>
+        <div id="facility-count">Non-landing facilities: --</div>
+        <div id="landing-count">Landing points: --</div>
+        <div id="seed-count">Seed cells: --</div>
+        <div id="ring-cell-count">Expanded cells: --</div>
+        <div id="region-count">Contiguous regions: --</div>
+      </div>
+      <div id="run-status">
+        <h2>Run Status</h2>
+        <div id="selected-run">Selected run: --</div>
+        <div id="selected-source">Data source: --</div>
+        <div id="active-run-status">Active run: --</div>
+      </div>
+      <div id="drilldown">
+        <h2>Region Drill-down</h2>
+        <div id="drilldown-content">Hover a region or point to inspect the generated k-ring groups.</div>
+      </div>
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+    <script src="./shared.js"></script>
+    <script src="./k-rings.js"></script>
+  </body>
+</html>

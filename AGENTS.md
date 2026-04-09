@@ -2,51 +2,65 @@
 
 This file defines conventions for coding agents and human contributors in this repository.
 
-## Mission
+Primary contract reference: `docs/PROJECT.md`
 
-Deliver fast, country-scoped, visual iteration for infrastructure mapping while preserving a minimal reproducibility backbone.
+## Working Mode
 
-Primary reference:
-
-- `docs/PROJECT.md` (authoritative API/data contracts)
-
-## Operating Mode
-
-The repository is currently **dev-only**.
-
-- Exploration speed is prioritized.
-- Strict/promotion workflow is deferred to a future hardening phase.
-- Do not introduce strict gating assumptions into day-to-day dev commands.
+- The repository is dev-first.
+- Prefer the shortest loop that validates the changed behavior.
+- Do not introduce strict or prod-only workflow assumptions into routine development.
 
 ## Context Preservation
 
-- When reading, exploring, implementing, or reviewing code, delegate scoped discovery tasks to subagents when possible to preserve the main agent context window.
-- Use subagents for parallel codebase inspection, document review, and targeted file analysis; keep synthesis and final decisions in the main thread.
+- Delegate scoped discovery when it reduces main-thread context pressure.
+- Keep synthesis and final decisions in the main thread.
 
-## Non-Negotiable Principles (Current)
+## Non-Negotiable Principles
 
 - Geometry authority: do not infer spatial membership from free text.
-- Explicit run metadata: always persist `run_id`, `inputs_hash`, `config_hash`, `code_hash`.
-- Immutable published run directories.
-- Dev pointer isolation: use `latest-dev`; keep compatibility alias `latest` in sync.
-- Clear internal UX over premature optimization.
+- Every run must persist `run_id`, `inputs_hash`, `config_hash`, and `code_hash`.
+- Published run directories are immutable after pointer update.
+- Dev pointer isolation: `latest-dev` is primary and `latest` is a compatibility alias.
+- Prefer clear internal UX over premature optimization.
 
-## Required Progress Tracking
+## Development Sequence
 
-Progress tracking is mandatory for non-trivial tasks.
+1. Confirm the relevant contract in `docs/PROJECT.md`.
+2. Add or update the smallest useful tests.
+3. Implement the minimal code change.
+4. Run the narrowest verification tier that covers the change.
+5. Update docs when workflow, commands, or contracts change.
 
-- Every task must maintain checklist status markers: `[ ]`, `[~]`, `[x]`.
-- Checklist updates must happen during work, not only at the end.
-- Blockers must be marked as `BLOCKED: <reason>`.
+## Verification Tiers
 
-## Progress Log Requirement
+- `make verify-dev` / `make verify-fast`: default local smoke gate
+- `make verify-ui`: UI shell smoke
+- `make verify-full`: broader regression path
+- `make verify-experimental`: perf and property checks
+
+Use broader tiers only when the change justifies them.
+
+## Progress Tracking
+
+Substantial tasks still need checklist tracking with `[ ]`, `[~]`, and `[x]`.
+Blockers should be written as `BLOCKED: <reason>`.
+
+Committed progress logs are required only for:
+
+- contract changes
+- publish or data-shape changes
+- multi-session investigations
+- explicit handoff work
+
+Routine bugfixes, refactors, and UI iteration may keep notes locally and untracked.
+
+When a committed progress log is needed:
 
 - Path: `logs/progress/<YYYY-MM-DD>-<short-task-name>.md`
-- One task per file.
-- UTC timestamps.
-- Append-only updates.
+- Use UTC timestamps
+- Keep entries append-only
 
-Required entry format:
+Entry format:
 
 ```text
 ## <UTC timestamp>
@@ -57,134 +71,36 @@ Required entry format:
 - Next: <next concrete action>
 ```
 
-Minimum cadence:
+## UI Verification
 
-- task start
-- each status transition
-- at least once before handoff
+For real UI or visual behavior changes:
 
-## Required Development Sequence
+- run the backend path needed for the affected view
+- verify the relevant API payloads before debugging the browser
+- run `make verify-ui`
+- capture a screenshot only when it proves a visual claim
 
-1. Confirm requirement in `docs/PROJECT.md`.
-2. Add/update tests for changed behavior.
-3. Implement minimal code.
-4. Run local verification for impacted paths.
-5. Update docs/config examples when behavior/interfaces change.
-6. Update `docs/PROJECT.md`, `README.md`, and `AGENTS.md` for workflow/contract/tooling changes.
+Screenshot convention:
 
-## Dev Commands
+- `artifacts/screenshots/<YYYY-MM-DD>-<short-name>.png`
 
-Primary workflow commands:
+## Documentation Policy
 
-- `make run-dev COUNTRIES=<code[,code...]>`
-- `make serve-dev`
-- `make ui-dev`
-- `make verify-dev`
-- `make export-facilities-sqlite`
-- `PYTHONPATH=src python scripts/export_static_demo_bundle.py --run-id <run-id>`
-- `PYTHONPATH=src python scripts/export_facilities_sqlite.py --output <sqlite-path>`
+- `docs/PROJECT.md` owns contracts
+- `README.md` is the quickstart
+- `AGENTS.md` owns workflow rules
 
-Compatibility aliases:
+Do not duplicate contract detail across those files. Link to the owner instead.
 
-- `make run` -> `run-dev`
-- `make serve` -> `serve-dev`
-- `make ui` -> `ui-dev`
+## Repo Hygiene
 
-## Dev Verification Contract
+- Keep generated runtime output out of code review when possible.
+- `src/inframap.egg-info/`, caches, derived artifacts, screenshots, and local run data are not source-of-truth.
+- `archive/` is reference material, not active workflow.
+- Use `make archive-progress-logs` to move stale committed progress logs into `archive/logs/progress/`.
 
-`make verify-dev` must cover:
+## Mistake Tracking
 
-- input/schema sanity
-- layer compute no-crash
-- API payload non-empty for selected scope
-- UI smoke
-
-Non-blocking reporting remains required for perf/monitoring checks.
-
-## Data and Publish Rules (Dev)
-
-- Active pointer: `data/published/latest-dev`
-- Compatibility alias: `data/published/latest`
-- Dev workflow must not assume strict/prod pointer semantics.
-- Publish remains atomic for dev pointer updates.
-- Never mutate published run artifacts after pointer update.
-
-## API and Serving Rules
-
-- Keep versioned path prefix `/v1`.
-- Include `run_id` and layer version context in responses.
-- Include lane/pointer context in run/health status payloads for dev visibility.
-- Preserve backward compatibility for additive updates.
-- `/v1/osm/transport` must keep default `source=shapefile` behavior and allow `source=graph` loading from per-country graph files with `graph_variant` support: `raw` uses `major_roads_edges.geojson`/`major_roads_nodes.geojson`, `collapsed` uses `major_roads_edges_collapsed.geojson`/`major_roads_nodes_collapsed.geojson`, `adaptive` uses `major_roads_edges_adaptive.geojson`/`major_roads_nodes_adaptive.geojson`, and `adaptive_portal` uses `major_roads_edges_adaptive_portal.geojson`/`major_roads_nodes_adaptive_portal.geojson`; `adaptive_portal_run` uses run-scoped `data/runs/<run_id>/graph/<country>/major_roads_edges_adaptive_portal_run.geojson` and `major_roads_nodes_adaptive_portal_run.geojson`; support optional `include_nodes=true` by loading the variant-matched nodes file when present.
-- `/v1/populated-places` serves a static, run-agnostic Natural Earth populated-places point overlay from `data/populated_places/ne_10m_populated_places.shp` and supports optional `country` and `limit` query parameters.
-- `/v1/r7-region-routes` serves saved derived route artifacts as GeoJSON `LineString` features, prefers compact `artifacts/derived/*-r7-regions-*-routes-ui.geojson` visualization files when `include_self=false`, and supports optional `country` and `include_self` query parameters.
-- The frontend may also run in static demo mode from `frontend/demo-data/`, which must contain browser-ready JSON/GeoJSON snapshots exported from a published run.
-- Canonical facility ingest may include `data/datacenters/datacenters_geocoded.tsv` as an explicit geocoded point source; register it in `configs/system.yaml` and normalize it through a schema adapter instead of inferring membership from text.
-- External SQLite exports should reuse canonical facility normalization and emit one flat `facilities` table with source provenance preserved in-row.
-
-## Visualization Rules
-
-- Always support facility points and H3 grid layers.
-- Support derived `facility_density_r7_regions` overlays as fixed-`r7` network-region envelopes when surfaced in the UI.
-- Support saved `r7` region route overlays as route-geometry references when surfaced in the UI.
-- Prefer compact visualization-specific route artifacts over full routing artifacts when the UI only needs display geometry.
-- Prefer static demo bundles over ad hoc raw-data copies when preparing a frontend-only demo deployment.
-- Support populated places as a lightweight static reference point overlay when surfaced in the UI.
-- Use config-driven zoom-to-H3 mapping.
-- Adaptive resolution display bounds must follow published layer metadata params (no hardcoded UI min/max).
-- Avoid heavy client-side geospatial joins.
-- Prioritize legibility and provenance in tooltips.
-
-## Country Mask Defaults
-
-- Default `country_mask` policy is `fixed_resolution` with `membership_rule: overlap_ratio` at `resolution: 2`.
-- In fixed mode, include cells when `overlap_ratio > 0` (any positive overlap).
-- Keep deterministic one-cell ownership ordering across countries.
-- `facility_density_adaptive` must derive effective base resolution from `country_mask` fixed-resolution metadata when present.
-- Empty near-occupied sibling groups may compact above the normal empty-interior cap when `facility_density_adaptive.params.compact_empty_near_occupied` is enabled; boundary-band empties must still remain non-compactable.
-- Fully covered singleton occupied sibling groups may compact back to their parent when the merged parent remains outside the boundary band and still satisfies neighbor-delta validation, even if the parent is near another occupied region.
-
-## Visual Verification Protocol
-
-For UI/visual changes:
-
-- run `make run-dev`
-- run `make serve-dev`
-- verify API payload presence before UI debugging
-- run UI smoke tests
-- capture at least one screenshot at `artifacts/screenshots/<YYYY-MM-DD>-<short-name>.png`
-- log screenshot path and what it proves in progress log
-
-## Documentation Freshness Policy
-
-`README.md`, `AGENTS.md`, and `docs/PROJECT.md` are living docs.
-
-Any workflow/quality gate/command/contract change must include doc updates in the same change.
-If no update is needed, record: `Docs check: no changes required` with rationale in progress log.
-
-## Mistake Tracking and Prevention
-
-- Maintain append-only ledger at `logs/mistakes.md`.
-- Log each discovered mistake with root cause, corrective action, prevention rule, and verification.
-- Before handoff, run a mistake replay check and record confirmation in progress log.
-
-## Log Retention
-
-- Keep `logs/mistakes.md` live and append-only.
-- Keep active and recent task logs in `logs/progress/`.
-- Move completed progress logs older than 7 days to `archive/logs/progress/` instead of deleting them.
-- Prefer archiving over deletion for historical task records.
-
-## Archived Documentation
-
-Historical handover/planning/log summary docs are stored under `archive/docs/`.
-Active docs remain in `docs/` (`PROJECT.md`, `ADAPTIVE_CELL_ROUTING.md`).
-
-## Definition of Done (Current Mode)
-
-- Requirement mapped to `docs/PROJECT.md`.
-- Tests updated for changed behavior.
-- Dev verification completed and reported.
-- Docs updated (or explicitly confirmed unchanged with rationale).
-- Checklist complete.
-- Progress log present with required UTC updates.
+- Keep `logs/mistakes.md` append-only.
+- Record real regressions, root causes, prevention rules, and verification.
+- Before handoff, perform a mistake replay check when the task touched a previously failing area.
