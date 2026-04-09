@@ -8,6 +8,7 @@ import pytest
 from shapely.geometry import Polygon, shape
 
 from inframap.layers.facility_density_adaptive import FacilityDensityAdaptiveLayer, _AdaptiveCoverageIndex
+from inframap.layers.facility_density_policies.v3 import FacilityDensityAdaptiveV3Policy
 
 
 def _v3_params() -> dict[str, int | bool]:
@@ -299,6 +300,50 @@ def test_adaptive_v3_filters_non_intersecting_cells_from_country_polygon(tmp_pat
     _assert_adaptive_counters_present(metadata)
     assert not cells.empty
     assert all(_cell_overlap_ratio(str(cell), polygon) > 0.0 for cell in cells["h3"].astype(str).tolist())
+
+
+def test_adaptive_v3_country_intersection_filter_excludes_boundary_only_contacts() -> None:
+    policy = FacilityDensityAdaptiveV3Policy(version="v3")
+    cell = str(h3.latlng_to_cell(41.8781, -87.6298, 4))
+    cell_poly = policy._cell_polygon(cell)
+    minx, miny, maxx, maxy = cell_poly.bounds
+    boundary_touch_only = Polygon(
+        [(maxx, miny), (maxx + 0.2, miny), (maxx + 0.2, maxy), (maxx, maxy)]
+    )
+    positive_overlap = Polygon(
+        [(maxx - 0.2, miny), (maxx + 0.2, miny), (maxx + 0.2, maxy), (maxx - 0.2, maxy)]
+    )
+    output = pd.DataFrame(
+        [
+            {
+                "h3": cell,
+                "resolution": 4,
+                "layer_value": 1,
+                "layer_id": "facility_density_adaptive:v3",
+                "asof_date": "2026-02-28",
+            }
+        ]
+    )
+
+    assert boundary_touch_only.touches(cell_poly) is True
+    assert positive_overlap.intersection(cell_poly).area > 0.0
+
+    policy._load_country_polygons_from_metadata = lambda metadata: [boundary_touch_only]  # type: ignore[method-assign]
+    filtered_touch, applied_touch = policy._filter_to_country_intersection(
+        output=output,
+        country_metadata={},
+    )
+
+    policy._load_country_polygons_from_metadata = lambda metadata: [positive_overlap]  # type: ignore[method-assign]
+    filtered_overlap, applied_overlap = policy._filter_to_country_intersection(
+        output=output,
+        country_metadata={},
+    )
+
+    assert applied_touch is True
+    assert filtered_touch.empty
+    assert applied_overlap is True
+    assert filtered_overlap["h3"].astype(str).tolist() == [cell]
 
 
 def test_adaptive_v3_uses_fixed_country_mask_resolution_as_base() -> None:

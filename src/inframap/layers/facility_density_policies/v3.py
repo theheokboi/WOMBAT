@@ -10,6 +10,7 @@ import h3
 import pandas as pd
 from shapely.geometry import Polygon, shape
 from shapely.ops import unary_union
+from shapely.prepared import prep
 
 
 @dataclass
@@ -719,9 +720,14 @@ class FacilityDensityAdaptiveV3Policy:
         country_union = unary_union(polygons)
         if country_union.is_empty:
             return output.iloc[0:0].copy(), True
+        prepared_country_union = prep(country_union)
 
         keep = [
-            self._overlap_ratio_with_geometry(str(cell), country_union) > 0.0
+            self._has_positive_overlap_with_geometry(
+                cell=str(cell),
+                geometry=country_union,
+                prepared_geometry=prepared_country_union,
+            )
             for cell in output["h3"].astype(str).tolist()
         ]
         filtered = output.loc[keep].copy()
@@ -809,6 +815,22 @@ class FacilityDensityAdaptiveV3Policy:
         if cell_poly.is_empty or cell_poly.area == 0:
             return 0.0
         return float(cell_poly.intersection(geometry).area / cell_poly.area)
+
+    def _has_positive_overlap_with_geometry(
+        self,
+        cell: str,
+        geometry: Any,
+        prepared_geometry: Any | None = None,
+    ) -> bool:
+        cell_poly = self._cell_polygon(cell)
+        if cell_poly.is_empty or cell_poly.area == 0:
+            return False
+        candidate_geometry = prepared_geometry or prep(geometry)
+        if candidate_geometry.contains_properly(cell_poly):
+            return True
+        if not candidate_geometry.intersects(cell_poly):
+            return False
+        return cell_poly.relate_pattern(geometry, "2********")
 
     def _adjacency_counters(
         self,
