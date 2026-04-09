@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path
+from shutil import rmtree
 from time import perf_counter
-from typing import Any
+from typing import Any, Callable
 
 import h3
 import pandas as pd
@@ -11,6 +16,26 @@ from inframap.layers.facility_density_policies.v3 import (
     FacilityDensityAdaptiveV3Policy,
     _AdaptiveCoverageIndex,
 )
+
+
+_ADAPTIVE_CACHE_SCHEMA_VERSION = 1
+_FALSEY_ENV_VALUES = {"0", "false", "no", "off"}
+_TRUTHY_ENV_VALUES = {"1", "true", "yes", "on"}
+
+
+@dataclass(frozen=True)
+class _AdaptivePrecomputeCacheKey:
+    cache_key: str
+    cache_dir: Path
+    key_parts: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _AdaptivePrecomputeBundle:
+    domain_r4_set: set[str]
+    domain_ancestors_by_resolution: dict[int, set[str]]
+    count_by_resolution: dict[int, dict[str, int]]
+    max_asof_date: str | None
 
 
 @dataclass
@@ -63,6 +88,17 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             "neighbor_smoothing_seconds": 0.0,
             "post_compaction_seconds": 0.0,
             "country_intersection_filter_seconds": 0.0,
+            "domain_normalization_seconds": 0.0,
+            "facility_h3_assignment_seconds": 0.0,
+            "facility_count_aggregation_seconds": 0.0,
+            "boundary_band_precompute_seconds": 0.0,
+            "near_occupied_precompute_seconds": 0.0,
+            "smoothing_bootstrap_seconds": 0.0,
+            "smoothing_loop_seconds": 0.0,
+            "compaction_adjacency_seconds": 0.0,
+            "adaptive_cache_read_seconds": 0.0,
+            "adaptive_cache_write_seconds": 0.0,
+            "adaptive_cache_hit": False,
             "covering_leaf_lookup_count": 0,
             "parent_cell_lookup_count": 0,
             "smoothing_candidate_count": 0,
@@ -95,18 +131,32 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         if not isinstance(country_cells, pd.DataFrame) or "h3" not in country_cells.columns:
             raise ValueError("country_mask artifacts must provide a cells dataframe with h3 column")
 
-        domain_r4_set: set[str] = set()
-        for raw_cell in country_cells["h3"].astype(str).tolist():
-            cell = str(raw_cell)
-            resolution = h3.get_resolution(cell)
-            if resolution == base_resolution:
-                domain_r4_set.add(cell)
-            elif resolution < base_resolution:
-                domain_r4_set.update(str(child) for child in h3.cell_to_children(cell, base_resolution))
-            else:
-                domain_r4_set.add(h3.cell_to_parent(cell, base_resolution))
-        domain_r4 = sorted(domain_r4_set)
-        if not domain_r4:
+        cache_enabled = self._adaptive_cache_enabled(params)
+        cache_key = self._build_adaptive_cache_key(
+            country_cells=country_cells,
+            facilities=facilities,
+            base_resolution=base_resolution,
+            empty_compact_min_resolution=empty_compact_min_resolution,
+            facility_max_resolution=facility_max_resolution,
+            cache_root=self._adaptive_cache_root(params),
+        )
+        precompute = self._load_or_build_precompute_bundle(
+            facilities=facilities,
+            country_cells=country_cells,
+            base_resolution=base_resolution,
+            empty_compact_min_resolution=empty_compact_min_resolution,
+            facility_max_resolution=facility_max_resolution,
+            cache_enabled=cache_enabled,
+            cache_key=cache_key,
+            adaptive_counters=adaptive_counters,
+        )
+
+        domain_r4_set = precompute.domain_r4_set
+        domain_ancestors_by_resolution = precompute.domain_ancestors_by_resolution
+        count_by_resolution = precompute.count_by_resolution
+        max_asof = precompute.max_asof_date
+
+        if not domain_r4_set:
             empty = pd.DataFrame(columns=["h3", "resolution", "layer_value", "layer_id", "asof_date"])
             metadata = self._metadata(
                 params={
@@ -136,7 +186,6 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             metadata["adaptive_counters"] = dict(adaptive_counters)
             return metadata, empty
 
-        domain_r4_set = set(domain_r4)
         parent_cache: dict[tuple[str, int], str] = {}
 
         def parent_cell(cell: str, resolution: int) -> str:
@@ -151,40 +200,9 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                 parent_cache[key] = h3.cell_to_parent(cell, resolution)
             return parent_cache[key]
 
-        domain_ancestors_by_resolution = {
-            resolution: {parent_cell(cell, resolution) for cell in domain_r4_set}
-            for resolution in range(empty_compact_min_resolution, base_resolution)
-        }
-
-        working = facilities[["lat", "lon", "asof_date"]].copy()
-        for resolution in range(base_resolution, facility_max_resolution + 1):
-            col = f"h3_r{resolution}"
-            working[col] = [
-                h3.latlng_to_cell(float(lat), float(lon), resolution)
-                for lat, lon in zip(working["lat"].tolist(), working["lon"].tolist(), strict=False)
-            ]
-
-        if working.empty:
-            facilities_in_domain = working
-        else:
-            facilities_in_domain = working[working[f"h3_r{base_resolution}"].isin(domain_r4_set)].copy()
-
-        count_by_resolution: dict[int, dict[str, int]] = {}
-        for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1):
-            if facilities_in_domain.empty:
-                count_by_resolution[resolution] = {}
-                continue
-            if resolution < base_resolution:
-                series = facilities_in_domain[f"h3_r{base_resolution}"].map(
-                    lambda cell: parent_cell(str(cell), resolution)
-                )
-            else:
-                series = facilities_in_domain[f"h3_r{resolution}"]
-            count_by_resolution[resolution] = {
-                str(cell): int(count) for cell, count in series.value_counts(sort=False).items()
-            }
-
-        roots = sorted(domain_ancestors_by_resolution[empty_compact_min_resolution])
+        roots = sorted(
+            domain_r4_set if empty_compact_min_resolution == base_resolution else domain_ancestors_by_resolution[empty_compact_min_resolution]
+        )
         leaves: dict[str, int] = {}
 
         def intersects_domain(cell: str, resolution: int) -> bool:
@@ -202,25 +220,41 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             if cached is not None:
                 return cached
             if k <= 0:
-                return [cell]
+                neighbors_cache[key] = [cell]
+                return neighbors_cache[key]
             neighbors = sorted(str(neighbor) for neighbor in h3.grid_disk(cell, k))
             neighbors_cache[key] = [neighbor for neighbor in neighbors if h3.get_resolution(neighbor) == resolution]
             return neighbors_cache[key]
 
+        boundary_band_started = perf_counter()
+        boundary_band_cells_by_resolution = self._build_boundary_band_cells_by_resolution(
+            base_resolution=base_resolution,
+            empty_compact_min_resolution=empty_compact_min_resolution,
+            facility_max_resolution=facility_max_resolution,
+            empty_refine_country_edge_k=empty_refine_country_edge_k,
+            domain_r4_set=domain_r4_set,
+            domain_ancestors_by_resolution=domain_ancestors_by_resolution,
+            intersects_domain=intersects_domain,
+            neighbors_within_k=neighbors_within_k,
+        )
+        adaptive_counters["boundary_band_precompute_seconds"] = perf_counter() - boundary_band_started
+
+        near_occupied_started = perf_counter()
+        near_occupied_cells_by_resolution = self._build_near_occupied_cells_by_resolution(
+            empty_compact_min_resolution=empty_compact_min_resolution,
+            facility_max_resolution=facility_max_resolution,
+            empty_refine_near_occupied_k=empty_refine_near_occupied_k,
+            count_by_resolution=count_by_resolution,
+            intersects_domain=intersects_domain,
+            neighbors_within_k=neighbors_within_k,
+        )
+        adaptive_counters["near_occupied_precompute_seconds"] = perf_counter() - near_occupied_started
+
         def is_boundary_band(cell: str, resolution: int) -> bool:
-            for neighbor in neighbors_within_k(cell, resolution, empty_refine_country_edge_k):
-                if not intersects_domain(neighbor, resolution):
-                    return True
-            return False
+            return cell in boundary_band_cells_by_resolution[resolution]
 
         def is_near_occupied(cell: str, resolution: int) -> bool:
-            occupied = count_by_resolution[resolution]
-            for neighbor in neighbors_within_k(cell, resolution, empty_refine_near_occupied_k):
-                if neighbor == cell:
-                    continue
-                if occupied.get(neighbor, 0) > 0:
-                    return True
-            return False
+            return cell in near_occupied_cells_by_resolution[resolution]
 
         def max_allowed_resolution(cell: str, resolution: int, facility_count: int) -> int:
             if facility_count > 0:
@@ -372,10 +406,13 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             return affected
 
         smoothing_started = perf_counter()
+        bootstrap_started = perf_counter()
         for cell in sorted(leaves, key=lambda value: (h3.get_resolution(value), value)):
             add_source(cell)
+        adaptive_counters["smoothing_bootstrap_seconds"] = perf_counter() - bootstrap_started
 
         smoothing_iterations = 0
+        smoothing_loop_started = perf_counter()
         while smoothing_candidates:
             ordered_candidates = sorted(smoothing_candidates, key=lambda item: (h3.get_resolution(item), item))
             refined = False
@@ -423,6 +460,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                 break
             if not refined:
                 break
+        adaptive_counters["smoothing_loop_seconds"] = perf_counter() - smoothing_loop_started
         adaptive_counters["neighbor_smoothing_seconds"] = perf_counter() - smoothing_started
 
         compaction_started = perf_counter()
@@ -464,10 +502,6 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         )
         output = output.sort_values(by=["resolution", "h3"]).reset_index(drop=True)
         output["layer_id"] = f"facility_density_adaptive:{self.version}"
-
-        max_asof = (
-            facilities_in_domain["asof_date"].max() if "asof_date" in facilities_in_domain.columns else None
-        )
         output["asof_date"] = max_asof
         output = output[["h3", "resolution", "layer_value", "layer_id", "asof_date"]]
         filter_started = perf_counter()
@@ -504,6 +538,525 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         metadata["country_intersection_cells_dropped"] = country_intersection_cells_dropped
         return metadata, output
 
+    def _adaptive_cache_enabled(self, params: dict[str, Any]) -> bool:
+        override = params.get("_adaptive_cache_enabled")
+        if isinstance(override, bool):
+            return override
+        if isinstance(override, str):
+            normalized = override.strip().lower()
+            if normalized in _FALSEY_ENV_VALUES:
+                return False
+            if normalized in _TRUTHY_ENV_VALUES:
+                return True
+        raw = os.environ.get("ADAPTIVE_CACHE")
+        if raw is None:
+            return True
+        normalized = raw.strip().lower()
+        if normalized in _FALSEY_ENV_VALUES:
+            return False
+        if normalized in _TRUTHY_ENV_VALUES:
+            return True
+        return True
+
+    def _adaptive_cache_root(self, params: dict[str, Any]) -> Path:
+        root = params.get("_adaptive_cache_root")
+        if isinstance(root, Path):
+            return root / self.version
+        if isinstance(root, str):
+            return Path(root) / self.version
+        return Path("data/cache/facility_density_adaptive") / self.version
+
+    def _build_adaptive_cache_key(
+        self,
+        *,
+        country_cells: pd.DataFrame,
+        facilities: pd.DataFrame,
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        cache_root: Path,
+    ) -> _AdaptivePrecomputeCacheKey:
+        key_parts = {
+            "country_mask_cells_hash": self._hash_country_mask_cells(country_cells),
+            "facilities_hash": self._hash_facility_rows(facilities),
+            "base_resolution": int(base_resolution),
+            "empty_compact_min_resolution": int(empty_compact_min_resolution),
+            "facility_max_resolution": int(facility_max_resolution),
+            "adaptive_policy_signature": self._adaptive_policy_signature(),
+            "cache_schema_version": _ADAPTIVE_CACHE_SCHEMA_VERSION,
+        }
+        cache_key = sha256(json.dumps(key_parts, sort_keys=True).encode("utf-8")).hexdigest()
+        return _AdaptivePrecomputeCacheKey(
+            cache_key=cache_key,
+            cache_dir=cache_root / cache_key,
+            key_parts=key_parts,
+        )
+
+    def _hash_country_mask_cells(self, country_cells: pd.DataFrame) -> str:
+        rows = []
+        if not country_cells.empty:
+            working = country_cells.copy()
+            if "resolution" in working.columns:
+                working = working.assign(resolution=working["resolution"].astype(int))
+            else:
+                working = working.assign(resolution=working["h3"].astype(str).map(h3.get_resolution))
+            working = working.assign(h3=working["h3"].astype(str))
+            for row in working[["resolution", "h3"]].sort_values(["resolution", "h3"]).itertuples(index=False):
+                rows.append(f"{int(row.resolution)}|{row.h3}")
+        return sha256("\n".join(rows).encode("utf-8")).hexdigest()
+
+    def _hash_facility_rows(self, facilities: pd.DataFrame) -> str:
+        rows = []
+        if not facilities.empty:
+            working = facilities[["lat", "lon", "asof_date"]].copy()
+            working = working.assign(
+                lat=working["lat"].map(lambda value: f"{float(value):.8f}"),
+                lon=working["lon"].map(lambda value: f"{float(value):.8f}"),
+                asof_date=working["asof_date"].fillna("").astype(str),
+            )
+            for row in working.sort_values(["lat", "lon", "asof_date"]).itertuples(index=False):
+                rows.append(f"{row.lat}|{row.lon}|{row.asof_date}")
+        return sha256("\n".join(rows).encode("utf-8")).hexdigest()
+
+    def _adaptive_policy_signature(self) -> str:
+        root = Path(__file__).resolve().parents[2]
+        files = [
+            root / "layers" / "facility_density_adaptive.py",
+            root / "layers" / "facility_density_policies" / "v4.py",
+            root / "layers" / "facility_density_policies" / "v3.py",
+        ]
+        digest = sha256()
+        for path in files:
+            digest.update(str(path.relative_to(root)).encode("utf-8"))
+            digest.update(path.read_bytes())
+        return digest.hexdigest()
+
+    def _load_or_build_precompute_bundle(
+        self,
+        *,
+        facilities: pd.DataFrame,
+        country_cells: pd.DataFrame,
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        cache_enabled: bool,
+        cache_key: _AdaptivePrecomputeCacheKey,
+        adaptive_counters: dict[str, Any],
+    ) -> _AdaptivePrecomputeBundle:
+        if cache_enabled:
+            read_started = perf_counter()
+            cached = self._read_precompute_bundle(
+                cache_dir=cache_key.cache_dir,
+                base_resolution=base_resolution,
+                empty_compact_min_resolution=empty_compact_min_resolution,
+                facility_max_resolution=facility_max_resolution,
+            )
+            adaptive_counters["adaptive_cache_read_seconds"] = perf_counter() - read_started
+            if cached is not None:
+                adaptive_counters["adaptive_cache_hit"] = True
+                return cached
+
+        bundle, domain_cells_df, facility_counts_df, summary = self._build_precompute_bundle(
+            facilities=facilities,
+            country_cells=country_cells,
+            base_resolution=base_resolution,
+            empty_compact_min_resolution=empty_compact_min_resolution,
+            facility_max_resolution=facility_max_resolution,
+            adaptive_counters=adaptive_counters,
+        )
+        adaptive_counters["adaptive_cache_hit"] = False
+        if cache_enabled:
+            write_started = perf_counter()
+            self._write_precompute_bundle(
+                cache_key=cache_key,
+                domain_cells_df=domain_cells_df,
+                facility_counts_df=facility_counts_df,
+                summary=summary,
+            )
+            adaptive_counters["adaptive_cache_write_seconds"] = perf_counter() - write_started
+        return bundle
+
+    def _build_precompute_bundle(
+        self,
+        *,
+        facilities: pd.DataFrame,
+        country_cells: pd.DataFrame,
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        adaptive_counters: dict[str, Any],
+    ) -> tuple[_AdaptivePrecomputeBundle, pd.DataFrame, pd.DataFrame, dict[str, Any]]:
+        normalization_started = perf_counter()
+        domain_r4_set: set[str] = set()
+        for raw_cell in country_cells["h3"].astype(str).tolist():
+            cell = str(raw_cell)
+            resolution = h3.get_resolution(cell)
+            if resolution == base_resolution:
+                domain_r4_set.add(cell)
+            elif resolution < base_resolution:
+                domain_r4_set.update(str(child) for child in h3.cell_to_children(cell, base_resolution))
+            else:
+                domain_r4_set.add(h3.cell_to_parent(cell, base_resolution))
+        domain_r4 = sorted(domain_r4_set)
+        domain_r4_set = set(domain_r4)
+        parent_cache: dict[tuple[str, int], str] = {}
+
+        def parent_cell(cell: str, resolution: int) -> str:
+            key = (cell, resolution)
+            cached = parent_cache.get(key)
+            if cached is not None:
+                return cached
+            if h3.get_resolution(cell) == resolution:
+                parent_cache[key] = cell
+            else:
+                parent_cache[key] = h3.cell_to_parent(cell, resolution)
+            return parent_cache[key]
+
+        domain_ancestors_by_resolution = {
+            resolution: {parent_cell(cell, resolution) for cell in domain_r4_set}
+            for resolution in range(empty_compact_min_resolution, base_resolution)
+        }
+        adaptive_counters["domain_normalization_seconds"] = perf_counter() - normalization_started
+
+        assignment_started = perf_counter()
+        working = facilities[["lat", "lon", "asof_date"]].copy()
+        for resolution in range(base_resolution, facility_max_resolution + 1):
+            col = f"h3_r{resolution}"
+            working[col] = [
+                h3.latlng_to_cell(float(lat), float(lon), resolution)
+                for lat, lon in zip(working["lat"].tolist(), working["lon"].tolist(), strict=False)
+            ]
+        adaptive_counters["facility_h3_assignment_seconds"] = perf_counter() - assignment_started
+
+        if working.empty:
+            facilities_in_domain = working
+        else:
+            facilities_in_domain = working[working[f"h3_r{base_resolution}"].isin(domain_r4_set)].copy()
+
+        aggregation_started = perf_counter()
+        count_by_resolution: dict[int, dict[str, int]] = {}
+        for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1):
+            if facilities_in_domain.empty:
+                count_by_resolution[resolution] = {}
+                continue
+            if resolution < base_resolution:
+                series = facilities_in_domain[f"h3_r{base_resolution}"].map(
+                    lambda cell: parent_cell(str(cell), resolution)
+                )
+            else:
+                series = facilities_in_domain[f"h3_r{resolution}"]
+            count_by_resolution[resolution] = {
+                str(cell): int(count) for cell, count in series.value_counts(sort=False).items()
+            }
+        adaptive_counters["facility_count_aggregation_seconds"] = perf_counter() - aggregation_started
+
+        domain_rows: list[dict[str, Any]] = []
+        for resolution in range(empty_compact_min_resolution, base_resolution + 1):
+            cells_at_resolution = domain_r4_set if resolution == base_resolution else domain_ancestors_by_resolution[resolution]
+            for cell in sorted(cells_at_resolution):
+                domain_rows.append({"resolution": resolution, "h3": cell})
+        domain_cells_df = pd.DataFrame(domain_rows, columns=["resolution", "h3"])
+
+        facility_count_rows: list[dict[str, Any]] = []
+        for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1):
+            for cell, facility_count in sorted(count_by_resolution[resolution].items()):
+                facility_count_rows.append(
+                    {
+                        "resolution": resolution,
+                        "h3": cell,
+                        "facility_count": int(facility_count),
+                    }
+                )
+        facility_counts_df = pd.DataFrame(facility_count_rows, columns=["resolution", "h3", "facility_count"])
+
+        max_asof = facilities_in_domain["asof_date"].max() if "asof_date" in facilities_in_domain.columns else None
+        summary = {
+            "domain_cell_count": int(len(domain_cells_df)),
+            "facility_count_row_count": int(len(facility_counts_df)),
+            "facilities_in_domain_count": int(len(facilities_in_domain)),
+            "max_asof_date": None if pd.isna(max_asof) else str(max_asof),
+        }
+        bundle = _AdaptivePrecomputeBundle(
+            domain_r4_set=domain_r4_set,
+            domain_ancestors_by_resolution=domain_ancestors_by_resolution,
+            count_by_resolution=count_by_resolution,
+            max_asof_date=summary["max_asof_date"],
+        )
+        return bundle, domain_cells_df, facility_counts_df, summary
+
+    def _read_precompute_bundle(
+        self,
+        *,
+        cache_dir: Path,
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+    ) -> _AdaptivePrecomputeBundle | None:
+        domain_path = cache_dir / "domain_cells.parquet"
+        facility_counts_path = cache_dir / "facility_counts.parquet"
+        metadata_path = cache_dir / "cache_metadata.json"
+        if not (domain_path.exists() and facility_counts_path.exists() and metadata_path.exists()):
+            return None
+
+        try:
+            domain_cells_df = pd.read_parquet(domain_path)
+            facility_counts_df = pd.read_parquet(facility_counts_path)
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+        domain_cells_df = domain_cells_df.assign(
+            resolution=domain_cells_df["resolution"].astype(int),
+            h3=domain_cells_df["h3"].astype(str),
+        )
+        facility_counts_df = facility_counts_df.assign(
+            resolution=facility_counts_df["resolution"].astype(int),
+            h3=facility_counts_df["h3"].astype(str),
+            facility_count=facility_counts_df["facility_count"].astype(int),
+        )
+
+        domain_r4_set = {
+            str(cell)
+            for cell in domain_cells_df.loc[domain_cells_df["resolution"] == base_resolution, "h3"].tolist()
+        }
+        domain_ancestors_by_resolution = {
+            resolution: {
+                str(cell)
+                for cell in domain_cells_df.loc[domain_cells_df["resolution"] == resolution, "h3"].tolist()
+            }
+            for resolution in range(empty_compact_min_resolution, base_resolution)
+        }
+        count_by_resolution = {
+            resolution: {
+                str(row.h3): int(row.facility_count)
+                for row in facility_counts_df.loc[facility_counts_df["resolution"] == resolution].itertuples(index=False)
+            }
+            for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1)
+        }
+        summary = metadata.get("summary", {}) if isinstance(metadata, dict) else {}
+        max_asof = summary.get("max_asof_date")
+        if max_asof is None:
+            max_asof = metadata.get("max_asof_date")
+        return _AdaptivePrecomputeBundle(
+            domain_r4_set=domain_r4_set,
+            domain_ancestors_by_resolution=domain_ancestors_by_resolution,
+            count_by_resolution=count_by_resolution,
+            max_asof_date=str(max_asof) if max_asof is not None else None,
+        )
+
+    def _write_precompute_bundle(
+        self,
+        *,
+        cache_key: _AdaptivePrecomputeCacheKey,
+        domain_cells_df: pd.DataFrame,
+        facility_counts_df: pd.DataFrame,
+        summary: dict[str, Any],
+    ) -> None:
+        cache_dir = cache_key.cache_dir
+        cache_dir.parent.mkdir(parents=True, exist_ok=True)
+        tmp_dir = cache_dir.parent / f".{cache_dir.name}.tmp-{os.getpid()}"
+        if tmp_dir.exists():
+            rmtree(tmp_dir)
+        tmp_dir.mkdir(parents=True, exist_ok=False)
+        try:
+            domain_cells_df.sort_values(["resolution", "h3"]).reset_index(drop=True).to_parquet(
+                tmp_dir / "domain_cells.parquet",
+                index=False,
+            )
+            facility_counts_df.sort_values(["resolution", "h3"]).reset_index(drop=True).to_parquet(
+                tmp_dir / "facility_counts.parquet",
+                index=False,
+            )
+            metadata = {
+                "cache_schema_version": _ADAPTIVE_CACHE_SCHEMA_VERSION,
+                "cache_key": cache_key.cache_key,
+                "key_parts": cache_key.key_parts,
+                "summary": summary,
+            }
+            (tmp_dir / "cache_metadata.json").write_text(
+                json.dumps(metadata, sort_keys=True, indent=2),
+                encoding="utf-8",
+            )
+            if cache_dir.exists():
+                rmtree(tmp_dir)
+                return
+            tmp_dir.rename(cache_dir)
+        finally:
+            if tmp_dir.exists():
+                rmtree(tmp_dir)
+
+    def _build_boundary_band_cells_by_resolution(
+        self,
+        *,
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        empty_refine_country_edge_k: int,
+        domain_r4_set: set[str],
+        domain_ancestors_by_resolution: dict[int, set[str]],
+        intersects_domain: Callable[[str, int], bool],
+        neighbors_within_k: Callable[[str, int, int], list[str]],
+    ) -> dict[int, set[str]]:
+        boundary_band_cells_by_resolution = {
+            resolution: set() for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1)
+        }
+        if empty_refine_country_edge_k <= 0:
+            return boundary_band_cells_by_resolution
+
+        for resolution in range(empty_compact_min_resolution, base_resolution + 1):
+            domain_cells = domain_r4_set if resolution == base_resolution else domain_ancestors_by_resolution[resolution]
+            boundary_band_cells_by_resolution[resolution] = {
+                cell
+                for cell in sorted(domain_cells)
+                if self._scan_is_boundary_band(
+                    cell=cell,
+                    resolution=resolution,
+                    empty_refine_country_edge_k=empty_refine_country_edge_k,
+                    intersects_domain=intersects_domain,
+                    neighbors_within_k=neighbors_within_k,
+                )
+            }
+
+        for resolution in range(base_resolution + 1, facility_max_resolution + 1):
+            candidate_cells: set[str] = set()
+            for parent in sorted(boundary_band_cells_by_resolution[resolution - 1]):
+                for child in h3.cell_to_children(parent, resolution):
+                    child_str = str(child)
+                    if intersects_domain(child_str, resolution):
+                        candidate_cells.add(child_str)
+            boundary_band_cells_by_resolution[resolution] = {
+                cell
+                for cell in sorted(candidate_cells)
+                if self._scan_is_boundary_band(
+                    cell=cell,
+                    resolution=resolution,
+                    empty_refine_country_edge_k=empty_refine_country_edge_k,
+                    intersects_domain=intersects_domain,
+                    neighbors_within_k=neighbors_within_k,
+                )
+            }
+
+        return boundary_band_cells_by_resolution
+
+    def _build_near_occupied_cells_by_resolution(
+        self,
+        *,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        empty_refine_near_occupied_k: int,
+        count_by_resolution: dict[int, dict[str, int]],
+        intersects_domain: Callable[[str, int], bool],
+        neighbors_within_k: Callable[[str, int, int], list[str]],
+    ) -> dict[int, set[str]]:
+        near_occupied_cells_by_resolution = {
+            resolution: set() for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1)
+        }
+        if empty_refine_near_occupied_k <= 0:
+            return near_occupied_cells_by_resolution
+
+        for resolution in range(empty_compact_min_resolution, facility_max_resolution + 1):
+            occupied = count_by_resolution[resolution]
+            near_cells: set[str] = set()
+            for cell, facility_count in sorted(occupied.items()):
+                if int(facility_count) <= 0:
+                    continue
+                for neighbor in neighbors_within_k(cell, resolution, empty_refine_near_occupied_k):
+                    if neighbor == cell:
+                        continue
+                    if intersects_domain(neighbor, resolution):
+                        near_cells.add(neighbor)
+            near_occupied_cells_by_resolution[resolution] = near_cells
+        return near_occupied_cells_by_resolution
+
+    def _build_refinement_masks(
+        self,
+        *,
+        domain_r4_set: set[str],
+        domain_ancestors_by_resolution: dict[int, set[str]],
+        count_by_resolution: dict[int, dict[str, int]],
+        base_resolution: int,
+        empty_compact_min_resolution: int,
+        facility_max_resolution: int,
+        empty_refine_country_edge_k: int,
+        empty_refine_near_occupied_k: int,
+        parent_cell: Callable[[str, int], str],
+    ) -> tuple[dict[int, set[str]], dict[int, set[str]]]:
+        def intersects_domain(cell: str, resolution: int) -> bool:
+            if resolution < base_resolution:
+                return cell in domain_ancestors_by_resolution[resolution]
+            if resolution == base_resolution:
+                return cell in domain_r4_set
+            return parent_cell(cell, base_resolution) in domain_r4_set
+
+        neighbors_cache: dict[tuple[str, int, int], list[str]] = {}
+
+        def neighbors_within_k(cell: str, resolution: int, k: int) -> list[str]:
+            key = (cell, resolution, k)
+            cached = neighbors_cache.get(key)
+            if cached is not None:
+                return cached
+            if k <= 0:
+                neighbors_cache[key] = [cell]
+                return neighbors_cache[key]
+            neighbors_cache[key] = [
+                neighbor
+                for neighbor in sorted(str(neighbor) for neighbor in h3.grid_disk(cell, k))
+                if h3.get_resolution(neighbor) == resolution
+            ]
+            return neighbors_cache[key]
+
+        return (
+            self._build_boundary_band_cells_by_resolution(
+                base_resolution=base_resolution,
+                empty_compact_min_resolution=empty_compact_min_resolution,
+                facility_max_resolution=facility_max_resolution,
+                empty_refine_country_edge_k=empty_refine_country_edge_k,
+                domain_r4_set=domain_r4_set,
+                domain_ancestors_by_resolution=domain_ancestors_by_resolution,
+                intersects_domain=intersects_domain,
+                neighbors_within_k=neighbors_within_k,
+            ),
+            self._build_near_occupied_cells_by_resolution(
+                empty_compact_min_resolution=empty_compact_min_resolution,
+                facility_max_resolution=facility_max_resolution,
+                empty_refine_near_occupied_k=empty_refine_near_occupied_k,
+                count_by_resolution=count_by_resolution,
+                intersects_domain=intersects_domain,
+                neighbors_within_k=neighbors_within_k,
+            ),
+        )
+
+    def _scan_is_boundary_band(
+        self,
+        *,
+        cell: str,
+        resolution: int,
+        empty_refine_country_edge_k: int,
+        intersects_domain: Callable[[str, int], bool],
+        neighbors_within_k: Callable[[str, int, int], list[str]],
+    ) -> bool:
+        for neighbor in neighbors_within_k(cell, resolution, empty_refine_country_edge_k):
+            if not intersects_domain(neighbor, resolution):
+                return True
+        return False
+
+    def _scan_is_near_occupied(
+        self,
+        *,
+        cell: str,
+        resolution: int,
+        empty_refine_near_occupied_k: int,
+        count_by_resolution: dict[int, dict[str, int]],
+        neighbors_within_k: Callable[[str, int, int], list[str]],
+    ) -> bool:
+        occupied = count_by_resolution[resolution]
+        for neighbor in neighbors_within_k(cell, resolution, empty_refine_near_occupied_k):
+            if neighbor == cell:
+                continue
+            if occupied.get(neighbor, 0) > 0:
+                return True
+        return False
+
     def _compact_sparse_sibling_leaves(
         self,
         leaves: dict[str, int],
@@ -525,6 +1078,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         parent_cache: dict[tuple[str, int], str] = {}
         adaptive_counters.setdefault("compaction_candidate_count", 0)
         adaptive_counters.setdefault("compaction_accept_count", 0)
+        adaptive_counters.setdefault("compaction_adjacency_seconds", 0.0)
 
         def parent_cell(cell: str, resolution: int) -> str:
             key = (cell, resolution)
@@ -608,10 +1162,14 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                         del leaves[child]
                     leaves[candidate_parent] = facility_count
 
+                    adjacency_started = perf_counter()
                     counters = self._adjacency_counters(
                         leaves=leaves,
                         max_neighbor_resolution_delta=max_neighbor_resolution_delta,
                         candidate_cells=affected_cells_for_compaction(candidate_parent),
+                    )
+                    adaptive_counters["compaction_adjacency_seconds"] = (
+                        float(adaptive_counters["compaction_adjacency_seconds"]) + (perf_counter() - adjacency_started)
                     )
                     if counters["violating_neighbor_pairs"] > 0:
                         del leaves[candidate_parent]

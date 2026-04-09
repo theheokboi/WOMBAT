@@ -13,6 +13,7 @@ node_modules/
 data/runs/
 data/staging/
 data/published/
+data/cache/
 data/openstreetmap/**/major_roads*.geojson
 artifacts/calibration/
 artifacts/eval/

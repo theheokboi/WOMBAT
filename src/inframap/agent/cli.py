@@ -121,6 +121,7 @@ def main() -> None:
     )
     layers = _apply_country_selection(layers, countries)
     progress_enabled = _env_truthy(os.environ.get("RUN_DEV_PROGRESS"), default=True)
+    adaptive_cache_enabled = _env_truthy(os.environ.get("ADAPTIVE_CACHE"), default=True)
     runtime_overrides = {}
     if countries:
         runtime_overrides["country_selection"] = {
@@ -129,6 +130,12 @@ def main() -> None:
             "countries": countries,
             "applied_to_layer": "country_mask",
         }
+    runtime_overrides["adaptive_cache"] = {
+        "source_env_var": "ADAPTIVE_CACHE",
+        "raw_value": os.environ.get("ADAPTIVE_CACHE"),
+        "enabled": adaptive_cache_enabled,
+        "applied_to_layer": "facility_density_adaptive",
+    }
     effective_config = build_effective_config_report(
         system,
         layers,

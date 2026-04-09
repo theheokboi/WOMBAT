@@ -158,15 +158,15 @@ def _assert_adaptive_counters_present(metadata: dict[str, Any]) -> dict[str, Any
 def _stable_adaptive_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     stable = dict(metadata)
     counters = dict(stable.get("adaptive_counters", {}))
-    for key in (
-        "initial_recursion_seconds",
-        "neighbor_smoothing_seconds",
-        "post_compaction_seconds",
-        "country_intersection_filter_seconds",
-    ):
-        counters.pop(key, None)
+    for key in list(counters):
+        if str(key).endswith("_seconds"):
+            counters.pop(key, None)
     stable["adaptive_counters"] = counters
     return stable
+
+
+def _sorted_adaptive_cells(cells: pd.DataFrame) -> pd.DataFrame:
+    return cells.sort_values(["resolution", "h3"]).reset_index(drop=True)
 
 
 def _cell_overlap_ratio(cell: str, polygon: Any) -> float:
@@ -484,6 +484,73 @@ def test_adaptive_v3_repeat_runs_are_deterministic() -> None:
     subset_b = cells_b[["h3", "resolution", "layer_value"]].sort_values(["resolution", "h3"]).reset_index(drop=True)
     pd.testing.assert_frame_equal(subset_a, subset_b, check_like=False)
     _assert_adaptive_counters_present(metadata_a)
+
+
+def test_adaptive_v4_cold_and_warm_cache_runs_preserve_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    workdir = tmp_path / "adaptive-cache"
+    workdir.mkdir()
+    monkeypatch.chdir(workdir)
+
+    params = {
+        "base_resolution": 4,
+        "min_output_resolution": 5,
+        "empty_compact_min_resolution": 0,
+        "facility_floor_resolution": 6,
+        "facility_floor_offset": 1,
+        "facility_max_resolution": 8,
+        "target_facilities_per_leaf": 2,
+        "empty_interior_max_resolution": 5,
+        "empty_refine_boundary_band_k": 1,
+        "empty_refine_near_occupied_k": 1,
+        "compact_empty_near_occupied": True,
+        "max_neighbor_resolution_delta": 1,
+    }
+    base = h3.latlng_to_cell(41.8781, -87.6298, int(params["base_resolution"]))
+    children_r8 = [str(child) for child in sorted(h3.cell_to_children(base, int(params["facility_max_resolution"])))]
+    facilities = _facilities_from_cells([children_r8[0], children_r8[1], children_r8[1]])
+    layer_store = _country_mask_store(base_resolution=int(params["base_resolution"]), radius=1)
+    layer = FacilityDensityAdaptiveLayer(version="v4")
+
+    metadata_cold, cells_cold = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=layer_store,
+        params=params,
+    )
+
+    cache_root = workdir / "data" / "cache" / "facility_density_adaptive" / "v4"
+    metadata_files = sorted(cache_root.rglob("cache_metadata.json"))
+    assert len(metadata_files) == 1
+    cache_dir = metadata_files[0].parent
+    cache_metadata = json.loads(metadata_files[0].read_text(encoding="utf-8"))
+    assert cache_metadata.get("schema_version", cache_metadata.get("cache_schema_version")) is not None
+    assert isinstance(cache_metadata.get("key_parts"), dict)
+    assert isinstance(cache_metadata.get("summary_counts", cache_metadata.get("summary")), dict)
+    assert (cache_dir / "domain_cells.parquet").exists()
+    assert (cache_dir / "facility_counts.parquet").exists()
+    assert pd.read_parquet(cache_dir / "domain_cells.parquet").columns.tolist() == ["resolution", "h3"]
+    assert pd.read_parquet(cache_dir / "facility_counts.parquet").columns.tolist() == [
+        "resolution",
+        "h3",
+        "facility_count",
+    ]
+
+    metadata_warm, cells_warm = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=layer_store,
+        params=params,
+    )
+
+    assert bool(metadata_cold["adaptive_counters"]["adaptive_cache_hit"]) is False
+    assert bool(metadata_warm["adaptive_counters"]["adaptive_cache_hit"]) is True
+    assert float(metadata_cold["adaptive_counters"]["adaptive_cache_write_seconds"]) >= 0.0
+    assert float(metadata_warm["adaptive_counters"]["adaptive_cache_read_seconds"]) >= 0.0
+    pd.testing.assert_frame_equal(_sorted_adaptive_cells(cells_cold), _sorted_adaptive_cells(cells_warm), check_like=False)
+
+    stable_cold = _stable_adaptive_metadata(metadata_cold)
+    stable_warm = _stable_adaptive_metadata(metadata_warm)
+    stable_cold["adaptive_counters"].pop("adaptive_cache_hit", None)
+    stable_warm["adaptive_counters"].pop("adaptive_cache_hit", None)
+    assert stable_cold == stable_warm
 
 
 def test_adaptive_v3_coverage_index_matches_ancestor_walk_and_updates_locally() -> None:
