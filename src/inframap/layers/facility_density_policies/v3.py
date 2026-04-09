@@ -61,6 +61,10 @@ class FacilityDensityAdaptiveV3Policy:
     version: str
 
     @staticmethod
+    def _facility_floor_offset(params: dict[str, Any]) -> int:
+        return int(params.get("facility_floor_offset", 1))
+
+    @staticmethod
     def _empty_refine_country_edge_k(params: dict[str, Any]) -> int:
         if "empty_refine_country_edge_k" in params:
             return int(params["empty_refine_country_edge_k"])
@@ -78,6 +82,7 @@ class FacilityDensityAdaptiveV3Policy:
                 "min_output_resolution",
                 "empty_compact_min_resolution",
                 "facility_floor_resolution",
+                "facility_floor_offset",
                 "facility_max_resolution",
                 "target_facilities_per_leaf",
                 "empty_interior_max_resolution",
@@ -99,6 +104,7 @@ class FacilityDensityAdaptiveV3Policy:
         min_output_resolution = int(params.get("min_output_resolution", 5))
         empty_compact_min_resolution = int(params["empty_compact_min_resolution"])
         facility_floor_resolution = int(params["facility_floor_resolution"])
+        facility_floor_offset = self._facility_floor_offset(params)
         facility_max_resolution = int(params["facility_max_resolution"])
         target_facilities_per_leaf = int(params["target_facilities_per_leaf"])
         empty_interior_max_resolution = int(params["empty_interior_max_resolution"])
@@ -106,11 +112,14 @@ class FacilityDensityAdaptiveV3Policy:
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
         compact_empty_near_occupied = bool(params.get("compact_empty_near_occupied", False))
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
+        topology_refine_max_resolution = max(min_output_resolution, facility_floor_resolution - facility_floor_offset)
 
         if not (0 <= min_output_resolution <= 9):
             raise ValueError("min_output_resolution must satisfy 0 <= value <= 9")
         if not (0 <= facility_floor_resolution <= facility_max_resolution <= 9):
             raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 9")
+        if not (0 <= facility_floor_offset <= facility_floor_resolution):
+            raise ValueError("facility_floor_offset must satisfy 0 <= value <= facility_floor_resolution")
         if min_output_resolution > facility_max_resolution:
             raise ValueError("min_output_resolution must be <= facility_max_resolution")
         if target_facilities_per_leaf < 1:
@@ -149,9 +158,10 @@ class FacilityDensityAdaptiveV3Policy:
                     base_resolution = int(country_resolution)
         if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
             raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
-        if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
+        if not (base_resolution <= empty_interior_max_resolution <= topology_refine_max_resolution):
             raise ValueError(
-                "empty_interior_max_resolution must satisfy base_resolution <= value <= facility_floor_resolution - 1"
+                "empty_interior_max_resolution must satisfy base_resolution <= value <= "
+                "max(min_output_resolution, facility_floor_resolution - facility_floor_offset)"
             )
         coverage_domain = f"country_mask_r{base_resolution}"
         country_cells = country_artifacts["cells"]
@@ -178,6 +188,7 @@ class FacilityDensityAdaptiveV3Policy:
                     "min_output_resolution": min_output_resolution,
                     "empty_compact_min_resolution": empty_compact_min_resolution,
                     "facility_floor_resolution": facility_floor_resolution,
+                    "facility_floor_offset": facility_floor_offset,
                     "facility_max_resolution": facility_max_resolution,
                     "target_facilities_per_leaf": target_facilities_per_leaf,
                     "empty_interior_max_resolution": empty_interior_max_resolution,
@@ -288,10 +299,10 @@ class FacilityDensityAdaptiveV3Policy:
             if facility_count > 0:
                 return facility_max_resolution
             if resolution < base_resolution:
-                return max(min_output_resolution, facility_floor_resolution - 1)
+                return topology_refine_max_resolution
             if is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution):
-                return max(min_output_resolution, facility_floor_resolution - 1)
-            return max(min_output_resolution, min(empty_interior_max_resolution, facility_floor_resolution - 1))
+                return topology_refine_max_resolution
+            return max(min_output_resolution, min(empty_interior_max_resolution, topology_refine_max_resolution))
 
         def add_leaf(cell: str, facility_count: int) -> None:
             leaves[str(cell)] = int(facility_count)
@@ -317,9 +328,7 @@ class FacilityDensityAdaptiveV3Policy:
 
             must_split_for_hierarchy = resolution < base_resolution
             boundary_or_near_occupied = is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution)
-            must_split_for_refinement = (
-                boundary_or_near_occupied and resolution < facility_floor_resolution - 1
-            )
+            must_split_for_refinement = boundary_or_near_occupied and resolution < topology_refine_max_resolution
             must_split_for_min_output = resolution < min_output_resolution
             if must_split_for_hierarchy or must_split_for_refinement or must_split_for_min_output:
                 next_resolution = resolution + 1
@@ -499,6 +508,7 @@ class FacilityDensityAdaptiveV3Policy:
             base_resolution=base_resolution,
             empty_interior_max_resolution=empty_interior_max_resolution,
             facility_floor_resolution=facility_floor_resolution,
+            facility_floor_offset=facility_floor_offset,
             facility_max_resolution=facility_max_resolution,
             max_neighbor_resolution_delta=max_neighbor_resolution_delta,
             intersects_domain=intersects_domain,
@@ -553,6 +563,7 @@ class FacilityDensityAdaptiveV3Policy:
                 "min_output_resolution": min_output_resolution,
                 "empty_compact_min_resolution": empty_compact_min_resolution,
                 "facility_floor_resolution": facility_floor_resolution,
+                "facility_floor_offset": facility_floor_offset,
                 "facility_max_resolution": facility_max_resolution,
                 "target_facilities_per_leaf": target_facilities_per_leaf,
                 "empty_interior_max_resolution": empty_interior_max_resolution,
@@ -579,6 +590,7 @@ class FacilityDensityAdaptiveV3Policy:
         empty_interior_max_resolution: int,
         facility_floor_resolution: int,
         facility_max_resolution: int,
+        facility_floor_offset: int = 1,
         max_neighbor_resolution_delta: int,
         intersects_domain: Any,
         is_boundary_band: Any,
@@ -603,6 +615,7 @@ class FacilityDensityAdaptiveV3Policy:
             return parent_cache[key]
 
         def can_compact_parent(cell: str, resolution: int, facility_count: int) -> bool:
+            topology_refine_max_resolution = max(min_output_resolution, facility_floor_resolution - facility_floor_offset)
             if facility_count > 1:
                 return False
             if resolution < min_output_resolution:
@@ -616,8 +629,8 @@ class FacilityDensityAdaptiveV3Policy:
             if is_near_occupied(cell, resolution):
                 if not compact_empty_near_occupied:
                     return False
-                return resolution <= facility_floor_resolution - 1
-            return resolution <= min(empty_interior_max_resolution, facility_floor_resolution - 1)
+                return resolution <= topology_refine_max_resolution
+            return resolution <= min(empty_interior_max_resolution, topology_refine_max_resolution)
 
         def affected_cells_for_compaction(candidate_parent: str) -> set[str]:
             parent_resolution = h3.get_resolution(candidate_parent)
@@ -869,6 +882,11 @@ class FacilityDensityAdaptiveV3Policy:
         counters: dict[str, int] | None = None,
         coverage_domain: str = "country_mask_dynamic_base_resolution",
     ) -> dict[str, Any]:
+        facility_floor_offset = self._facility_floor_offset(params)
+        topology_refine_max_resolution = max(
+            params["min_output_resolution"],
+            params["facility_floor_resolution"] - facility_floor_offset,
+        )
         if counters is None:
             counters = {
                 "adjacency_checks": 0,
@@ -891,8 +909,9 @@ class FacilityDensityAdaptiveV3Policy:
                     "rule": "hierarchy_then_topology_refine",
                     "hierarchy_required_below_resolution": params["base_resolution"],
                     "min_output_resolution": params["min_output_resolution"],
-                    "boundary_or_near_occupied_max_resolution": params["facility_floor_resolution"] - 1,
+                    "boundary_or_near_occupied_max_resolution": topology_refine_max_resolution,
                     "empty_interior_max_resolution": params["empty_interior_max_resolution"],
+                    "facility_floor_offset": facility_floor_offset,
                     "country_edge_k": params["empty_refine_country_edge_k"],
                     "boundary_band_k": params["empty_refine_boundary_band_k"],
                     "near_occupied_k": params["empty_refine_near_occupied_k"],
@@ -913,7 +932,7 @@ class FacilityDensityAdaptiveV3Policy:
                     "rule": "refine_coarser_side_until_delta_or_cap",
                     "max_neighbor_resolution_delta": params["max_neighbor_resolution_delta"],
                     "occupied_max_resolution": params["facility_max_resolution"],
-                    "empty_max_resolution": params["facility_floor_resolution"] - 1,
+                    "empty_max_resolution": topology_refine_max_resolution,
                 },
                 "output_bounds": {
                     "min_resolution": params["min_output_resolution"],

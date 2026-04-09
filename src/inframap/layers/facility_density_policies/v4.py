@@ -31,6 +31,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         min_output_resolution = int(params.get("min_output_resolution", 5))
         empty_compact_min_resolution = int(params["empty_compact_min_resolution"])
         facility_floor_resolution = int(params["facility_floor_resolution"])
+        facility_floor_offset = self._facility_floor_offset(params)
         facility_max_resolution = int(params["facility_max_resolution"])
         target_facilities_per_leaf = int(params["target_facilities_per_leaf"])
         empty_interior_max_resolution = int(params["empty_interior_max_resolution"])
@@ -38,12 +39,14 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
         compact_empty_near_occupied = bool(params.get("compact_empty_near_occupied", False))
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
-        sparse_occupied_min_resolution = max(min_output_resolution, facility_floor_resolution - 1)
+        sparse_occupied_min_resolution = max(min_output_resolution, facility_floor_resolution - facility_floor_offset)
 
         if not (0 <= min_output_resolution <= 9):
             raise ValueError("min_output_resolution must satisfy 0 <= value <= 9")
         if not (0 <= facility_floor_resolution <= facility_max_resolution <= 9):
             raise ValueError("facility resolutions must satisfy 0 <= floor <= max <= 9")
+        if not (0 <= facility_floor_offset <= facility_floor_resolution):
+            raise ValueError("facility_floor_offset must satisfy 0 <= value <= facility_floor_resolution")
         if min_output_resolution > facility_max_resolution:
             raise ValueError("min_output_resolution must be <= facility_max_resolution")
         if target_facilities_per_leaf < 1:
@@ -82,9 +85,10 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                     base_resolution = int(country_resolution)
         if not (0 <= empty_compact_min_resolution <= base_resolution <= 13):
             raise ValueError("empty_compact_min_resolution and base_resolution must satisfy 0 <= min <= base <= 13")
-        if not (base_resolution <= empty_interior_max_resolution <= facility_floor_resolution - 1):
+        if not (base_resolution <= empty_interior_max_resolution <= sparse_occupied_min_resolution):
             raise ValueError(
-                "empty_interior_max_resolution must satisfy base_resolution <= value <= facility_floor_resolution - 1"
+                "empty_interior_max_resolution must satisfy base_resolution <= value <= "
+                "max(min_output_resolution, facility_floor_resolution - facility_floor_offset)"
             )
         coverage_domain = f"country_mask_r{base_resolution}"
         country_cells = country_artifacts["cells"]
@@ -111,6 +115,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                     "min_output_resolution": min_output_resolution,
                     "empty_compact_min_resolution": empty_compact_min_resolution,
                     "facility_floor_resolution": facility_floor_resolution,
+                    "facility_floor_offset": facility_floor_offset,
                     "facility_max_resolution": facility_max_resolution,
                     "target_facilities_per_leaf": target_facilities_per_leaf,
                     "empty_interior_max_resolution": empty_interior_max_resolution,
@@ -221,10 +226,10 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             if facility_count > 0:
                 return facility_max_resolution
             if resolution < base_resolution:
-                return max(min_output_resolution, facility_floor_resolution - 1)
+                return sparse_occupied_min_resolution
             if is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution):
-                return max(min_output_resolution, facility_floor_resolution - 1)
-            return max(min_output_resolution, min(empty_interior_max_resolution, facility_floor_resolution - 1))
+                return sparse_occupied_min_resolution
+            return max(min_output_resolution, min(empty_interior_max_resolution, sparse_occupied_min_resolution))
 
         def add_leaf(cell: str, facility_count: int) -> None:
             leaves[str(cell)] = int(facility_count)
@@ -250,9 +255,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
 
             must_split_for_hierarchy = resolution < base_resolution
             boundary_or_near_occupied = is_boundary_band(cell, resolution) or is_near_occupied(cell, resolution)
-            must_split_for_refinement = (
-                boundary_or_near_occupied and resolution < facility_floor_resolution - 1
-            )
+            must_split_for_refinement = boundary_or_near_occupied and resolution < sparse_occupied_min_resolution
             must_split_for_min_output = resolution < min_output_resolution
             if must_split_for_hierarchy or must_split_for_refinement or must_split_for_min_output:
                 next_resolution = resolution + 1
@@ -429,6 +432,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             base_resolution=base_resolution,
             empty_interior_max_resolution=empty_interior_max_resolution,
             facility_floor_resolution=facility_floor_resolution,
+            facility_floor_offset=facility_floor_offset,
             facility_max_resolution=facility_max_resolution,
             max_neighbor_resolution_delta=max_neighbor_resolution_delta,
             intersects_domain=intersects_domain,
@@ -482,6 +486,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
                 "min_output_resolution": min_output_resolution,
                 "empty_compact_min_resolution": empty_compact_min_resolution,
                 "facility_floor_resolution": facility_floor_resolution,
+                "facility_floor_offset": facility_floor_offset,
                 "facility_max_resolution": facility_max_resolution,
                 "target_facilities_per_leaf": target_facilities_per_leaf,
                 "empty_interior_max_resolution": empty_interior_max_resolution,
@@ -508,6 +513,7 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         empty_interior_max_resolution: int,
         facility_floor_resolution: int,
         facility_max_resolution: int,
+        facility_floor_offset: int = 1,
         max_neighbor_resolution_delta: int,
         intersects_domain: Any,
         is_boundary_band: Any,
@@ -532,6 +538,10 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             return parent_cache[key]
 
         def can_compact_parent(cell: str, resolution: int, facility_count: int) -> bool:
+            sparse_occupied_min_resolution = max(
+                min_output_resolution,
+                facility_floor_resolution - facility_floor_offset,
+            )
             if facility_count > 0:
                 return False
             if resolution < min_output_resolution:
@@ -543,8 +553,8 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
             if is_near_occupied(cell, resolution):
                 if not compact_empty_near_occupied:
                     return False
-                return resolution <= facility_floor_resolution - 1
-            return resolution <= min(empty_interior_max_resolution, facility_floor_resolution - 1)
+                return resolution <= sparse_occupied_min_resolution
+            return resolution <= min(empty_interior_max_resolution, sparse_occupied_min_resolution)
 
         def affected_cells_for_compaction(candidate_parent: str) -> set[str]:
             parent_resolution = h3.get_resolution(candidate_parent)
@@ -627,9 +637,15 @@ class FacilityDensityAdaptiveV4Policy(FacilityDensityAdaptiveV3Policy):
         metadata = super()._metadata(params=params, counters=counters, coverage_domain=coverage_domain)
         metadata["layer_version"] = self.version
         metadata["policy_name"] = "facility_hierarchical_partition_v4"
+        facility_floor_offset = self._facility_floor_offset(params)
         metadata["stopping_rules"]["facility_branch"] = {
-            "rule": "sparse_until_floor_minus_one_then_density",
-            "sparse_min_resolution": max(params["min_output_resolution"], params["facility_floor_resolution"] - 1),
+            "rule": "sparse_until_floor_minus_offset_then_density",
+            "sparse_min_resolution": max(
+                params["min_output_resolution"],
+                params["facility_floor_resolution"] - facility_floor_offset,
+            ),
+            "facility_floor_offset": facility_floor_offset,
+            "sparse_max_facility_count_inclusive": params["target_facilities_per_leaf"],
             "dense_refine_trigger_count_exclusive": params["target_facilities_per_leaf"],
             "dense_refine_floor_resolution": params["facility_floor_resolution"],
             "max_resolution": params["facility_max_resolution"],

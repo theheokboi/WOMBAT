@@ -12,6 +12,7 @@ def _v4_params() -> dict[str, int | bool]:
         "min_output_resolution": 5,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 6,
+        "facility_floor_offset": 1,
         "facility_max_resolution": 8,
         "target_facilities_per_leaf": 2,
         "empty_interior_max_resolution": 5,
@@ -91,11 +92,18 @@ def test_adaptive_v4_singleton_occupied_region_stops_before_v3_floor() -> None:
     assert metadata["layer_version"] == "v4"
     assert metadata["policy_name"] == "facility_hierarchical_partition_v4"
     assert len(occupied) == 1
-    assert int(occupied.iloc[0]["resolution"]) == int(params["facility_floor_resolution"]) - 1
-    assert metadata["stopping_rules"]["facility_branch"]["rule"] == "sparse_until_floor_minus_one_then_density"
+    assert int(occupied.iloc[0]["resolution"]) == int(params["facility_floor_resolution"]) - int(
+        params["facility_floor_offset"]
+    )
+    assert metadata["stopping_rules"]["facility_branch"]["rule"] == "sparse_until_floor_minus_offset_then_density"
     assert (
         metadata["stopping_rules"]["facility_branch"]["sparse_min_resolution"]
-        == int(params["facility_floor_resolution"]) - 1
+        == int(params["facility_floor_resolution"]) - int(params["facility_floor_offset"])
+    )
+    assert metadata["stopping_rules"]["facility_branch"]["facility_floor_offset"] == int(params["facility_floor_offset"])
+    assert (
+        metadata["stopping_rules"]["facility_branch"]["sparse_max_facility_count_inclusive"]
+        == int(params["target_facilities_per_leaf"])
     )
     assert metadata["stopping_rules"]["post_compaction"]["occupied_singleton_compaction_enabled"] is False
     _assert_adaptive_counters_present(metadata)
@@ -122,9 +130,37 @@ def test_adaptive_v4_recursively_refines_dense_clusters_beyond_floor() -> None:
     dense = occupied[occupied["layer_value"] == 3]
     assert len(singleton) == 1
     assert len(dense) == 1
-    assert int(singleton.iloc[0]["resolution"]) >= int(params["facility_floor_resolution"]) - 1
+    assert int(singleton.iloc[0]["resolution"]) >= int(params["facility_floor_resolution"]) - int(
+        params["facility_floor_offset"]
+    )
     assert int(singleton.iloc[0]["resolution"]) < int(dense.iloc[0]["resolution"])
     assert int(dense.iloc[0]["resolution"]) == int(params["facility_max_resolution"])
+
+
+def test_adaptive_v4_floor_offset_zero_allows_sparse_branch_to_stop_at_floor() -> None:
+    base = h3.latlng_to_cell(41.8781, -87.6298, 4)
+    occupied_r7 = str(sorted(h3.cell_to_children(base, 7))[0])
+    facilities = _facilities_from_cells([occupied_r7])
+    params = _v4_params()
+    params["facility_floor_resolution"] = 7
+    params["facility_floor_offset"] = 0
+    params["facility_max_resolution"] = 8
+    params["empty_interior_max_resolution"] = 7
+
+    layer = FacilityDensityAdaptiveLayer(version="v4")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=1),
+        params=params,
+    )
+
+    occupied = cells[cells["layer_value"] > 0]
+    assert len(occupied) == 1
+    assert int(occupied.iloc[0]["resolution"]) == int(params["facility_floor_resolution"])
+    assert metadata["stopping_rules"]["facility_branch"]["sparse_min_resolution"] == int(params["facility_floor_resolution"])
+    assert metadata["stopping_rules"]["empty_branch"]["boundary_or_near_occupied_max_resolution"] == int(
+        params["facility_floor_resolution"]
+    )
 
 
 def test_adaptive_v4_accepts_country_edge_alias_param() -> None:

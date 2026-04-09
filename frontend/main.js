@@ -3,18 +3,6 @@ const {
   loadJson,
   tryLoadJson,
 } = window.inframapShared;
-const {
-  buildAdaptiveControlValueFromThreshold,
-  buildAdaptiveCurrentScores,
-  buildAdaptiveScoreModel,
-  buildAdaptiveScoreScale,
-  buildAdaptiveThresholdFromControl,
-  clampNumber,
-  formatScoreValue,
-  interpolateColorStops,
-  scoreToDisplayValue,
-  smoothAnalysisMasses,
-} = window.inframapAdaptiveScore;
 
 function buildStaticRouteCountries(staticManifest) {
   const routeCountries = Array.isArray(staticManifest?.route_countries) ? staticManifest.route_countries : [];
@@ -229,6 +217,29 @@ function formatDurationMinutes(value) {
   return `${(numeric / 60).toFixed(1)} min`;
 }
 
+function formatAdaptiveAreaKm2(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '--';
+  return `${numeric.toFixed(2)} km2`;
+}
+
+function getAdaptiveFillColor(properties) {
+  const leafCount = getAdaptiveLeafCount(properties);
+  if (leafCount >= 100) return '#7c2d12';
+  if (leafCount >= 25) return '#c2410c';
+  if (leafCount >= 5) return '#ea580c';
+  if (leafCount >= 1) return '#fdba74';
+  return '#ffedd5';
+}
+
+function getAdaptiveFillOpacity(properties, bounds) {
+  const resolution = Number(getAdaptiveResolution(properties));
+  const span = Math.max(1, bounds.max - bounds.min);
+  if (!Number.isInteger(resolution)) return 0.45;
+  const normalized = (resolution - bounds.min) / span;
+  return 0.35 + Math.max(0, Math.min(1, normalized)) * 0.45;
+}
+
 function buildUniqueR7RegionMarkers(features) {
   const byCluster = new Map();
   for (const feature of features || []) {
@@ -329,17 +340,37 @@ function setupRunSelector(runCatalog, requestedRunId, effectiveRunId) {
   if (!selector) return;
   const runs = Array.isArray(runCatalog?.runs) ? runCatalog.runs : [];
   selector.innerHTML = '';
+  if (runs.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = 'No runs available';
+    option.selected = true;
+    selector.appendChild(option);
+    selector.disabled = true;
+    selector.title = `Requested: ${requestedRunId || '--'}; Effective: --`;
+    return;
+  }
+
+  let selectedRunId = '';
   for (const run of runs) {
     const runId = normalizeRunId(run?.run_id);
     if (!runId) continue;
     const option = document.createElement('option');
     option.value = runId;
     option.textContent = buildRunLabel(run);
-    if (runId === effectiveRunId) option.selected = true;
+    if (!selectedRunId) selectedRunId = runId;
+    if (runId === effectiveRunId) {
+      option.selected = true;
+      selectedRunId = runId;
+    }
     selector.appendChild(option);
   }
 
-  selector.disabled = runs.length === 0;
+  selector.value = selectedRunId;
+  if (selector.selectedIndex < 0 && selector.options.length > 0) {
+    selector.selectedIndex = 0;
+  }
+  selector.disabled = false;
   selector.title = `Requested: ${requestedRunId || '--'}; Effective: ${effectiveRunId || '--'}`;
   selector.addEventListener('change', () => {
     const params = new URLSearchParams(window.location.search);
@@ -386,8 +417,6 @@ async function init() {
   const effectiveAdaptiveFeatures = (adaptiveFeatures || []).filter(
     (feature) => isAdaptiveResolutionAllowed(feature?.properties || {}, adaptiveResolutionBounds)
   );
-  const adaptiveScoreModel = buildAdaptiveScoreModel(effectiveAdaptiveFeatures, adaptiveMetadata);
-  const adaptiveScoreCache = new Map();
   const scopedFacilities = facilities;
   const scopedCountryCells = countryCells;
   let r7RouteOverlay = null;
@@ -406,14 +435,6 @@ async function init() {
   const runtimeExpectationNode = document.getElementById('runtime-expectation');
   const latestRunRuntimeNode = document.getElementById('latest-run-runtime');
   const activeRunStatusNode = document.getElementById('active-run-status');
-  const adaptiveScoreModeLabelNode = document.getElementById('adaptive-score-mode-label');
-  const adaptiveScoreLambdaValueNode = document.getElementById('adaptive-score-lambda-value');
-  const adaptiveScoreIterationsValueNode = document.getElementById('adaptive-score-iterations-value');
-  const adaptiveScoreThresholdValueNode = document.getElementById('adaptive-score-threshold-value');
-  const adaptiveScoreRangeNode = document.getElementById('adaptive-score-range');
-  const adaptiveScoreLegendMinNode = document.getElementById('adaptive-score-legend-min');
-  const adaptiveScoreLegendMaxNode = document.getElementById('adaptive-score-legend-max');
-  const adaptiveScoreLegendSubtitleNode = document.getElementById('adaptive-score-legend-subtitle');
   const availableCountriesPreview = availableCountries.slice(0, 12).join(', ');
   const availableCountriesLabel =
     availableCountries.length > 12 ? `${availableCountriesPreview}, ...` : (availableCountriesPreview || '--');
@@ -449,101 +470,6 @@ async function init() {
     activeRunStatusNode.textContent = 'Active run: none';
   }
 
-  const adaptiveScoreControls = {
-    mode: document.getElementById('score-mode-raw')?.checked ? 'raw' : 'smoothed',
-    lambda: clampNumber(Number(document.getElementById('score-lambda')?.value || 0.5), 0, 1),
-    iterations: clampNumber(Number(document.getElementById('score-iterations')?.value || 1), 1, 3),
-    threshold: 0,
-  };
-  adaptiveScoreControls.threshold = 0.5 * Math.max(0, Array.from(adaptiveScoreModel.rawScores.values()).reduce((max, value) => Math.max(max, value), 0));
-
-  const adaptiveScoreState = {
-    mode: adaptiveScoreControls.mode,
-    lambda: adaptiveScoreControls.lambda,
-    iterations: adaptiveScoreControls.iterations,
-    threshold: adaptiveScoreControls.threshold,
-    currentScores: new Map(),
-    rawScores: new Map(adaptiveScoreModel.rawScores),
-    smoothedScores: new Map(),
-    currentMin: 0,
-    currentMax: 0,
-    scoreMaxForDisplay: 0,
-  };
-  let adaptiveThresholdInitialized = false;
-
-  function getAdaptiveSmoothedAnalysisMasses(lambdaValue, iterations) {
-    const cacheKey = `${lambdaValue.toFixed(2)}|${iterations}`;
-    if (adaptiveScoreCache.has(cacheKey)) return adaptiveScoreCache.get(cacheKey);
-    const baseMasses = adaptiveScoreModel.analysisCells.map((cell) => adaptiveScoreModel.analysisMasses.get(cell) || 0);
-    const smoothed = smoothAnalysisMasses(baseMasses, adaptiveScoreModel.analysisNeighbors, lambdaValue, iterations);
-    adaptiveScoreCache.set(cacheKey, smoothed);
-    return smoothed;
-  }
-
-  function updateAdaptiveScoreControls(currentRange) {
-    if (adaptiveScoreModeLabelNode) {
-      adaptiveScoreModeLabelNode.textContent = adaptiveScoreState.mode === 'raw' ? 'Raw score' : 'Smoothed score';
-    }
-    if (adaptiveScoreLambdaValueNode) {
-      adaptiveScoreLambdaValueNode.textContent = adaptiveScoreState.lambda.toFixed(2);
-    }
-    if (adaptiveScoreIterationsValueNode) {
-      adaptiveScoreIterationsValueNode.textContent = String(adaptiveScoreState.iterations);
-    }
-    if (adaptiveScoreLegendSubtitleNode) {
-      adaptiveScoreLegendSubtitleNode.textContent = `View range updates as the adaptive field changes`;
-    }
-    if (adaptiveScoreRangeNode) {
-      adaptiveScoreRangeNode.textContent = `${formatScoreValue(currentRange.min)} / ${formatScoreValue(currentRange.max)}`;
-    }
-    if (adaptiveScoreLegendMinNode) {
-      adaptiveScoreLegendMinNode.textContent = formatScoreValue(currentRange.min);
-    }
-    if (adaptiveScoreLegendMaxNode) {
-      adaptiveScoreLegendMaxNode.textContent = formatScoreValue(currentRange.max);
-    }
-    if (adaptiveScoreThresholdValueNode) {
-      adaptiveScoreThresholdValueNode.textContent = formatScoreValue(adaptiveScoreState.threshold);
-    }
-    const thresholdControl = document.getElementById('score-threshold');
-    if (thresholdControl) {
-      const maxDisplayValue = scoreToDisplayValue(currentRange.max);
-      thresholdControl.max = String(Number.isFinite(maxDisplayValue) && maxDisplayValue > 0 ? maxDisplayValue : 1);
-      const nextValue = clampNumber(buildAdaptiveControlValueFromThreshold(adaptiveScoreState.threshold), 0, Number(thresholdControl.max));
-      thresholdControl.value = String(nextValue);
-    }
-  }
-
-  function computeAdaptiveViewScores() {
-    if (adaptiveScoreState.mode === 'raw') {
-      const currentScores = new Map(adaptiveScoreModel.rawScores);
-      const scale = buildAdaptiveScoreScale(currentScores);
-      return {
-        currentScores,
-        currentMin: scale.min,
-        currentMax: scale.max,
-        rawScores: new Map(currentScores),
-        smoothedScores: null,
-      };
-    }
-
-    const smoothedAnalysisMasses = getAdaptiveSmoothedAnalysisMasses(adaptiveScoreState.lambda, adaptiveScoreState.iterations);
-    const current = buildAdaptiveCurrentScores(adaptiveScoreModel, smoothedAnalysisMasses);
-    const currentScale = buildAdaptiveScoreScale(current.smoothedScoresByOriginal);
-    return {
-      currentScores: current.smoothedScoresByOriginal,
-      currentMin: currentScale.min,
-      currentMax: currentScale.max,
-      rawScores: current.rawScoresByOriginal,
-      smoothedScores: current.smoothedScoresByOriginal,
-    };
-  }
-
-function getAdaptiveFillColor(score, maxScore) {
-  const normalized = maxScore > 0 ? scoreToDisplayValue(score) / Math.max(scoreToDisplayValue(maxScore), 1e-9) : 0;
-  return interpolateColorStops(['#ffedd5', '#fdba74', '#fb923c', '#ea580c', '#9a3412'], normalized);
-}
-
   const map = L.map('map', {
     center: [lat, lon],
     zoom: ui.zoom,
@@ -552,7 +478,6 @@ function getAdaptiveFillColor(score, maxScore) {
   });
   window.__inframapMap = map;
   window.__inframapAdaptiveFeatures = effectiveAdaptiveFeatures;
-  window.__inframapAdaptiveScoreState = adaptiveScoreState;
 
   // Optional base map. If unreachable, data overlays still render.
   const basemapSelector = document.getElementById('basemap-selector');
@@ -638,37 +563,23 @@ function getAdaptiveFillColor(score, maxScore) {
 
   const adaptiveLayer = L.geoJSON(null, {
     style: (feature) => {
-      const h3Index = getAdaptiveH3(feature?.properties || {});
-      const score = adaptiveScoreState.currentScores.get(h3Index) || 0;
-      const fillColor = getAdaptiveFillColor(score, adaptiveScoreState.currentMax);
-      const highlighted = score >= adaptiveScoreState.threshold;
-      const scoreScale = adaptiveScoreState.currentMax > 0
-        ? scoreToDisplayValue(score) / Math.max(scoreToDisplayValue(adaptiveScoreState.currentMax), 1e-9)
-        : 0;
+      const properties = feature?.properties || {};
       return {
-        color: highlighted ? '#111827' : '#92400e',
-        weight: highlighted ? 2.75 : 1.5,
-        opacity: highlighted ? 0.95 : 0.88,
-        fillColor,
-        fillOpacity: highlighted ? 0.92 : Math.min(0.9, 0.45 + scoreScale * 0.35),
+        color: '#7c2d12',
+        weight: 1.5,
+        opacity: 0.88,
+        fillColor: getAdaptiveFillColor(properties),
+        fillOpacity: getAdaptiveFillOpacity(properties, adaptiveResolutionBounds),
       };
     },
     onEachFeature: (feature, layer) => {
       const p = feature.properties || {};
-      const h3Index = getAdaptiveH3(p);
-      const rawScore = adaptiveScoreState.rawScores.get(h3Index) || 0;
-      const currentScore = adaptiveScoreState.currentScores.get(h3Index) || 0;
-      const currentMode = adaptiveScoreState.mode === 'raw' ? 'Raw' : 'Smoothed';
-      const isHighlighted = currentScore >= adaptiveScoreState.threshold;
       const tooltipLines = [
         'Layer: facility_density_adaptive',
         `Leaf facility count: ${getAdaptiveLeafCount(p).toLocaleString()}`,
-        `Cell area: ${formatScoreValue(adaptiveScoreModel.rawAreas.get(h3Index) || 0)} km2`,
+        `Cell area: ${formatAdaptiveAreaKm2(p.area_km2)}`,
         `Resolution: r${getAdaptiveResolution(p)}`,
-        `Raw score: ${formatScoreValue(rawScore)}`,
-        `Current score (${currentMode.toLowerCase()}): ${formatScoreValue(currentScore)}`,
-        `Threshold highlight: ${isHighlighted ? 'yes' : 'no'}`,
-        `H3: ${h3Index}`,
+        `H3: ${getAdaptiveH3(p)}`,
       ];
       if (adaptivePolicyName) {
         tooltipLines.push(`Policy: ${adaptivePolicyName}`);
@@ -679,75 +590,11 @@ function getAdaptiveFillColor(score, maxScore) {
     },
   }).addTo(map);
   const adaptiveToggle = document.getElementById('toggle-adaptive');
-  const adaptiveScoreModeRaw = document.getElementById('score-mode-raw');
-  const adaptiveScoreModeSmoothed = document.getElementById('score-mode-smoothed');
-  const adaptiveScoreLambda = document.getElementById('score-lambda');
-  const adaptiveScoreIterations = document.getElementById('score-iterations');
-  const adaptiveScoreThreshold = document.getElementById('score-threshold');
 
   function renderAdaptiveCells() {
-    const view = computeAdaptiveViewScores();
-    adaptiveScoreState.currentScores = view.currentScores;
-    adaptiveScoreState.rawScores = view.rawScores || adaptiveScoreState.rawScores;
-    adaptiveScoreState.smoothedScores = view.smoothedScores || new Map();
-    adaptiveScoreState.currentMin = view.currentMin;
-    adaptiveScoreState.currentMax = view.currentMax;
-    adaptiveScoreState.scoreMaxForDisplay = view.currentMax;
-
-    if (!adaptiveThresholdInitialized && view.currentMax > 0) {
-      adaptiveScoreState.threshold = view.currentMax * 0.5;
-      adaptiveThresholdInitialized = true;
-    } else if (adaptiveScoreState.threshold > view.currentMax) {
-      adaptiveScoreState.threshold = view.currentMax;
-    }
-
-    updateAdaptiveScoreControls({ min: view.currentMin, max: view.currentMax });
     clearLayer(adaptiveLayer);
     if (!adaptiveToggle || !adaptiveToggle.checked) return;
     adaptiveLayer.addData(effectiveAdaptiveFeatures);
-  }
-
-  let adaptiveRenderQueued = false;
-  function scheduleAdaptiveRender() {
-    if (adaptiveRenderQueued) return;
-    adaptiveRenderQueued = true;
-    window.requestAnimationFrame(() => {
-      adaptiveRenderQueued = false;
-      renderAdaptiveCells();
-    });
-  }
-
-  if (adaptiveScoreModeRaw) {
-    adaptiveScoreModeRaw.addEventListener('change', () => {
-      if (!adaptiveScoreModeRaw.checked) return;
-      adaptiveScoreState.mode = 'raw';
-      scheduleAdaptiveRender();
-    });
-  }
-  if (adaptiveScoreModeSmoothed) {
-    adaptiveScoreModeSmoothed.addEventListener('change', () => {
-      if (!adaptiveScoreModeSmoothed.checked) return;
-      adaptiveScoreState.mode = 'smoothed';
-      scheduleAdaptiveRender();
-    });
-  }
-  if (adaptiveScoreLambda) {
-    adaptiveScoreLambda.addEventListener('input', () => {
-      adaptiveScoreState.lambda = clampNumber(Number(adaptiveScoreLambda.value), 0, 1);
-      scheduleAdaptiveRender();
-    });
-  }
-  if (adaptiveScoreIterations) {
-    adaptiveScoreIterations.addEventListener('input', () => {
-      adaptiveScoreState.iterations = clampNumber(Number(adaptiveScoreIterations.value), 1, 3);
-      scheduleAdaptiveRender();
-    });
-  }
-  if (adaptiveScoreThreshold) {
-    adaptiveScoreThreshold.addEventListener('input', () => {
-      adaptiveScoreState.threshold = buildAdaptiveThresholdFromControl(adaptiveScoreThreshold.value);
-      scheduleAdaptiveRender();
-    });
   }
 
   renderAdaptiveCells();
@@ -871,7 +718,7 @@ function getAdaptiveFillColor(score, maxScore) {
   }
   if (adaptiveToggle) {
     adaptiveToggle.addEventListener('change', () => {
-      scheduleAdaptiveRender();
+      renderAdaptiveCells();
     });
   }
   if (r7RegionsToggle) {
