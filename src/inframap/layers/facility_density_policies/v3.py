@@ -60,6 +60,12 @@ class _AdaptiveCoverageIndex:
 class FacilityDensityAdaptiveV3Policy:
     version: str
 
+    @staticmethod
+    def _empty_refine_country_edge_k(params: dict[str, Any]) -> int:
+        if "empty_refine_country_edge_k" in params:
+            return int(params["empty_refine_country_edge_k"])
+        return int(params["empty_refine_boundary_band_k"])
+
     def spec(self) -> dict[str, Any]:
         return {
             "name": "facility_density_adaptive",
@@ -75,6 +81,7 @@ class FacilityDensityAdaptiveV3Policy:
                 "facility_max_resolution",
                 "target_facilities_per_leaf",
                 "empty_interior_max_resolution",
+                "empty_refine_country_edge_k",
                 "empty_refine_boundary_band_k",
                 "empty_refine_near_occupied_k",
                 "compact_empty_near_occupied",
@@ -95,7 +102,7 @@ class FacilityDensityAdaptiveV3Policy:
         facility_max_resolution = int(params["facility_max_resolution"])
         target_facilities_per_leaf = int(params["target_facilities_per_leaf"])
         empty_interior_max_resolution = int(params["empty_interior_max_resolution"])
-        empty_refine_boundary_band_k = int(params["empty_refine_boundary_band_k"])
+        empty_refine_country_edge_k = self._empty_refine_country_edge_k(params)
         empty_refine_near_occupied_k = int(params["empty_refine_near_occupied_k"])
         compact_empty_near_occupied = bool(params.get("compact_empty_near_occupied", False))
         max_neighbor_resolution_delta = int(params["max_neighbor_resolution_delta"])
@@ -108,8 +115,8 @@ class FacilityDensityAdaptiveV3Policy:
             raise ValueError("min_output_resolution must be <= facility_max_resolution")
         if target_facilities_per_leaf < 1:
             raise ValueError("target_facilities_per_leaf must be >= 1")
-        if empty_refine_boundary_band_k < 0:
-            raise ValueError("empty_refine_boundary_band_k must be >= 0")
+        if empty_refine_country_edge_k < 0:
+            raise ValueError("empty_refine_country_edge_k must be >= 0")
         if empty_refine_near_occupied_k < 0:
             raise ValueError("empty_refine_near_occupied_k must be >= 0")
         if max_neighbor_resolution_delta < 0:
@@ -174,7 +181,8 @@ class FacilityDensityAdaptiveV3Policy:
                     "facility_max_resolution": facility_max_resolution,
                     "target_facilities_per_leaf": target_facilities_per_leaf,
                     "empty_interior_max_resolution": empty_interior_max_resolution,
-                    "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
+                    "empty_refine_country_edge_k": empty_refine_country_edge_k,
+                    "empty_refine_boundary_band_k": empty_refine_country_edge_k,
                     "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
                     "compact_empty_near_occupied": compact_empty_near_occupied,
                     "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
@@ -262,7 +270,7 @@ class FacilityDensityAdaptiveV3Policy:
             return neighbors_cache[key]
 
         def is_boundary_band(cell: str, resolution: int) -> bool:
-            for neighbor in neighbors_within_k(cell, resolution, empty_refine_boundary_band_k):
+            for neighbor in neighbors_within_k(cell, resolution, empty_refine_country_edge_k):
                 if not intersects_domain(neighbor, resolution):
                     return True
             return False
@@ -548,7 +556,8 @@ class FacilityDensityAdaptiveV3Policy:
                 "facility_max_resolution": facility_max_resolution,
                 "target_facilities_per_leaf": target_facilities_per_leaf,
                 "empty_interior_max_resolution": empty_interior_max_resolution,
-                "empty_refine_boundary_band_k": empty_refine_boundary_band_k,
+                "empty_refine_country_edge_k": empty_refine_country_edge_k,
+                "empty_refine_boundary_band_k": empty_refine_country_edge_k,
                 "empty_refine_near_occupied_k": empty_refine_near_occupied_k,
                 "compact_empty_near_occupied": compact_empty_near_occupied,
                 "max_neighbor_resolution_delta": max_neighbor_resolution_delta,
@@ -884,6 +893,7 @@ class FacilityDensityAdaptiveV3Policy:
                     "min_output_resolution": params["min_output_resolution"],
                     "boundary_or_near_occupied_max_resolution": params["facility_floor_resolution"] - 1,
                     "empty_interior_max_resolution": params["empty_interior_max_resolution"],
+                    "country_edge_k": params["empty_refine_country_edge_k"],
                     "boundary_band_k": params["empty_refine_boundary_band_k"],
                     "near_occupied_k": params["empty_refine_near_occupied_k"],
                 },

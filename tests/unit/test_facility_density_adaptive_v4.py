@@ -127,6 +127,27 @@ def test_adaptive_v4_recursively_refines_dense_clusters_beyond_floor() -> None:
     assert int(dense.iloc[0]["resolution"]) == int(params["facility_max_resolution"])
 
 
+def test_adaptive_v4_accepts_country_edge_alias_param() -> None:
+    base = h3.latlng_to_cell(41.8781, -87.6298, 4)
+    occupied_r7 = str(sorted(h3.cell_to_children(base, 7))[0])
+    facilities = _facilities_from_cells([occupied_r7])
+    params = _v4_params()
+    params["empty_refine_country_edge_k"] = int(params.pop("empty_refine_boundary_band_k"))
+
+    layer = FacilityDensityAdaptiveLayer(version="v4")
+    metadata, cells = layer.compute(
+        canonical_store={"facilities": facilities},
+        layer_store=_country_mask_store(base_resolution=int(params["base_resolution"]), radius=1),
+        params=params,
+    )
+
+    assert not cells.empty
+    assert metadata["params"]["empty_refine_country_edge_k"] == 1
+    assert metadata["params"]["empty_refine_boundary_band_k"] == 1
+    assert metadata["stopping_rules"]["empty_branch"]["country_edge_k"] == 1
+    assert metadata["stopping_rules"]["empty_branch"]["boundary_band_k"] == 1
+
+
 def test_adaptive_v4_does_not_compact_singleton_occupied_sibling_group() -> None:
     layer = FacilityDensityAdaptiveLayer(version="v4")
     parent = str(h3.latlng_to_cell(41.8781, -87.6298, 5))

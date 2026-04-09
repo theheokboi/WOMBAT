@@ -29,9 +29,12 @@ layers:
       empty_compact_min_resolution: 0
       empty_interior_max_resolution: 2
       min_output_resolution: 2
-      empty_refine_boundary_band_k: 1
-      empty_refine_near_occupied_k: 1
-      max_neighbor_resolution_delta: 1
+      # Refine empty cells within this many H3 rings of the country edge.
+      empty_refine_country_edge_k: 1
+      # Refine empty cells within this many H3 rings of any occupied cell.
+      empty_refine_near_occupied_k: 0
+      # Neighboring output cells cannot differ by more than this many H3 resolutions.
+      max_neighbor_resolution_delta: 2
       compact_empty_near_occupied: false
   - name: facility_density_r7_regions
     plugin: inframap.layers.facility_density_r7_regions:FacilityDensityR7RegionsLayer
