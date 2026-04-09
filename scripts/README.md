@@ -6,11 +6,6 @@
 - `export_static_demo_bundle.py`: browser-ready demo snapshot export
 - `archive_progress_logs.py`: archive stale committed progress logs
 
-## Graph Workflows
-
-- `build_major_roads_graph.py`: graph artifact generation
-- `evaluate_major_roads_graph.py`: raw vs collapsed graph evaluation
-
 ## Experimental / Legacy Helpers
 
 These scripts are kept for ad hoc use or historical workflows. They are not part of the default dev loop and should not be treated as maintained entrypoints unless explicitly promoted.

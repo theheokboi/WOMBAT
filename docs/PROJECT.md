@@ -69,11 +69,7 @@ Published run directories are immutable after pointer update.
 ## Transport Graph Contract
 
 - `/v1/osm/transport` remains under the `/v1` prefix.
-- Default behavior is `source=shapefile`.
-- `source=graph` loads per-country major-road graph artifacts.
-- `graph_variant=raw|collapsed|adaptive|adaptive_portal|adaptive_portal_run` must remain supported.
-- `include_nodes=true` loads the node file that matches the selected graph variant when present.
-- Graph artifacts are run-agnostic except `adaptive_portal_run`, which is run-scoped.
+- `/v1/osm/transport` serves shapefile-backed road and railway overlays only.
 
 ## API Response Expectations
 

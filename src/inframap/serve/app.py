@@ -4,7 +4,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import h3
 import mapbox_vector_tile
@@ -68,37 +68,6 @@ def _available_osm_countries(openstreetmap_root: Path) -> list[str]:
     return countries
 
 
-def _graph_variant_filenames(
-    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"]
-) -> tuple[str, str]:
-    if graph_variant == "collapsed":
-        return "major_roads_edges_collapsed.geojson", "major_roads_nodes_collapsed.geojson"
-    if graph_variant == "adaptive":
-        return "major_roads_edges_adaptive.geojson", "major_roads_nodes_adaptive.geojson"
-    if graph_variant == "adaptive_portal":
-        return "major_roads_edges_adaptive_portal.geojson", "major_roads_nodes_adaptive_portal.geojson"
-    if graph_variant == "adaptive_portal_run":
-        return "major_roads_edges_adaptive_portal_run.geojson", "major_roads_nodes_adaptive_portal_run.geojson"
-    return "major_roads_edges.geojson", "major_roads_nodes.geojson"
-
-
-def _available_osm_graph_countries(
-    openstreetmap_root: Path,
-    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"],
-) -> list[str]:
-    if not openstreetmap_root.exists():
-        return []
-    countries: list[str] = []
-    edges_filename, _ = _graph_variant_filenames(graph_variant)
-    for path in sorted(openstreetmap_root.iterdir()):
-        code = path.name.strip().upper()
-        if not (path.is_dir() and len(code) == 2 and code.isalpha()):
-            continue
-        if (path / edges_filename).exists():
-            countries.append(code)
-    return countries
-
-
 def _iter_shape_records(path: Path):
     if not path.exists():
         return
@@ -110,21 +79,6 @@ def _iter_shape_records(path: Path):
     for item in reader.iterShapeRecords():
         properties = {field: item.record[index] for index, field in enumerate(fields)}
         yield properties, dict(item.shape.__geo_interface__)
-
-
-def _iter_geojson_features(path: Path):
-    if not path.exists():
-        return
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return
-    features = payload.get("features", [])
-    if not isinstance(features, list):
-        return
-    for feature in features:
-        if isinstance(feature, dict):
-            yield feature
 
 
 def _infer_country_code_from_route_artifact(path: Path, payload: dict[str, Any]) -> str:
@@ -202,62 +156,6 @@ def _osm_transport_features_for_country(country_code: str, country_root: Path) -
             }
         )
     return tuple(features)
-
-
-@lru_cache(maxsize=16)
-def _osm_transport_graph_components_for_country(
-    country_code: str,
-    country_root: Path,
-    graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"],
-) -> tuple[tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
-    edge_features: list[dict[str, Any]] = []
-    node_features: list[dict[str, Any]] = []
-    edges_filename, nodes_filename = _graph_variant_filenames(graph_variant)
-
-    edges_path = country_root / edges_filename
-    for feature in _iter_geojson_features(edges_path):
-        properties = feature.get("properties", {})
-        if not isinstance(properties, dict):
-            continue
-        road_class = str(properties.get("road_class", "")).strip().lower()
-        if not road_class:
-            continue
-        geometry = feature.get("geometry")
-        if not isinstance(geometry, dict):
-            continue
-        merged_properties = dict(properties)
-        merged_properties["country_code"] = country_code
-        merged_properties["transport_class"] = road_class
-        merged_properties["graph_feature_type"] = "edge"
-        edge_features.append(
-            {
-                "type": "Feature",
-                "geometry": geometry,
-                "properties": merged_properties,
-            }
-        )
-
-    nodes_path = country_root / nodes_filename
-    for feature in _iter_geojson_features(nodes_path):
-        properties = feature.get("properties", {})
-        geometry = feature.get("geometry")
-        if not isinstance(properties, dict) or not isinstance(geometry, dict):
-            continue
-        if str(geometry.get("type", "")).strip() != "Point":
-            continue
-        merged_properties = dict(properties)
-        merged_properties["country_code"] = country_code
-        merged_properties["transport_class"] = "graph_node"
-        merged_properties["graph_feature_type"] = "node"
-        node_features.append(
-            {
-                "type": "Feature",
-                "geometry": geometry,
-                "properties": merged_properties,
-            }
-        )
-
-    return tuple(edge_features), tuple(node_features)
 
 
 @lru_cache(maxsize=4)
@@ -746,24 +644,9 @@ def create_app(
     @app.get("/v1/osm/transport")
     def osm_transport_overlay(
         country: str | None = Query(default=None, min_length=2, max_length=2),
-        run_id: str | None = Query(default=None, min_length=3),
         limit: int = Query(default=200000, ge=1, le=500000),
-        source: Literal["shapefile", "graph"] = Query(default="shapefile"),
-        graph_variant: Literal["raw", "collapsed", "adaptive", "adaptive_portal", "adaptive_portal_run"] = Query(
-            default="raw"
-        ),
-        include_nodes: bool = Query(default=False),
     ) -> dict[str, Any]:
-        used_run_id = run_id.strip() if isinstance(run_id, str) else None
-        graph_root = osm_root
-        if source == "graph":
-            if graph_variant == "adaptive_portal_run":
-                if not used_run_id:
-                    raise HTTPException(status_code=400, detail="run_id is required for graph_variant=adaptive_portal_run")
-                graph_root = store.run_root(used_run_id) / "graph"
-            available_countries = _available_osm_graph_countries(graph_root, graph_variant)
-        else:
-            available_countries = _available_osm_countries(osm_root)
+        available_countries = _available_osm_countries(osm_root)
         features: list[dict[str, Any]] = []
         target_countries = available_countries
         if country:
@@ -773,64 +656,28 @@ def create_app(
             target_countries = [country_code]
 
         for country_code in target_countries:
-            country_root = graph_root / country_code if source == "graph" else (osm_root / country_code)
-            if source == "graph":
-                edge_features, node_features = _osm_transport_graph_components_for_country(
-                    country_code,
-                    country_root,
-                    graph_variant,
-                )
-                features.extend(edge_features)
-                if include_nodes:
-                    features.extend(node_features)
-            else:
-                features.extend(_osm_transport_features_for_country(country_code, country_root))
+            country_root = osm_root / country_code
+            features.extend(_osm_transport_features_for_country(country_code, country_root))
             if len(features) >= limit:
                 break
 
         selected_features = features[:limit]
-        class_source = selected_features
-        if source == "graph":
-            class_source = [
-                feature
-                for feature in selected_features
-                if feature.get("properties", {}).get("graph_feature_type") != "node"
-            ]
         classes = sorted(
             {
                 str(feature.get("properties", {}).get("transport_class", "")).strip()
-                for feature in class_source
+                for feature in selected_features
                 if feature.get("properties")
             }
         )
         payload: dict[str, Any] = {
             "type": "FeatureCollection",
-            "source": source,
-            "graph_variant": graph_variant if source == "graph" else None,
-            "run_agnostic": not (source == "graph" and graph_variant == "adaptive_portal_run"),
+            "source": "shapefile",
             "country": country.strip().upper() if country else None,
             "available_countries": available_countries,
             "classes": classes,
             "feature_count": len(selected_features),
             "features": selected_features,
         }
-        if source == "graph" and graph_variant == "adaptive_portal":
-            adaptive_resolution = None
-            for feature in selected_features:
-                props = feature.get("properties", {})
-                if props.get("graph_feature_type") == "node":
-                    continue
-                value = props.get("adaptive_resolution")
-                if isinstance(value, int):
-                    adaptive_resolution = value
-                    break
-                if isinstance(value, str) and value.strip().isdigit():
-                    adaptive_resolution = int(value.strip())
-                    break
-            if adaptive_resolution is not None:
-                payload["adaptive_resolution"] = adaptive_resolution
-        if source == "graph" and graph_variant == "adaptive_portal_run":
-            payload["run_id"] = used_run_id
         return payload
 
     register_ui_redirects(app)
