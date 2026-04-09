@@ -47,6 +47,9 @@ Important implication:
 - Geometry is authoritative.
 - `country_mask` is the coverage authority.
 - Adaptive output is constrained by both density rules and geometry-backed boundary rules.
+- Version-specific facility-density behavior notes live under [docs/algorithms/facility-density/README.md](/Users/hyes92121/Desktop/h3-experiment/docs/algorithms/facility-density/README.md).
+
+Versioned algorithm notes for the facility-density behavior live under [docs/algorithms/facility-density/README.md](/Users/hyes92121/Desktop/h3-experiment/docs/algorithms/facility-density/README.md).
 
 ## Where To Look First
 

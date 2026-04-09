@@ -208,6 +208,11 @@ def test_adaptive_v3_empty_domain_compacts_to_coarse_levels() -> None:
     assert (cells["resolution"] == int(params["min_output_resolution"])).any()
 
 
+def test_adaptive_layer_rejects_unknown_policy_version() -> None:
+    with pytest.raises(ValueError, match="Unsupported facility_density_adaptive version: v99"):
+        FacilityDensityAdaptiveLayer(version="v99")
+
+
 def test_adaptive_v3_accepts_configurable_min_output_resolution_below_r5() -> None:
     facilities = pd.DataFrame(columns=["facility_id", "lat", "lon", "asof_date"])
     params = _v3_params()
