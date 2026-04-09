@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from inframap.agent.cli import _apply_country_selection, _env_truthy, _format_progress_line, _parse_country_codes
+from inframap.agent.cli import (
+    _apply_country_selection,
+    _env_truthy,
+    _format_progress_line,
+    _parse_country_codes,
+    _resolve_country_selection,
+)
 from inframap.config import load_layers_config
 
 
@@ -13,6 +19,20 @@ def test_parse_country_codes_normalizes_and_dedupes() -> None:
 def test_parse_country_codes_rejects_invalid_token() -> None:
     with pytest.raises(ValueError, match="Invalid country code"):
         _parse_country_codes("ARG,TW")
+
+
+def test_resolve_country_selection_prefers_countries_over_country() -> None:
+    countries, source_env_var, raw_value = _resolve_country_selection("TW,JP", "AR")
+    assert countries == ["TW", "JP"]
+    assert source_env_var == "COUNTRIES"
+    assert raw_value == "TW,JP"
+
+
+def test_resolve_country_selection_falls_back_to_country() -> None:
+    countries, source_env_var, raw_value = _resolve_country_selection(None, "AR")
+    assert countries == ["AR"]
+    assert source_env_var == "COUNTRY"
+    assert raw_value == "AR"
 
 
 def test_apply_country_selection_updates_country_mask_params() -> None:

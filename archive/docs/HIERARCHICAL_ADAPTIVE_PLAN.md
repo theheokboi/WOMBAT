@@ -1,5 +1,7 @@
 # Hierarchical Adaptive Facility Layer Plan (v2)
 
+Historical reference only. This v2 plan was superseded by the current adaptive-layer implementation and the contracts in [docs/PROJECT.md](/Users/hyes92121/Desktop/h3-experiment/docs/PROJECT.md).
+
 ## Summary
 This plan replaces the current `facility_density_adaptive` threshold policy with a deterministic hierarchical partition policy:
 - Base from `country_mask` land cells at `r4`.

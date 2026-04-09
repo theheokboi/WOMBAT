@@ -1,5 +1,7 @@
 # Agent Handover
 
+Historical reference only. Current workflow and workflow rules live in [AGENTS.md](/Users/hyes92121/Desktop/h3-experiment/AGENTS.md) and [docs/PROJECT.md](/Users/hyes92121/Desktop/h3-experiment/docs/PROJECT.md).
+
 Use this document both as a handover checklist and as a reusable transfer prompt.
 
 ## Preconditions Before Handover

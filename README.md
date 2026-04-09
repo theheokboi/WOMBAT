@@ -58,10 +58,11 @@ Compatibility aliases remain:
 ## Contracts And Workflow
 
 - [docs/PROJECT.md](/Users/hyes92121/Desktop/h3-experiment/docs/PROJECT.md): authoritative API, data, and publish contracts
+- [docs/ARCHITECTURE.md](/Users/hyes92121/Desktop/h3-experiment/docs/ARCHITECTURE.md): short mental model for run flow and layer dependencies
 - [AGENTS.md](/Users/hyes92121/Desktop/h3-experiment/AGENTS.md): contributor and agent workflow rules
 - [docs/advanced-workflows.md](/Users/hyes92121/Desktop/h3-experiment/docs/advanced-workflows.md): exports, demo bundles, and graph workflows
 - [tests/README.md](/Users/hyes92121/Desktop/h3-experiment/tests/README.md): test tiers and intent
-- [scripts/README.md](/Users/hyes92121/Desktop/h3-experiment/scripts/README.md): maintained script catalog
+- [scripts/README.md](/Users/hyes92121/Desktop/h3-experiment/scripts/README.md): script catalog with maintained and legacy helpers
 
 ## Demo And Export Paths
 

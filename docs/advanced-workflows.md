@@ -2,6 +2,8 @@
 
 These commands are supported, but they are not part of the default `run-dev` / `serve-dev` / `ui-dev` / `verify-dev` loop.
 
+This doc is for maintained workflows only. Ad hoc and legacy helper scripts stay cataloged in [scripts/README.md](/Users/hyes92121/Desktop/h3-experiment/scripts/README.md) and should not be promoted here unless they become part of the supported workflow surface.
+
 ## Static Demo Bundle
 
 ```bash
@@ -47,6 +49,8 @@ Evaluate raw vs collapsed graph artifacts:
 ```bash
 python scripts/evaluate_major_roads_graph.py --country TW --out artifacts/eval/TW-major-roads-eval.json
 ```
+
+The route overlay helper scripts live in the script catalog for historical reference and manual use. They are not part of the maintained workflow surface.
 
 ## Progress Log Retention
 

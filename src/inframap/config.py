@@ -99,6 +99,66 @@ def load_layers_config(path: Path) -> LayersConfig:
     )
 
 
+def system_config_to_dict(system: SystemConfig) -> dict[str, Any]:
+    return {
+        "config_version": system.config_version,
+        "allowed_h3_resolutions": list(system.allowed_h3_resolutions),
+        "canonical_h3_resolutions": list(system.canonical_h3_resolutions),
+        "country_mask_resolution": system.country_mask_resolution,
+        "zoom_to_h3_resolution": dict(system.zoom_to_h3_resolution),
+        "ui": {
+            "center": list(system.ui.center),
+            "zoom": system.ui.zoom,
+            "drilldown_resolution": system.ui.drilldown_resolution,
+        },
+        "inputs": [
+            {"path": entry.path, "source_name": entry.source_name}
+            for entry in system.inputs
+        ],
+        "paths": {
+            "runs_root": system.paths.runs_root,
+            "staging_root": system.paths.staging_root,
+            "published_root": system.paths.published_root,
+        },
+    }
+
+
+def layers_config_to_dict(layers: LayersConfig) -> dict[str, Any]:
+    return {
+        "layers_version": layers.layers_version,
+        "layers": [
+            {
+                "name": layer.name,
+                "plugin": layer.plugin,
+                "version": layer.version,
+                "params": dict(layer.params),
+            }
+            for layer in layers.layers
+        ],
+    }
+
+
+def build_effective_config_report(
+    system: SystemConfig,
+    layers: LayersConfig,
+    *,
+    system_config_path: Path | None = None,
+    layers_config_path: Path | None = None,
+    runtime_overrides: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    report: dict[str, Any] = {
+        "system": system_config_to_dict(system),
+        "layers": layers_config_to_dict(layers),
+        "runtime_overrides": runtime_overrides or {},
+    }
+    if system_config_path is not None or layers_config_path is not None:
+        report["config_sources"] = {
+            "system_config_path": str(system_config_path) if system_config_path is not None else None,
+            "layers_config_path": str(layers_config_path) if layers_config_path is not None else None,
+        }
+    return report
+
+
 def serialize_config(system: SystemConfig, layers: LayersConfig) -> bytes:
     # Deterministic config serialization for stable hashing.
     payload = {

@@ -19,11 +19,11 @@ def test_load_system_and_layers_config() -> None:
     adaptive = next(layer for layer in layers.layers if layer.name == "facility_density_adaptive")
     assert adaptive.version == "v3"
     assert adaptive.params == {
-        "base_resolution": 3,
+        "base_resolution": 2,
         "empty_compact_min_resolution": 0,
         "facility_floor_resolution": 7,
         "facility_max_resolution": 7,
-        "target_facilities_per_leaf": 1,
+        "target_facilities_per_leaf": 5,
         "empty_interior_max_resolution": 2,
         "min_output_resolution": 2,
         "empty_refine_boundary_band_k": 1,

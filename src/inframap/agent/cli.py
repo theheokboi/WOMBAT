@@ -7,7 +7,7 @@ from threading import Event, Thread
 from time import monotonic, sleep
 
 from inframap.agent.runner import run_pipeline
-from inframap.config import load_layers_config, load_system_config
+from inframap.config import build_effective_config_report, load_layers_config, load_system_config
 
 
 def _parse_country_codes(value: str | None) -> list[str] | None:
@@ -26,6 +26,17 @@ def _parse_country_codes(value: str | None) -> list[str] | None:
         seen.add(token)
         countries.append(token)
     return countries or None
+
+
+def _resolve_country_selection(
+    countries_raw: str | None,
+    country_raw: str | None,
+) -> tuple[list[str] | None, str | None, str | None]:
+    for source_env_var, raw_value in (("COUNTRIES", countries_raw), ("COUNTRY", country_raw)):
+        countries = _parse_country_codes(raw_value)
+        if countries is not None:
+            return countries, source_env_var, raw_value
+    return None, None, None
 
 
 def _apply_country_selection(layers, countries: list[str] | None):
@@ -104,10 +115,27 @@ def main() -> None:
     layers_path = Path(os.environ.get("LAYERS_CONFIG_PATH", "configs/layers.yaml"))
     system = load_system_config(system_path)
     layers = load_layers_config(layers_path)
-    countries_raw = os.environ.get("COUNTRIES") or os.environ.get("COUNTRY")
-    countries = _parse_country_codes(countries_raw)
+    countries, source_env_var, countries_raw = _resolve_country_selection(
+        os.environ.get("COUNTRIES"),
+        os.environ.get("COUNTRY"),
+    )
     layers = _apply_country_selection(layers, countries)
     progress_enabled = _env_truthy(os.environ.get("RUN_DEV_PROGRESS"), default=True)
+    runtime_overrides = {}
+    if countries:
+        runtime_overrides["country_selection"] = {
+            "source_env_var": source_env_var,
+            "raw_value": countries_raw,
+            "countries": countries,
+            "applied_to_layer": "country_mask",
+        }
+    effective_config = build_effective_config_report(
+        system,
+        layers,
+        system_config_path=system_path,
+        layers_config_path=layers_path,
+        runtime_overrides=runtime_overrides,
+    )
     stop_event, monitor_thread = _start_progress_monitor(Path(system.paths.staging_root), enabled=progress_enabled)
     if progress_enabled:
         print("[run-dev] progress monitor enabled (set RUN_DEV_PROGRESS=0 to disable)", flush=True)
@@ -115,6 +143,7 @@ def main() -> None:
         run_id = run_pipeline(
             system,
             layers,
+            effective_config=effective_config,
             latest_pointer="latest-dev",
             compatibility_alias="latest",
             enforce_blocking_checks=False,

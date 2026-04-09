@@ -9,7 +9,7 @@ from time import perf_counter
 
 import pandas as pd
 
-from inframap.config import LayersConfig, SystemConfig
+from inframap.config import LayersConfig, SystemConfig, build_effective_config_report
 from inframap.ingest.pipeline import ingest_and_normalize, write_canonical_outputs
 from inframap.layers.registry import build_layer_registry
 from inframap.manifest import build_run_manifest, manifest_to_dict
@@ -34,6 +34,7 @@ def run_pipeline(
     system: SystemConfig,
     layers: LayersConfig,
     *,
+    effective_config: dict | None = None,
     latest_pointer: str = "latest-dev",
     compatibility_alias: str | None = "latest",
     enforce_blocking_checks: bool = False,
@@ -174,6 +175,10 @@ def run_pipeline(
             heartbeat("invariants", "skipped", note="dev_mode")
 
         _write_json(reports_dir / "run_manifest.json", manifest_to_dict(manifest))
+        _write_json(
+            reports_dir / "effective_config.json",
+            effective_config or build_effective_config_report(system, layers),
+        )
         metrics = {
             "run_success": 1,
             "run_duration_seconds": perf_counter() - started,
